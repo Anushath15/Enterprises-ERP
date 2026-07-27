@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Senthil Enterprises ERP</title>
+
+  <!-- Tailwind CSS & Configuration -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/css/tailwind-config.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Global Custom Styles -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="bg-bg text-text antialiased">
+  
+  <!-- Sidebar Container -->
+  <div id="sidebar-root"></div>
+  
+  <!-- Main Application Wrapper -->
+  <div class="ml-64 transition-all duration-300" id="main-wrapper">
+    <!-- Navbar Container -->
+    <div id="navbar-root"></div>
+    
+    <!-- Page Content Container -->
+    <main class="pt-16 min-h-screen">
+      <div id="page-root" class="p-6 max-w-[1440px] mx-auto fade-in">
+        <!-- Route content dynamically injected here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals, Toasts, and Overlays -->
+  <div id="overlay-root"></div>
+
+  <!-- Global Application Entry Point -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

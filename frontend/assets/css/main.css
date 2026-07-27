@@ -1,0 +1,43 @@
+/* 
+  Global Styles for Senthil Enterprises ERP
+  Contains custom CSS, animations, and scrollbar styling extracted from the original HTML.
+*/
+
+* { font-family: 'Inter', system-ui, sans-serif; }
+
+/* Sidebar Utilities */
+.sidebar-link { transition: all 0.15s ease; }
+.sidebar-link:hover { background-color: rgba(37, 99, 235, 0.06); }
+.sidebar-link.active { background-color: rgba(37, 99, 235, 0.1); color: #2563EB; }
+.sidebar-link.active svg { color: #2563EB; }
+
+/* Card Utilities */
+.card-hover { transition: all 0.2s ease; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0,0,0,0.08), 0 4px 10px -5px rgba(0,0,0,0.04); }
+.stat-card { transition: all 0.2s ease; }
+.stat-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+/* Form Utilities */
+.search-input:focus { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+
+/* Animations */
+.notification-dot { animation: pulse 2s infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.fade-in { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress Bars */
+.progress-bar { transition: width 0.6s ease; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }

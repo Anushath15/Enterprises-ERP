@@ -1,0 +1,1200 @@
+﻿<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Purchase Return Management â€” Senthil Enterprises ERP</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        success: '#16A34A',
+                        warning: '#F59E0B',
+                        danger: '#DC2626',
+                        bg: '#F8FAFC',
+                        card: '#FFFFFF',
+                        text: '#1F2937',
+                        border: '#E5E7EB',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .sidebar-link {
+            transition: all 0.15s ease;
+        }
+        .sidebar-link:hover {
+            background-color: rgba(37, 99, 235, 0.06);
+        }
+        .sidebar-link.active {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: #2563EB;
+        }
+        .sidebar-link.active svg {
+            color: #2563EB;
+        }
+        .stat-card {
+            transition: all 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .search-input:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .row-hover {
+            transition: background-color 0.12s ease;
+        }
+        .row-hover:hover {
+            background-color: #F8FAFC;
+        }
+        .action-icon {
+            transition: all 0.1s ease;
+        }
+        .action-icon:hover {
+            background-color: #F1F5F9;
+        }
+        .action-icon:active {
+            transform: scale(0.95);
+        }
+        .btn-primary {
+            transition: all 0.15s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .drawer {
+            transition: transform 0.25s ease;
+        }
+        .drawer.open {
+            transform: translateX(0);
+        }
+        .drawer.closed {
+            transform: translateX(100%);
+        }
+        .overlay {
+            transition: opacity 0.2s ease;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+        .notification-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .card-hover {
+            transition: all 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.08);
+        }
+        .tab-btn {
+            transition: all 0.15s ease;
+        }
+        .tab-btn.active {
+            color: #2563EB;
+            border-color: #2563EB;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+        .status-badge {
+            transition: all 0.15s ease;
+        }
+        .status-badge:hover {
+            transform: scale(1.04);
+        }
+        .quick-btn {
+            transition: all 0.15s ease;
+        }
+        .quick-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+        }
+        .quick-btn:active {
+            transform: translateY(0);
+        }
+        .filter-select {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .filter-select:focus {
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            outline: none;
+        }
+        .form-input {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .form-input:focus {
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            outline: none;
+        }
+        .timeline-dot {
+            transition: all 0.15s ease;
+        }
+        .timeline-dot:hover {
+            transform: scale(1.2);
+        }
+        .return-card {
+            transition: all 0.2s ease;
+        }
+        .return-card:hover {
+            border-color: #2563EB;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+        }
+        .photo-placeholder {
+            transition: all 0.2s ease;
+        }
+        .photo-placeholder:hover {
+            border-color: #2563EB;
+            background-color: rgba(37, 99, 235, 0.04);
+        }
+        .workflow-step {
+            transition: all 0.2s ease;
+        }
+        .workflow-step:hover {
+            transform: translateX(4px);
+        }
+        .workflow-step.completed .step-circle {
+            background-color: #16A34A;
+            border-color: #16A34A;
+            color: white;
+        }
+        .workflow-step.active .step-circle {
+            background-color: #2563EB;
+            border-color: #2563EB;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+        }
+        .workflow-step.pending .step-circle {
+            background-color: #F1F5F9;
+            border-color: #E5E7EB;
+            color: #94A3B8;
+        }
+        .step-circle {
+            transition: all 0.3s ease;
+        }
+        .dealer-badge {
+            transition: all 0.15s ease;
+        }
+        .dealer-badge:hover {
+            transform: scale(1.04);
+        }
+        .log-entry {
+            transition: background-color 0.15s ease;
+        }
+        .log-entry:hover {
+            background-color: #F8FAFC;
+        }
+        .return-progress-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .replacement-chip {
+            transition: all 0.15s ease;
+        }
+        .replacement-chip:hover {
+            transform: scale(1.04);
+        }
+        .note-area {
+            transition: border-color 0.15s ease;
+        }
+        .note-area:focus {
+            border-color: #2563EB;
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-bg text-text antialiased">
+
+    <!-- ============================================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================================ -->
+    <aside class="fixed left-0 top-0 h-screen w-64 bg-white border-r border-border z-50 flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-border">
+            <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mr-3">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-text leading-tight">Senthil Enterprises</h1>
+                <p class="text-[10px] text-gray-400 font-medium tracking-wide uppercase">ERP System</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+                Dashboard
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                </svg>
+                Sales
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+                Customers
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                </svg>
+                Products
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                Inventory
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                Purchases
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                </svg>
+                Dealers
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                </svg>
+                House Projects
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Replacement
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Finance
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+                Reports
+            </a>
+            <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                Purchases
+            </a>
+            <a href="#" class="sidebar-link active flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-primary">
+                <svg class="w-5 h-5 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Purchase Returns
+            </a>
+            <div class="pt-4 mt-4 border-t border-border">
+                <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+                    <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
+                </a>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center px-2">
+                <div class="w-2 h-2 rounded-full bg-success mr-2"></div>
+                <span class="text-xs text-gray-400 font-medium">System Online</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================================ -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================================================ -->
+    <div class="ml-64">
+
+        <!-- TOP NAVBAR -->
+        <header class="h-16 bg-white border-b border-border fixed top-0 right-0 left-64 z-40 flex items-center justify-between px-6">
+            <div class="flex items-center">
+                <h2 class="text-lg font-semibold text-text">Purchase Return Management</h2>
+                <span class="mx-3 text-gray-300">|</span>
+                <span class="text-sm text-gray-400" id="currentDate"></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    <input type="text" placeholder="Search purchase returns..." class="search-input w-80 pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm text-text placeholder-gray-400 focus:outline-none focus:border-primary transition-all">
+                    <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-gray-400 bg-white px-1.5 py-0.5 rounded border border-border hidden lg:block">Ctrl K</kbd>
+                </div>
+                <button class="relative p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full notification-dot"></span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l border-border">
+                    <div class="text-right hidden md:block">
+                        <p class="text-sm font-medium text-text">Senthil Kumar</p>
+                        <p class="text-xs text-gray-400">Store Manager</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+                        <span class="text-sm font-semibold text-primary">SK</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ============================================================ -->
+        <!-- DASHBOARD CONTENT -->
+        <!-- ============================================================ -->
+        <main class="pt-16 min-h-screen">
+            <div class="p-6 max-w-[1600px] mx-auto fade-in">
+
+                <!-- Page Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-text">Purchase Return Management</h1>
+                        <p class="text-sm text-gray-400 mt-1">Manage returning damaged, defective, incorrect, or excess products to dealers.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Export
+                        </button>
+                        <button onclick="openDrawer()" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            Create Purchase Return
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- DASHBOARD CARDS -->
+                <!-- ============================================================ -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+
+                    <div class="stat-card bg-white rounded-xl border border-border p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-medium text-danger bg-danger/10 px-1.5 py-0.5 rounded-full">5</span>
+                        </div>
+                        <p class="text-xl font-bold text-warning">8</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Pending Dealer Returns</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-border p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-medium text-success bg-success/10 px-1.5 py-0.5 rounded-full">+3</span>
+                        </div>
+                        <p class="text-xl font-bold text-text">6</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Approved Returns</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-border p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-danger/10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-medium text-danger bg-danger/10 px-1.5 py-0.5 rounded-full">2</span>
+                        </div>
+                        <p class="text-xl font-bold text-danger">3</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Rejected Returns</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-border p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-medium text-warning bg-warning/10 px-1.5 py-0.5 rounded-full">4</span>
+                        </div>
+                        <p class="text-xl font-bold text-warning">5</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Replacement Pending</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-border p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">MTD</span>
+                        </div>
+                        <p class="text-xl font-bold text-text">â‚¹1,24,300</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Return Value</p>
+                    </div>
+
+                    <div class="stat-card bg-white rounded-xl border border-border p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-medium text-success bg-success/10 px-1.5 py-0.5 rounded-full">+2</span>
+                        </div>
+                        <p class="text-xl font-bold text-text">4</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Today's Returns</p>
+                    </div>
+
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- TABS -->
+                <!-- ============================================================ -->
+                <div class="flex items-center gap-1 border-b border-border mb-6">
+                    <button class="tab-btn active px-4 py-3 text-sm font-medium text-primary border-b-2 border-primary" onclick="switchTab(event,'purchase-returns')">Purchase Returns</button>
+                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text" onclick="switchTab(event,'replacement')">Replacement</button>
+                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text" onclick="switchTab(event,'dealer-approval')">Dealer Approval</button>
+                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text" onclick="switchTab(event,'completed-returns')">Completed</button>
+                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text" onclick="switchTab(event,'cancelled-returns')">Cancelled</button>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- FILTERS -->
+                <!-- ============================================================ -->
+                <div class="bg-white rounded-xl border border-border p-4 mb-6">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <select class="filter-select px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 w-44">
+                            <option>All Dealers</option>
+                            <option>Vrindavan Traders</option>
+                            <option>Astral Pipes Dealer</option>
+                            <option>Havells Distributor</option>
+                            <option>S.K. Hardware</option>
+                        </select>
+                        <input type="text" placeholder="Purchase Invoice #" class="filter-select px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-text w-36">
+                        <input type="text" placeholder="Product" class="filter-select px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-text w-40">
+                        <select class="filter-select px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 w-36">
+                            <option>All Brands</option>
+                            <option>Astral</option>
+                            <option>Havells</option>
+                            <option>Crompton</option>
+                            <option>Asian Paints</option>
+                            <option>Finolex</option>
+                        </select>
+                        <select class="filter-select px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 w-36">
+                            <option>All Return Status</option>
+                            <option>Pending</option>
+                            <option>With Dealer</option>
+                            <option>Approved</option>
+                            <option>Rejected</option>
+                            <option>Completed</option>
+                            <option>Cancelled</option>
+                        </select>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">From</span>
+                            <input type="date" value="2026-07-20" class="filter-select pl-12 pr-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-text w-36">
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">To</span>
+                            <input type="date" value="2026-07-26" class="filter-select pl-12 pr-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-text w-36">
+                        </div>
+                        <button class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+                            Apply Filters
+                        </button>
+                        <button class="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- TAB PANELS -->
+                <!-- ============================================================ -->
+
+                <!-- PURCHASE RETURNS TAB -->
+                <div id="purchase-returns" class="tab-panel active">
+                    <div class="bg-white rounded-xl border border-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[1300px]">
+                                <thead>
+                                    <tr class="border-b border-border bg-gray-50/60 text-left">
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Purchase Invoice</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-center">Qty</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Reason</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer Status</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Replacement Status</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Amount</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+
+                                    <!-- Row 1 -->
+                                    <tr class="row-hover cursor-pointer" onclick="openProfile()">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-001</td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span class="text-[10px] font-bold text-primary">VT</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-text">Vrindavan Traders</p>
+                                                    <p class="text-[10px] text-gray-400">Since 2022</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">PO-1187</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">CPVC Pipe 1"</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">20</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">Defective</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning status-badge">Pending</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 replacement-chip">N/A</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹7,700</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" onclick="event.stopPropagation(); openProfile()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" title="Notify Dealer" onclick="event.stopPropagation()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Row 2 -->
+                                    <tr class="row-hover cursor-pointer" onclick="openProfile()">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-002</td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded-full bg-success/10 flex items-center justify-center">
+                                                    <span class="text-[10px] font-bold text-success">AP</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-text">Astral Pipes Dealer</p>
+                                                    <p class="text-[10px] text-gray-400">Since 2023</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">PO-1182</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Astral CPVC Fittings</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">15</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Damaged</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary status-badge">With Dealer</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning replacement-chip">Pending</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹4,500</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" onclick="event.stopPropagation(); openProfile()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-success" title="Record Dealer Response" onclick="event.stopPropagation()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Row 3 -->
+                                    <tr class="row-hover cursor-pointer" onclick="openProfile()">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-003</td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded-full bg-warning/10 flex items-center justify-center">
+                                                    <span class="text-[10px] font-bold text-warning">HD</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-text">Havells Distributor</p>
+                                                    <p class="text-[10px] text-gray-400">Since 2021</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">PO-1178</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Havells Modular Switches</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">10</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">Wrong Product</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success status-badge">Approved</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success replacement-chip">Received</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹3,200</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" onclick="event.stopPropagation(); openProfile()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" title="Close Case" onclick="event.stopPropagation()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Row 4 -->
+                                    <tr class="row-hover cursor-pointer" onclick="openProfile()">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-004</td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded-full bg-danger/10 flex items-center justify-center">
+                                                    <span class="text-[10px] font-bold text-danger">SK</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-text">S.K. Hardware</p>
+                                                    <p class="text-[10px] text-gray-400">Since 2020</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">PO-1165</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Hardware Fasteners</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">50</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">Defective</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger status-badge">Rejected</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 replacement-chip">N/A</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹3,600</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" onclick="event.stopPropagation(); openProfile()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Row 5 -->
+                                    <tr class="row-hover cursor-pointer" onclick="openProfile()">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-005</td>
+                                        <td class="px-4 py-3.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span class="text-[10px] font-bold text-primary">PM</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-text">Pioneer Motors</p>
+                                                    <p class="text-[10px] text-gray-400">Since 2023</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">PO-1142</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Crompton 1HP Motor</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">2</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Damaged</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success status-badge">Approved</span>
+                                        </td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success replacement-chip">Completed</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹8,400</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" onclick="event.stopPropagation(); openProfile()">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="flex items-center justify-between px-4 py-3 border-t border-border">
+                            <p class="text-xs text-gray-400">Showing 1â€“5 of 18 purchase returns</p>
+                            <div class="flex items-center gap-1">
+                                <button class="px-2.5 py-1.5 text-xs font-medium text-gray-400 border border-border rounded-md hover:bg-gray-50">Prev</button>
+                                <button class="px-2.5 py-1.5 text-xs font-medium text-white bg-primary rounded-md">1</button>
+                                <button class="px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-border rounded-md hover:bg-gray-50">2</button>
+                                <button class="px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-border rounded-md hover:bg-gray-50">3</button>
+                                <button class="px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-border rounded-md hover:bg-gray-50">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPLACEMENT TAB -->
+                <div id="replacement" class="tab-panel">
+                    <div class="bg-white rounded-xl border border-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[1100px]">
+                                <thead>
+                                    <tr class="border-b border-border bg-gray-50/60 text-left">
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-center">Qty</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Replacement Status</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Expected Delivery</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-002</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">Astral Pipes Dealer</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Astral CPVC Fittings</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">15</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Pending</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">02 Aug 2026</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-success" title="Mark Received">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-006</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">Havells Distributor</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Havells LED Lights</td>
+                                        <td class="px-4 py-3.5 text-center text-sm text-gray-600">8</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">In Transit</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">29 Jul 2026</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-success" title="Mark Received">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DEALER APPROVAL TAB -->
+                <div id="dealer-approval" class="tab-panel">
+                    <div class="bg-white rounded-xl border border-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[1100px]">
+                                <thead>
+                                    <tr class="border-b border-border bg-gray-50/60 text-left">
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return Date</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer Response</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-001</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">Vrindavan Traders</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">CPVC Pipe 1"</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">25 Jul 2026</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">Pending</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-400">Awaiting response</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-success" title="Record Response">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-007</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">S.K. Hardware</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">TMT Bars</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">24 Jul 2026</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">With Dealer</span>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Under inspection</td>
+                                        <td class="px-4 py-3.5 text-right">
+                                            <button class="action-icon p-1.5 rounded-lg text-gray-400 hover:text-success" title="Record Response">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMPLETED TAB -->
+                <div id="completed-returns" class="tab-panel">
+                    <div class="bg-white rounded-xl border border-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[1100px]">
+                                <thead>
+                                    <tr class="border-b border-border bg-gray-50/60 text-left">
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Amount</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Completed On</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-005</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">Pioneer Motors</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Crompton 1HP Motor</td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹8,400</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">26 Jul 2026</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">Completed</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-008</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">Astral Pipes Dealer</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Astral PVC Pipes</td>
+                                        <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">â‚¹3,850</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">25 Jul 2026</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">Completed</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CANCELLED TAB -->
+                <div id="cancelled-returns" class="tab-panel">
+                    <div class="bg-white rounded-xl border border-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[1100px]">
+                                <thead>
+                                    <tr class="border-b border-border bg-gray-50/60 text-left">
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Reason</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Cancelled On</th>
+                                        <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    <tr class="row-hover">
+                                        <td class="px-4 py-3.5 font-semibold text-primary text-sm">PR-2024-009</td>
+                                        <td class="px-4 py-3.5 text-sm font-medium text-text">Havells Distributor</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-600">Havells Ceiling Fans</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">Dealer out of stock</td>
+                                        <td class="px-4 py-3.5 text-sm text-gray-500">23 Jul 2026</td>
+                                        <td class="px-4 py-3.5">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Cancelled</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- WORKFLOW -->
+                <!-- ============================================================ -->
+                <div class="mt-6 bg-white rounded-xl border border-border p-5">
+                    <h3 class="text-sm font-semibold text-text mb-4">Purchase Return Workflow</h3>
+                    <div class="flex items-center gap-2 overflow-x-auto pb-2">
+                        <div class="workflow-step completed flex items-center gap-3 px-4 py-2.5 rounded-lg bg-success/5 border border-success/20 flex-shrink-0">
+                            <div class="step-circle w-6 h-6 rounded-full bg-success text-white flex items-center justify-center text-[10px] font-bold">1</div>
+                            <div>
+                                <p class="text-xs font-medium text-text">Create Return</p>
+                                <p class="text-[9px] text-gray-400">Initiated</p>
+                            </div>
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+
+                        <div class="workflow-step active flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20 flex-shrink-0">
+                            <div class="step-circle w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">2</div>
+                            <div>
+                                <p class="text-xs font-medium text-text">Dealer Approval</p>
+                                <p class="text-[9px] text-gray-400">In Progress</p>
+                            </div>
+                            <div class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                        </div>
+
+                        <div class="workflow-step pending flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gray-50 border border-border flex-shrink-0">
+                            <div class="step-circle w-6 h-6 rounded-full bg-gray-100 border border-border text-gray-400 flex items-center justify-center text-[10px] font-bold">3</div>
+                            <div>
+                                <p class="text-xs font-medium text-text">Pickup / Shipment</p>
+                                <p class="text-[9px] text-gray-400">Pending</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step pending flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gray-50 border border-border flex-shrink-0">
+                            <div class="step-circle w-6 h-6 rounded-full bg-gray-100 border border-border text-gray-400 flex items-center justify-center text-[10px] font-bold">4</div>
+                            <div>
+                                <p class="text-xs font-medium text-text">Dealer Inspection</p>
+                                <p class="text-[9px] text-gray-400">Pending</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step pending flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gray-50 border border-border flex-shrink-0">
+                            <div class="step-circle w-6 h-6 rounded-full bg-gray-100 border border-border text-gray-400 flex items-center justify-center text-[10px] font-bold">5</div>
+                            <div>
+                                <p class="text-xs font-medium text-text">Replacement / Credit Note</p>
+                                <p class="text-[9px] text-gray-400">Pending</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step pending flex items-center gap-3 px-4 py-2.5 rounded-lg bg-gray-50 border border-border flex-shrink-0">
+                            <div class="step-circle w-6 h-6 rounded-full bg-gray-100 border border-border text-gray-400 flex items-center justify-center text-[10px] font-bold">6</div>
+                            <div>
+                                <p class="text-xs font-medium text-text">Inventory Updated</p>
+                                <p class="text-[9px] text-gray-400">Pending</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+                        <div class="return-progress-bar bg-primary h-1.5 rounded-full" style="width: 33.3%"></div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-1.5 text-right">2 of 6 steps completed</p>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- QUICK ACTIONS -->
+                <!-- ============================================================ -->
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mt-6">
+                    <button onclick="openDrawer()" class="quick-btn flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-text">Create Purchase Return</span>
+                    </button>
+
+                    <button class="quick-btn flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-text">Generate Return Note</span>
+                    </button>
+
+                    <button class="quick-btn flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-text">Print Return Slip</span>
+                    </button>
+
+                    <button class="quick-btn flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-border hover:border-success/30 hover:bg-success/5 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-text">Notify Dealer</span>
+                    </button>
+
+                    <button class="quick-btn flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-text">Record Dealer Response</span>
+                    </button>
+
+                    <button class="quick-btn flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-border hover:border-success/30 hover:bg-success/5 transition-all group">
+                        <div class="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium text-text">Close Case</span>
+                    </button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- OVERLAY -->
+    <!-- ============================================================ -->
+    <div id="overlay" class="overlay fixed inset-0 bg-black/30 z-[60] opacity-0 pointer-events-none" onclick="closeDrawer(); closeProfile();"></div>
+
+    <!-- ============================================================ -->
+    <!-- RIGHT DRAWER: CREATE PURCHASE RETURN -->
+    <!-- ============================================================ -->
+    <aside id="drawer" class="drawer closed fixed top-0 right-0 h-screen w-[520px] bg-white border-l border-border z-[70] overflow-y-auto shadow-2xl">
+        <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10">
+            <h3 class="text-base font-semibold text-text">Create Purchase Return</h3>
+            <button onclick="closeDrawer()" class="p-1.5 rounded-md hover:bg-gray-100">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-5">
+            <div>
+                <label class="text-xs font-medium text-gray-500 block mb-1.5">Dealer *</label>
+                <select class="form-input w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none transition-all">
+                    <option>Vrindavan Traders</option>
+                    <option>Astral Pipes Dealer</option>
+                    <option>Havells Distributor</option>
+                    <option>S.K. Hardware</option>
+                    <option>Pioneer Motors</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-medium text-gray-500 block mb-1.5">Purchase Invoice *</label>
+                <input type="text" placeholder="e.g. PO-1187" class="form-input w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none transition-all">
+            </div>
+
+            <div>
+                <label class="text-xs font-medium text-gray-500 block mb-1.5">Product *</label>
+                <select class="form-input w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none transition-all">
+                    <option>CPVC Pipe 1"</option>
+                    <option>Astral CPVC Fittings</option>
+                    <option>Havells Modular Switches</option>
+                    <option>Crompton 1HP Motor</option>
+                    <option>Hardware Fasteners</option>
+                </select>
+            </div>

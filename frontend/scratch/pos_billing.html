@@ -1,0 +1,595 @@
+  <title>POS Billing - Senthil Enterprises</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563EB',
+            success: '#16A34A',
+            warning: '#F59E0B',
+            danger: '#DC2626',
+            bg: '#F8FAFC',
+            card: '#FFFFFF',
+            text: '#1F2937',
+            border: '#E5E7EB',
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .sidebar-link { transition: all 0.15s ease; }
+    .sidebar-link:hover { background-color: rgba(37,99,235,0.06); }
+    .sidebar-link.active { background-color: rgba(37,99,235,0.1); color: #2563EB; }
+    .sidebar-link.active svg { color: #2563EB; }
+    .search-input:focus { box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .notification-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+    .fade-in { animation: fadeIn 0.3s ease-out both; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .cart-item { transition: all 0.15s ease; }
+    .cart-item:hover { background-color: #F8FAFC; }
+    .numpad-btn { transition: all 0.1s ease; }
+    .numpad-btn:hover { background-color: #F1F5F9; }
+    .numpad-btn:active { transform: scale(0.96); background-color: #E2E8F0; }
+    .action-btn { transition: all 0.15s ease; }
+    .action-btn:hover { transform: translateY(-1px); }
+    .action-btn:active { transform: translateY(0); }
+    .product-card { transition: all 0.15s ease; }
+    .product-card:hover { border-color: #2563EB; box-shadow: 0 4px 12px rgba(37,99,235,0.1); }
+    .product-card:active { transform: scale(0.98); }
+    .qty-btn { transition: all 0.1s ease; }
+    .qty-btn:hover { background-color: #E2E8F0; }
+    .qty-btn:active { transform: scale(0.9); }
+    .payment-btn { transition: all 0.15s ease; }
+    .payment-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .payment-btn.selected { ring: 2px; ring-offset: 2px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    .category-pill { transition: all 0.15s ease; }
+    .category-pill:hover { background-color: #E2E8F0; }
+    .category-pill.active { background-color: #2563EB; color: white; border-color: #2563EB; }
+  </style>
+<base target="_blank">
+</head>
+<body class="bg-bg text-text antialiased">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-screen w-64 bg-white border-r border-border z-50 flex flex-col">
+    <div class="h-16 flex items-center px-6 border-b border-border">
+      <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mr-3">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold text-text leading-tight">Senthil Enterprises</h1>
+        <p class="text-[10px] text-gray-400 font-medium tracking-wide uppercase">ERP System</p>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="sidebar-link active flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-primary">
+        <svg class="w-5 h-5 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+        Sales
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        Customers
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+        Products
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+        Inventory
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+        Purchases
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+        Dealers
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        House Projects
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+        Replacement
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance
+      </a>
+      <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        Reports
+      </a>
+      <div class="pt-4 mt-4 border-t border-border">
+        <a href="#" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-text">
+          <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </a>
+      </div>
+    </nav>
+    <div class="p-4 border-t border-border">
+      <div class="flex items-center px-2">
+        <div class="w-2 h-2 rounded-full bg-success mr-2"></div>
+        <span class="text-xs text-gray-400 font-medium">System Online</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="ml-64">
+    <!-- Top Navbar -->
+    <header class="h-16 bg-white border-b border-border fixed top-0 right-0 left-64 z-40 flex items-center justify-between px-6">
+      <div class="flex items-center">
+        <h2 class="text-lg font-semibold text-text">POS Billing</h2>
+        <span class="mx-3 text-gray-300">|</span>
+        <span class="text-sm text-gray-400">Invoice #INV-2853</span>
+        <span class="mx-3 text-gray-300">|</span>
+        <span class="text-sm text-gray-400" id="currentDate"></span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <input type="text" placeholder="Search products, barcode..." 
+            class="search-input w-72 pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm text-text placeholder-gray-400 focus:outline-none focus:border-primary transition-all">
+          <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-gray-400 bg-white px-1.5 py-0.5 rounded border border-border hidden lg:block">Ctrl K</kbd>
+        </div>
+        <button class="relative p-2 rounded-lg hover:bg-gray-50 transition-colors">
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full notification-dot"></span>
+        </button>
+        <div class="flex items-center gap-3 pl-4 border-l border-border">
+          <div class="text-right hidden md:block">
+            <p class="text-sm font-medium text-text">Senthil Kumar</p>
+            <p class="text-xs text-gray-400">Store Manager</p>
+          </div>
+          <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+            <span class="text-sm font-semibold text-primary">SK</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- POS Content -->
+    <main class="pt-16 min-h-screen">
+      <div class="p-5 max-w-[1600px] mx-auto">
+
+        <!-- Customer Bar -->
+        <div class="bg-white rounded-xl border border-border p-4 mb-5 flex items-center justify-between fade-in">
+          <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Customer</p>
+                <p class="text-sm font-semibold text-text">Ravi Kumar</p>
+              </div>
+            </div>
+            <div class="h-8 w-px bg-border"></div>
+            <div>
+              <p class="text-xs text-gray-400">Type</p>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary">Retail</span>
+            </div>
+            <div class="h-8 w-px bg-border"></div>
+            <div>
+              <p class="text-xs text-gray-400">Phone</p>
+              <p class="text-sm font-medium text-text">+91 98765 43210</p>
+            </div>
+            <div class="h-8 w-px bg-border"></div>
+            <div>
+              <p class="text-xs text-gray-400">Credit Balance</p>
+              <p class="text-sm font-semibold text-danger">Rs.12,400 pending</p>
+            </div>
+          </div>
+          <button class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors action-btn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+            Change Customer
+          </button>
+        </div>
+
+        <!-- Main POS Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 h-[calc(100vh-200px)] min-h-[600px]">
+
+          <!-- LEFT: Product Catalog (3 cols) -->
+          <div class="lg:col-span-3 flex flex-col gap-4 h-full">
+
+            <!-- Search + Barcode + Category -->
+            <div class="bg-white rounded-xl border border-border p-4">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="relative flex-1">
+                  <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                  <input type="text" placeholder="Search by product name, code..." 
+                    class="search-input w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text placeholder-gray-400 focus:outline-none focus:border-primary transition-all">
+                </div>
+                <div class="relative w-48">
+                  <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"/></svg>
+                  <input type="text" placeholder="Scan barcode..." 
+                    class="search-input w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text placeholder-gray-400 focus:outline-none focus:border-primary transition-all">
+                </div>
+              </div>
+              <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                <button class="category-pill active px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">All Products</button>
+                <button class="category-pill px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">Electrical</button>
+                <button class="category-pill px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">Plumbing</button>
+                <button class="category-pill px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">Sanitary</button>
+                <button class="category-pill px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">Paints</button>
+                <button class="category-pill px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">Hardware</button>
+                <button class="category-pill px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-white text-gray-600 whitespace-nowrap">Construction</button>
+              </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="bg-white rounded-xl border border-border p-4 flex-1 overflow-hidden flex flex-col">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-text">Products</h3>
+                <span class="text-xs text-gray-400">Showing 12 of 1,247</span>
+              </div>
+              <div class="grid grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto pr-1" style="max-height: calc(100% - 32px);">
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">1/2&quot; PVC Pipe</p>
+                  <p class="text-[10px] text-gray-400">Astral | 3m length</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.85</p>
+                    <span class="text-[10px] text-gray-400">Stock: 45</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.412 15.655L9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.155"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Crompton 1HP Motor</p>
+                  <p class="text-[10px] text-gray-400">Crompton | Mono</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.4,200</p>
+                    <span class="text-[10px] text-danger font-medium">Stock: 2</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.048 4.025a3 3 0 01-4.293 0l1.414-1.415a.75.75 0 111.06 1.06l-1.414 1.414zm6.95-3.535a3 3 0 010 4.242l-1.414-1.415a.75.75 0 111.06-1.06l1.414 1.414z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Asian Paints Apex 4L</p>
+                  <p class="text-[10px] text-gray-400">Asian Paints | White</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.1,850</p>
+                    <span class="text-[10px] text-warning font-medium">Stock: 6</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 11.25l-3-3m0 0l-3 3m3-3v7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Hindware WC Set</p>
+                  <p class="text-[10px] text-gray-400">Hindware | S-trap</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.3,800</p>
+                    <span class="text-[10px] text-danger font-medium">Stock: 1</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 10.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-9.75"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Jaquar Mixer Tap</p>
+                  <p class="text-[10px] text-gray-400">Jaquar | Chrome</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.2,400</p>
+                    <span class="text-[10px] text-warning font-medium">Stock: 4</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Finolex Wire 2.5mm</p>
+                  <p class="text-[10px] text-gray-400">Finolex | 90m coil</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.2,100</p>
+                    <span class="text-[10px] text-gray-400">Stock: 32</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Philips LED 12W</p>
+                  <p class="text-[10px] text-gray-400">Philips | Cool Day</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.180</p>
+                    <span class="text-[10px] text-gray-400">Stock: 120</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">ACC Cement 50kg</p>
+                  <p class="text-[10px] text-gray-400">ACC | OPC 53</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.380</p>
+                    <span class="text-[10px] text-gray-400">Stock: 200</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64M13.5 3v11.25m0 0H2.36m11.14 0H13.5m0 0h3.64"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">TMT Bar 8mm</p>
+                  <p class="text-[10px] text-gray-400">Tata Tiscon | Per kg</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.72</p>
+                    <span class="text-[10px] text-gray-400">Stock: 500kg</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Anchor Switch 6A</p>
+                  <p class="text-[10px] text-gray-400">Anchor | Roma</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.45</p>
+                    <span class="text-[10px] text-gray-400">Stock: 85</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 11.25l-3-3m0 0l-3 3m3-3v7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Parryware Basin</p>
+                  <p class="text-[10px] text-gray-400">Parryware | Wall</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.1,650</p>
+                    <span class="text-[10px] text-gray-400">Stock: 18</span>
+                  </div>
+                </div>
+
+                <div class="product-card p-3 rounded-xl border border-border cursor-pointer bg-white">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.048 4.025a3 3 0 01-4.293 0l1.414-1.415a.75.75 0 111.06 1.06l-1.414 1.414zm6.95-3.535a3 3 0 010 4.242l-1.414-1.415a.75.75 0 111.06-1.06l1.414 1.414z"/></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-text truncate">Nerolac Enamel 1L</p>
+                  <p class="text-[10px] text-gray-400">Nerolac | Gloss</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <p class="text-sm font-bold text-primary">Rs.420</p>
+                    <span class="text-[10px] text-gray-400">Stock: 56</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Cart + Summary (2 cols) -->
+          <div class="lg:col-span-2 flex flex-col gap-4 h-full">
+
+            <!-- Cart -->
+            <div class="bg-white rounded-xl border border-border flex-1 flex flex-col overflow-hidden">
+              <div class="px-4 py-3 border-b border-border flex items-center justify-between bg-gray-50/50">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+                  <h3 class="text-sm font-semibold text-text">Cart</h3>
+                  <span class="text-xs text-gray-400">(4 items)</span>
+                </div>
+                <button class="text-xs text-danger hover:text-danger/80 font-medium transition-colors">Clear All</button>
+              </div>
+
+              <div class="flex-1 overflow-y-auto">
+                <!-- Cart Item 1 -->
+                <div class="cart-item px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-text truncate">1/2&quot; PVC Pipe (Astral)</p>
+                    <p class="text-[10px] text-gray-400">Rs.85 x 10 = Rs.850</p>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">-</button>
+                    <span class="text-xs font-semibold w-6 text-center">10</span>
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">+</button>
+                  </div>
+                  <p class="text-sm font-bold text-text w-16 text-right">Rs.850</p>
+                  <button class="p-1 rounded hover:bg-danger/10 text-gray-400 hover:text-danger transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+
+                <!-- Cart Item 2 -->
+                <div class="cart-item px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.412 15.655L9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.155"/></svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-text truncate">Crompton 1HP Motor</p>
+                    <p class="text-[10px] text-gray-400">Rs.4,200 x 1 = Rs.4,200</p>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">-</button>
+                    <span class="text-xs font-semibold w-6 text-center">1</span>
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">+</button>
+                  </div>
+                  <p class="text-sm font-bold text-text w-16 text-right">Rs.4,200</p>
+                  <button class="p-1 rounded hover:bg-danger/10 text-gray-400 hover:text-danger transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+
+                <!-- Cart Item 3 -->
+                <div class="cart-item px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.048 4.025a3 3 0 01-4.293 0l1.414-1.415a.75.75 0 111.06 1.06l-1.414 1.414zm6.95-3.535a3 3 0 010 4.242l-1.414-1.415a.75.75 0 111.06-1.06l1.414 1.414z"/></svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-text truncate">Asian Paints Apex 4L</p>
+                    <p class="text-[10px] text-gray-400">Rs.1,850 x 2 = Rs.3,700</p>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">-</button>
+                    <span class="text-xs font-semibold w-6 text-center">2</span>
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">+</button>
+                  </div>
+                  <p class="text-sm font-bold text-text w-16 text-right">Rs.3,700</p>
+                  <button class="p-1 rounded hover:bg-danger/10 text-gray-400 hover:text-danger transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+
+                <!-- Cart Item 4 -->
+                <div class="cart-item px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-text truncate">Finolex Wire 2.5mm</p>
+                    <p class="text-[10px] text-gray-400">Rs.2,100 x 1 = Rs.2,100</p>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">-</button>
+                    <span class="text-xs font-semibold w-6 text-center">1</span>
+                    <button class="qty-btn w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">+</button>
+                  </div>
+                  <p class="text-sm font-bold text-text w-16 text-right">Rs.2,100</p>
+                  <button class="p-1 rounded hover:bg-danger/10 text-gray-400 hover:text-danger transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Cart Footer: Discount + Tax -->
+              <div class="px-4 py-3 border-t border-border bg-gray-50/50 space-y-2">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-medium text-gray-500 w-20">Discount</span>
+                  <div class="flex items-center gap-2 flex-1">
+                    <input type="text" value="5" class="w-14 px-2 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary">
+                    <select class="text-xs border border-border rounded px-2 py-1 bg-white focus:outline-none focus:border-primary">
+                      <option>%</option>
+                      <option>Rs.</option>
+                    </select>
+                    <span class="text-xs text-success font-medium ml-auto">- Rs.525.00</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-medium text-gray-500 w-20">Tax (GST)</span>
+                  <div class="flex items-center gap-2 flex-1">
+                    <span class="text-xs text-gray-600">18% GST</span>
+                    <span class="text-xs text-text font-medium ml-auto">+ Rs.1,891.50</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Invoice Summary -->
+            <div class="bg-white rounded-xl border border-border p-4">
+              <h3 class="text-sm font-semibold text-text mb-3">Invoice Summary</h3>
+
+              <div class="space-y-2 mb-4">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">Subtotal (4 items)</span>
+                  <span class="font-medium text-text">Rs.10,850.00</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">Discount (5%)</span>
+                  <span class="font-medium text-success">- Rs.525.00</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">Tax (18% GST)</span>
+                  <span class="font-medium text-text">+ Rs.1,891.50</span>
+                </div>
+                <div class="border-t border-border pt-2 flex items-center justify-between">
+                  <span class="text-base font-bold text-text">Total Amount</span>
+                  <span class="text-2xl font-extrabold text-primary">Rs.12,216.50</span>
+                </div>
+              </div>
+
+              <!-- Payment Mode -->
+              <div class="mb-4">
+                <p class="text-xs font-medium text-gray-500 mb-2">Payment Mode</p>
+                <div class="grid grid-cols-3 gap-2">
+                  <button class="payment-btn flex flex-col items-center justify-center py-3 rounded-lg border-2 border-primary bg-primary/5 text-primary">
+                    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+                    <span class="text-xs font-semibold">Cash</span>
+                  </button>
+                  <button class="payment-btn flex flex-col items-center justify-center py-3 rounded-lg border border-border bg-white text-gray-500 hover:border-success/50 hover:bg-success/5">
+                    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+                    <span class="text-xs font-semibold">UPI</span>
+                  </button>
+                  <button class="payment-btn flex flex-col items-center justify-center py-3 rounded-lg border border-border bg-white text-gray-500 hover:border-danger/50 hover:bg-danger/5">
+                    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+                    <span class="text-xs font-semibold">Credit</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="grid grid-cols-2 gap-2">
+                <button class="action-btn flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg>
+                  Save & Print
+                </button>
+                <button class="action-btn flex items-center justify-center gap-2 px-4 py-3 bg-success text-white text-sm font-semibold rounded-lg hover:bg-success/90">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Save Only
+                </button>
+              </div>
+              <button class="action-btn w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 border border-border text-gray-500 text-sm font-medium rounded-lg hover:bg-gray-50">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Cancel / Clear Cart
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', dateOptions);
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.querySelector('.search-input').focus();
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">

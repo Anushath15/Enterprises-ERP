@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Library Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/css/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="bg-bg text-text p-10 min-h-screen">
+  
+  <div class="max-w-[1440px] mx-auto bg-white rounded-xl shadow-lg border border-border overflow-hidden">
+    <div class="p-6 border-b border-border bg-gray-50 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-primary">ERP Component Library</h1>
+        <p class="text-sm text-gray-500 mt-1">Phase 3 Deliverable - Vanilla JS Component Previews</p>
+      </div>
+    </div>
+
+    <div class="p-8 space-y-12" id="component-container">
+      <!-- Components will be injected here via JS -->
+    </div>
+  </div>
+
+  <script type="module">
+    import { PrimaryButton, SecondaryButton, SuccessButton, DangerButton, GhostButton, IconButton } from './components/buttons.js';
+    import { TextInput, Dropdown, Checkbox, Textarea } from './components/forms.js';
+    import { KPICard, Card } from './components/cards.js';
+    import { Badge, ProgressBar } from './components/status.js';
+    import { EmptyState, SkeletonCard, Toast } from './components/feedback.js';
+    import { Table, TableCell } from './components/tables.js';
+    import { Pagination, Tabs } from './components/navigation.js';
+
+    const container = document.getElementById('component-container');
+
+    const renderSection = (title, content) => `
+      <div>
+        <h2 class="text-lg font-bold text-text mb-4 pb-2 border-b border-border">${title}</h2>
+        <div class="flex flex-wrap gap-4 items-end">
+          ${content}
+        </div>
+      </div>
+    `;
+
+    const svgIcon = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>`;
+    const dummyTableRows = [
+      { id: '#INV-001', customer: 'Senthil Kumar', amount: '₹12,000', status: 'Paid' },
+      { id: '#INV-002', customer: 'Ravi Stores', amount: '₹4,500', status: 'Pending' }
+    ];
+
+    container.innerHTML = `
+      ${renderSection('Buttons', `
+        ${PrimaryButton({ label: 'Primary Button' })}
+        ${SecondaryButton({ label: 'Secondary Button' })}
+        ${SuccessButton({ label: 'Success Button' })}
+        ${DangerButton({ label: 'Danger Button' })}
+        ${GhostButton({ label: 'Ghost Button' })}
+        ${IconButton({ label: 'Add Item', iconSvg: svgIcon })}
+      `)}
+
+      ${renderSection('Forms', `
+        <div class="w-full max-w-sm space-y-2">
+          ${TextInput({ label: 'Customer Name', id: 'name', placeholder: 'Enter name...' })}
+          ${Dropdown({ label: 'Customer Type', id: 'type', options: [{value: 'retail', label: 'Retail'}, {value: 'dealer', label: 'Dealer'}] })}
+          ${Textarea({ label: 'Address', id: 'address', placeholder: 'Enter address...' })}
+          ${Checkbox({ label: 'Is Active Customer', id: 'active', checked: true })}
+        </div>
+      `)}
+
+      ${renderSection('Cards', `
+        <div class="w-64">
+          ${KPICard({ title: 'Total Sales', value: '₹47,250', iconSvg: svgIcon, badgeText: '+12%', badgeColor: 'success' })}
+        </div>
+        <div class="w-96">
+          ${Card({ title: 'Information Card', subtitle: 'Standard wrapper', children: '<p class="text-sm text-gray-500">This is reusable content inside a card.</p>' })}
+        </div>
+      `)}
+
+      ${renderSection('Status & Badges', `
+        ${Badge({ text: 'Paid', type: 'success' })}
+        ${Badge({ text: 'Pending', type: 'warning' })}
+        ${Badge({ text: 'Overdue', type: 'danger' })}
+        ${Badge({ text: 'New', type: 'primary' })}
+        <div class="w-64 mt-4">
+          <p class="text-xs font-medium text-gray-500 mb-2">Storage Progress</p>
+          ${ProgressBar({ percentage: 75, color: 'primary' })}
+        </div>
+      `)}
+
+      ${renderSection('Tables', `
+        <div class="w-full">
+          ${Table({
+            headers: ['Invoice #', 'Customer Name', 'Amount', 'Status'],
+            rows: dummyTableRows,
+            renderRow: (row) => `
+              <tr class="hover:bg-gray-50/50">
+                ${TableCell({ content: `<span class="font-medium text-primary">${row.id}</span>` })}
+                ${TableCell({ content: row.customer })}
+                ${TableCell({ content: `<span class="font-semibold text-text">${row.amount}</span>`, align: 'right' })}
+                ${TableCell({ content: Badge({ text: row.status, type: row.status === 'Paid' ? 'success' : 'warning' }), align: 'center' })}
+              </tr>
+            `
+          })}
+        </div>
+      `)}
+
+      ${renderSection('Navigation', `
+        <div class="w-full">
+          ${Tabs({ tabs: [{id: 'general', label: 'General Info'}, {id: 'settings', label: 'Settings'}], activeId: 'general' })}
+        </div>
+        <div class="w-full mt-4">
+          ${Pagination({ currentPage: 1, totalPages: 5, totalItems: 42, itemsPerPage: 10 })}
+        </div>
+      `)}
+
+      ${renderSection('Feedback', `
+        <div class="w-96">
+          ${Toast({ title: 'Invoice Created', message: 'Invoice #2847 has been saved.', type: 'success' })}
+        </div>
+        <div class="w-96">
+          ${SkeletonCard()}
+        </div>
+        <div class="w-full mt-4">
+          ${EmptyState({ title: 'No Invoices Found', description: 'Create a new invoice to get started.', iconSvg: svgIcon })}
+        </div>
+      `)}
+    `;
+  </script>
+</body>
+</html>

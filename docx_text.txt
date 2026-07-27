@@ -1,0 +1,64 @@
+Senthil Enterprises Retail ERP
+Build an offline-first ERP system that simplifies the daily operations of Senthil Enterprises by digitizing sales, inventory, purchases, finance, customer management, and dealer management. 
+The software should reduce manual work, prevent mistakes, 
+save time, and help the owner make better business decisions.
+Project Goals
+✓ Faster Billing 
+✓ Accurate Inventory 
+✓ Customer Credit Tracking 
+✓ Dealer Credit Tracking 
+✓ Purchase Management 
+✓ House Project Tracking 
+✓ Return & Replacement Tracking 
+✓ Daily Business Dashboard 
+✓ Offline First 
+✓ Future AI Assistant
+Software Requirements Specification (SRS)
+1. INTRODUCTION
+Senthil Enterprises is a hardware, electrical, plumbing, sanitary, and construction materials retail business located in Tamil Nadu,
+ 
+Kanniyakumari
+,
+ India.
+The shop currently manages its daily operations manually using paper records, human memory, and traditional billing methods. As the business grows, this approach creates difficulties in inventory management, customer credit tracking, dealer account management, pricing consistency, purchase planning, and business analysis.
+The purpose of this project is to design and develop an Offline-First Enterprise Resource Planning (ERP) system specifically tailored for Senthil Enterprises. Unlike generic ERP software, this system will be designed around the actual workflow of the shop and will 
+simplify daily operations while reducing manual work and human errors.
+ 
+2. BUSINESS OVERVIEW
+Senthil Enterprises serves multiple categories of customers, including individual retail customers, contractors, electricians, plumbers, and customers constructing complete houses.
+The business purchases products from multiple dealers and suppliers, maintains inventory, sells products with different pricing structures, provides customer credit, manages dealer payments, handles product replacements, and monitors daily financial transactions.
+Currently, most operational decisions depend on the owner's experience and manual record keeping.
+The proposed ERP system aims to digitize these business 
+processes while preserving the 
+existing business workflow followed by the owner.
+3. PROJECT OBJECTIVES
+The objectives of the ERP system are:
+• Digitize all business operations.
+• Reduce manual bookkeeping.
+• Improve inventory accuracy.
+• Manage multiple customer pricing.
+• Track customer credit.
+• Track dealer payments.
+• Simplify purchase management.
+• Manage product replacements.
+• Generate business reports.
+• Reduce human errors.
+• Support offline operation.
+• Provide future AI-powered business insights.
+4. SCOPE OF THE SYSTEM
+The ERP system will manage all day-to-day operations performed inside Senthil Enterprises.
+The system includes:
+• Sales Management
+• Customer Management
+• Dealer Management
+• Product Management
+• Inventory Management
+• Purchase Management
+• Finance Management
+• Credit Management
+• Replacement Management
+• House Project Management
+• Reports and Analytics
+• User Management
+The first version of the software will operate primarily on a single computer within the shop and support offline functionality.
+Future versions may include cloud synchronization, mobile applications, WhatsApp integration, and AI-powered business assistants.
