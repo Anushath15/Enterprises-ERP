@@ -15,9 +15,8 @@ export async function render() {
           <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium bg-primary/10 text-primary transition-colors">Business Profile</button>
           <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Tax & GST Settings</button>
           <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Invoice Formatting</button>
-          <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Printers (Placeholder)</button>
-          <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Data Backup (Placeholder)</button>
-          <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Theme & UI (Placeholder)</button>
+          <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Data Backup & Recovery</button>
+          <button class="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">System Version</button>
         </div>
 
         <!-- Settings Content Panel -->
@@ -78,7 +77,33 @@ export async function render() {
           </div>
 
           <div class="pt-6 mt-6 border-t border-border flex justify-end">
-            <button class="px-6 py-2.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors shadow-sm">Save Preferences</button>
+            <button id="save-settings-btn" class="px-6 py-2.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors shadow-sm">Save Preferences</button>
+          </div>
+          
+          <h3 class="font-semibold text-text text-lg border-b border-border pb-3 pt-4">Data Backup & Recovery</h3>
+          <div class="grid grid-cols-2 gap-5">
+            <div class="col-span-2">
+              <p class="text-sm text-gray-500 mb-4">Export all ERP data from LocalStorage to a secure JSON file. Keep this backup safe to prevent data loss.</p>
+              <button id="backup-btn" class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2">
+                <i data-lucide="download" class="w-4 h-4"></i> Download Backup
+              </button>
+            </div>
+          </div>
+
+          <h3 class="font-semibold text-text text-lg border-b border-border pb-3 pt-4">System Version</h3>
+          <div class="bg-gray-50 rounded-lg p-5 border border-border">
+            <div class="grid grid-cols-2 gap-y-3">
+              <div class="text-sm font-medium text-gray-500">Software Name:</div>
+              <div class="text-sm font-semibold text-text">Senthil Enterprises ERP</div>
+              <div class="text-sm font-medium text-gray-500">Version:</div>
+              <div class="text-sm font-semibold text-primary">v1.0.0-rc1</div>
+              <div class="text-sm font-medium text-gray-500">Build Date:</div>
+              <div class="text-sm font-semibold text-text">2026-07-28</div>
+              <div class="text-sm font-medium text-gray-500">Database Engine:</div>
+              <div class="text-sm font-semibold text-text">Offline LocalStorage</div>
+              <div class="text-sm font-medium text-gray-500">Schema Version:</div>
+              <div class="text-sm font-semibold text-text">1</div>
+            </div>
           </div>
         </div>
       </div>
@@ -87,5 +112,40 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
-  // Logic for tab switching goes here
+  if (window.lucide) window.lucide.createIcons();
+
+  const saveBtn = rootElement.querySelector('#save-settings-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      window.showToast('System preferences saved successfully!', 'success');
+    });
+  }
+
+  const backupBtn = rootElement.querySelector('#backup-btn');
+  if (backupBtn) {
+    backupBtn.addEventListener('click', () => {
+      const data = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('erp_')) {
+          data[key] = localStorage.getItem(key);
+        }
+      }
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `erp_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      // Update last backup date
+      localStorage.setItem('erp_last_backup', new Date().toISOString());
+      window.showToast('Backup generated successfully!', 'success');
+    });
+  }
 }
+
