@@ -47,3 +47,4 @@ export const LocalStorageService = {
     return localStorage.getItem(key) !== null;
   }
 };
+

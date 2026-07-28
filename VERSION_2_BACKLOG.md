@@ -17,9 +17,13 @@
 - [ ] **Dealer Ledger Enhancements**: Add support for credit notes, debit notes, and automated tax (GST) reconciliation.
 - [ ] **Advanced Inventory Adjustments**: Add support for multi-warehouse mapping, batch tracking, and expiry date management.
 
-## 4. Expansion & Cloud
+## 4. Expansion & Cloud Synchronization
 - [ ] **Multi-Branch Support**: Segregate inventory and users by branch while maintaining a centralized HQ dashboard.
-- [ ] **Cloud Synchronization**: Develop a background sync engine that safely pushes offline SQLite/LocalStorage data to a master AWS/GCP PostgreSQL database when the internet connection is restored.
+- [ ] **Cloud Synchronization Architecture**: Develop a background sync engine that safely pushes offline SQLite/LocalStorage data to a master AWS/GCP PostgreSQL database.
+- [ ] **UUID & Sync Fields**: Add `uuid`, `sync_status` to all entities for global uniqueness.
+- [ ] **Conflict Resolution Strategy**: Handle split-brain scenarios and offline conflict detection.
+- [ ] **Device Registration**: Register specific POS clients (tablets, desktops) to authorize offline syncing.
+- [ ] **Sync Queue & Incremental Synchronization**: Build a robust background queue to chunk payloads safely.
 - [ ] **Mobile Application**: Port the UI to React Native or Flutter for on-the-go stock checking by warehouse staff.
 - [ ] **Supplier/Customer Portals**: Read-only web views allowing dealers or large B2B customers to check their ledger balance and place orders.
 

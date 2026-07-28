@@ -24,10 +24,17 @@ class Settings(BaseSettings):
     EXPENSE_PREFIX: str = "EXP"
     
     # Security Settings
-    SECRET_KEY: str = "supersecretkey-change-me-in-production"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days for MVP
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 # 24 hours
+    
+    # CORS
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:3000"]
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
 settings = Settings()
+
+if settings.SECRET_KEY == "supersecretkey-change-me-in-production":
+    import warnings
+    warnings.warn("CRITICAL: Default SECRET_KEY is in use! Please set SECRET_KEY in your .env file.")

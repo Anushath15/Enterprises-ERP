@@ -75,3 +75,4 @@ export function MinimalStatCard({ title, value, subtitle }) {
     </div>
   `;
 }
+

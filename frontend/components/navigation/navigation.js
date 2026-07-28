@@ -23,7 +23,7 @@ export function Pagination({ currentPage = 1, totalPages = 1, totalItems = 0, it
           <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
             <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}">
               <span class="sr-only">Previous</span>
-              <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+              <i data-lucide="chevron-left" class="h-4 w-4"></i>
             </button>
             
             <!-- Page 1 (Always shown) -->
@@ -38,7 +38,7 @@ export function Pagination({ currentPage = 1, totalPages = 1, totalItems = 0, it
 
             <button class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
               <span class="sr-only">Next</span>
-              <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+              <i data-lucide="chevron-right" class="h-4 w-4"></i>
             </button>
           </nav>
         </div>
@@ -74,3 +74,4 @@ export function Tabs({ tabs = [], activeId = '' }) {
     </div>
   `;
 }
+

@@ -12,6 +12,13 @@ export const routes = [
     roles: ['admin', 'manager', 'user']
   },
   {
+    path: '/pos',
+    name: 'Point of Sale',
+    componentPath: '../pages/pos.js',
+    authRequired: true,
+    roles: ['admin', 'manager', 'user']
+  },
+  {
     path: '/sales',
     name: 'Sales',
     componentPath: '../pages/sales.js',
@@ -177,3 +184,4 @@ export const routes = [
 export const defaultRoute = '/';
 export const errorRoute = '/404';
 export const loginRoute = '/login';
+

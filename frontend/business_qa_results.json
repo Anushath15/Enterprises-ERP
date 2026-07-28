@@ -1,0 +1,20 @@
+{
+  "passed": [
+    "Product initialized with correct stock",
+    "Product status correctly evaluated",
+    "updateStock increased inventory correctly",
+    "Stock correctly deducted after sales invoice",
+    "Customer outstanding updated after credit sale",
+    "Customer outstanding correctly reduced after partial payment",
+    "Stock correctly increased after purchase invoice",
+    "Dealer outstanding updated after credit purchase",
+    "Expense successfully recorded",
+    "Expense successfully deleted",
+    "Empty sales invoice correctly rejected",
+    "Duplicate customer correctly rejected",
+    "Stress test completed under 2 seconds limit (1549ms)",
+    "500 invoices successfully generated",
+    "500 purchases successfully generated"
+  ],
+  "failed": []
+}

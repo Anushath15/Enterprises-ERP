@@ -7,6 +7,7 @@ Create Date: 2026-07-27 13:30:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
+import datetime
 from app.security.password import get_password_hash
 from app.security.permissions import Role
 
@@ -45,8 +46,8 @@ def upgrade() -> None:
                 'hashed_password': get_password_hash('admin123'),
                 'role': Role.ADMIN.value,
                 'is_active': True,
-                'created_at': sa.func.now(),
-                'updated_at': sa.func.now()
+                'created_at': datetime.datetime.now(datetime.timezone.utc),
+                'updated_at': datetime.datetime.now(datetime.timezone.utc)
             }
         ]
     )

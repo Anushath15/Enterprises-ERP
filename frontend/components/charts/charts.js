@@ -43,3 +43,4 @@ export function CSSBarChart({ title, subtitle, data = [] }) {
     </div>
   `;
 }
+

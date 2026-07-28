@@ -3,50 +3,51 @@
  */
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
-import { DataProvider } from '../services/DataProvider.js';
+import { DataProvider } from '../services/dataProvider.js';
 
 export async function render() {
   const purchases = DataProvider.getPurchaseInvoices();
   const dealers = DataProvider.getDealers();
 
   const renderPORow = (po) => {
-    const dealer = DataProvider.getDealerById(po.dealerId) || { name: 'Unknown', phone: '' };
-    const initials = dealer.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    const dealer = DataProvider.getDealerById(po.dealerId) || { companyName: 'Unknown', phone: '' };
+    const dealerName = dealer.companyName || dealer.name || 'Unknown';
+    const initials = dealerName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
     const dealerColor = 'primary'; 
     const statusColor = po.status === 'Pending' ? 'warning' : (po.status === 'Received' ? 'success' : 'danger');
 
-    return \`
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">\${po.invoiceNumber || po.id}</td>
+    return `
+    <tr class="row-hover cursor-pointer" data-id="${po.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer', {detail: '${po.id}'}))">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${po.invoiceNumber || po.id}</td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
-          <div class="w-7 h-7 rounded-full bg-\${dealerColor}/10 flex items-center justify-center">
-            <span class="text-[10px] font-bold text-\${dealerColor}">\${initials}</span>
+          <div class="w-7 h-7 rounded-full bg-${dealerColor}/10 flex items-center justify-center">
+            <span class="text-[10px] font-bold text-${dealerColor}">${initials}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">\${dealer.name}</p>
-            <p class="text-[10px] text-gray-400">\${dealer.phone}</p>
+            <p class="text-sm font-medium text-text">${dealerName}</p>
+            <p class="text-[10px] text-gray-400">${dealer.phone}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm \${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">\${po.date}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">\${po.items ? po.items.length : 0} items</td>
-      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹\${(po.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+      <td class="px-4 py-3.5 text-sm ${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">${po.date}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td>
+      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${(po.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-\${statusColor}/10 text-\${statusColor}">\${po.status}</span>
+        <span class="status-badge status-${statusColor}">${po.status}</span>
       </td>
       <td class="px-4 py-3.5 text-right">
         <div class="flex items-center justify-end gap-1">
           <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+            <i data-lucide="edit" class="w-4 h-4"></i>
           </button>
         </div>
       </td>
     </tr>
-    \`;
+    `;
   };
 
-  return \`
+  return `
     <div class="p-6 max-w-[1600px] mx-auto fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
@@ -54,32 +55,20 @@ export async function render() {
           <p class="text-sm text-gray-400 mt-1">Track purchase orders, manage suppliers, and monitor deliveries.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3v11.25"/></svg>
-            Import
-          </button>
-          <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Export
-          </button>
           <button onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            <i data-lucide="plus" class="w-4 h-4"></i>
             New Purchase Order
           </button>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        \${KPICard({ title: 'Pending Orders', value: purchases.filter(p => p.status === 'Pending').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'warning' })}
-        \${KPICard({ title: 'Total Purchases', value: purchases.length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>', color: 'success' })}
-        \${KPICard({ title: 'Purchase Value', value: '₹' + purchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0).toLocaleString('en-IN', {maximumFractionDigits:0}), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/>', color: 'primary' })}
-        \${KPICard({ title: 'Awaiting Delivery', value: purchases.filter(p => p.status === 'Pending').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'danger' })}
+        ${KPICard({ title: 'Pending Orders', value: purchases.filter(p => p.status === 'Pending').length.toString(), iconSvg: '<i data-lucide="clock"></i>', color: 'warning' })}
+        ${KPICard({ title: 'Total Purchases', value: purchases.length.toString(), iconSvg: '<i data-lucide="shopping-bag"></i>', color: 'success' })}
+        ${KPICard({ title: 'Purchase Value', value: '₹' + purchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0).toLocaleString('en-IN', {maximumFractionDigits:0}), iconSvg: '<i data-lucide="indian-rupee"></i>', color: 'primary' })}
+        ${KPICard({ title: 'Awaiting Delivery', value: purchases.filter(p => p.status === 'Pending').length.toString(), iconSvg: '<i data-lucide="truck"></i>', color: 'danger' })}
       </div>
 
-      <div class="flex items-center gap-1 border-b border-border mb-6">
-        <button class="px-4 py-3 text-sm font-medium text-primary border-b-2 border-primary">Purchase Orders</button>
-        <button class="px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text">Goods Received</button>
-        <button class="px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text">Purchase History</button>
       </div>
 
       <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -87,21 +76,22 @@ export async function render() {
           <div class="bg-white rounded-xl border border-border p-4">
             <div class="flex flex-wrap items-center gap-3">
               <div class="relative flex-1 min-w-[200px]">
-                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                <input type="text" placeholder="Search PO, dealer..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-primary">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input id="po-search" type="text" placeholder="Search PO, dealer..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-primary">
               </div>
-              <select class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
-                <option>All Status</option>
-                <option>Pending</option>
-                <option>Received</option>
-                <option>Overdue</option>
+              <select id="po-status-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Received">Received</option>
+                <option value="Overdue">Overdue</option>
               </select>
+              <span id="po-count-label" class="text-xs text-gray-400">Showing ${purchases.length} orders</span>
             </div>
           </div>
 
           <div class="bg-white rounded-xl border border-border overflow-hidden">
             <div class="overflow-x-auto">
-              <table class="w-full text-sm min-w-[1100px]">
+              <table id="purchases-table" class="w-full text-sm min-w-[1100px]">
                 <thead>
                   <tr class="border-b border-border bg-gray-50/60 text-left">
                     <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">PO #</th>
@@ -114,7 +104,7 @@ export async function render() {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
-                  \${purchases.length > 0 ? purchases.map(renderPORow).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No purchases found.</td></tr>'}
+                  ${purchases.length > 0 ? purchases.map(renderPORow).join('') : '<tr><td colspan="7"><div class="empty-state"><i data-lucide="shopping-cart"></i><p>No purchases found.</p></div></td></tr>'}
                 </tbody>
               </table>
             </div>
@@ -147,7 +137,7 @@ export async function render() {
       <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10 shrink-0">
         <h3 class="text-base font-semibold text-text">New Purchase Order</h3>
         <button class="close-purchase-drawer p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
         </button>
       </div>
 
@@ -156,7 +146,7 @@ export async function render() {
           <label class="text-xs font-medium text-gray-500 block mb-1.5">Dealer / Supplier *</label>
           <select id="po-dealer" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
             <option value="">-- Select Dealer --</option>
-            \${dealers.map(d => \`<option value="\${d.id}">\${d.name}</option>\`).join('')}
+            ${dealers.map(d => `<option value="${d.id}">${d.companyName || d.name}</option>`).join('')}
           </select>
         </div>
 
@@ -164,11 +154,20 @@ export async function render() {
           <div>
             <label class="text-xs font-medium text-gray-500 block mb-1.5">Purchase Date *</label>
             <input type="date" id="po-date" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
+            <input type="hidden" id="po-id">
           </div>
           <div>
             <label class="text-xs font-medium text-gray-500 block mb-1.5">Invoice Number</label>
             <input type="text" id="po-invoice-no" placeholder="INV-2026-001" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
           </div>
+        </div>
+        <div class="mb-4">
+           <label class="text-xs font-medium text-gray-500 block mb-1.5">Status *</label>
+           <select id="po-status" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
+             <option value="Pending">Pending</option>
+             <option value="Received">Received</option>
+             <option value="Overdue">Overdue</option>
+           </select>
         </div>
 
         <div>
@@ -238,7 +237,7 @@ export async function render() {
         </div>
       </div>
     </aside>
-  \`;
+  `;
 }
 
 export function onMount(rootElement) {
@@ -253,10 +252,42 @@ export function onMount(rootElement) {
   const today = new Date().toISOString().split('T')[0];
   rootElement.querySelector('#po-date').value = today;
 
+  // --- SEARCH & FILTER WIRING (PU-003) ---
+  const allPurchases = DataProvider.getPurchaseInvoices();
+  const poSearch = rootElement.querySelector('#po-search');
+  const poStatusFilter = rootElement.querySelector('#po-status-filter');
+  const mainTbody = rootElement.querySelector('#purchases-table tbody');
+  const poCountLabel = rootElement.querySelector('#po-count-label');
+
+  const buildRow = (po) => {
+    const dealer = DataProvider.getDealerById(po.dealerId) || { name: 'Unknown', companyName: 'Unknown', phone: '' };
+    const dealerName = dealer.companyName || dealer.name || 'Unknown';
+    const sc = po.status === 'Pending' ? 'warning' : (po.status === 'Received' ? 'success' : 'danger');
+    return `<tr class="row-hover cursor-pointer" data-id="${po.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer', {detail: '${po.id}'}))"><td class="px-4 py-3.5 font-semibold text-primary text-sm">${po.invoiceNumber || po.id}</td><td class="px-4 py-3.5 text-sm font-medium text-text">${dealerName}</td><td class="px-4 py-3.5 text-sm text-gray-500">${po.date}</td><td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td><td class="px-4 py-3.5 text-right font-semibold">₹${(po.totalAmount || 0).toLocaleString('en-IN')}</td><td class="px-4 py-3.5"><span class="status-badge status-${sc}">${po.status}</span></td><td class="px-4 py-3.5"></td></tr>`;
+  };
+
+  const applyPoFilter = () => {
+    const q = (poSearch?.value || '').toLowerCase();
+    const status = poStatusFilter?.value || '';
+    const filtered = allPurchases.filter(po => {
+      const dealer = DataProvider.getDealerById(po.dealerId) || {};
+      const dealerName = (dealer.companyName || dealer.name || '').toLowerCase();
+      if (q && !(po.invoiceNumber || po.id || '').toLowerCase().includes(q) && !dealerName.includes(q)) return false;
+      if (status && po.status !== status) return false;
+      return true;
+    });
+    if (poCountLabel) poCountLabel.textContent = `Showing ${filtered.length} of ${allPurchases.length} orders`;
+    if (mainTbody) {
+      mainTbody.innerHTML = filtered.length > 0 ? filtered.map(buildRow).join('') : '<tr><td colspan="7"><div class="empty-state"><i data-lucide="shopping-cart"></i><p>No purchases match your search</p></div></td></tr>';
+    }
+  };
+  if (poSearch) poSearch.addEventListener('input', applyPoFilter);
+  if (poStatusFilter) poStatusFilter.addEventListener('change', applyPoFilter);
+
   let cart = [];
   let products = [];
   
-  import('../services/DataProvider.js').then(({ DataProvider }) => {
+  import('../services/dataProvider.js').then(({ DataProvider }) => {
     products = DataProvider.getProducts();
     
     // Auto complete search
@@ -272,12 +303,12 @@ export function onMount(rootElement) {
       const matches = products.filter(p => p.isActive && (p.name.toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q))).slice(0, 5);
       
       if (matches.length > 0) {
-        searchResults.innerHTML = matches.map(p => \`
-          <div class="p-2 border-b border-border hover:bg-gray-50 cursor-pointer po-search-item" data-id="\${p.id}">
-            <div class="text-sm font-medium">\${p.name}</div>
-            <div class="text-[10px] text-gray-500">\${p.sku} | ₹\${p.price}</div>
+        searchResults.innerHTML = matches.map(p => `
+          <div class="p-2 border-b border-border hover:bg-gray-50 cursor-pointer po-search-item" data-id="${p.id}">
+            <div class="text-sm font-medium">${p.name}</div>
+            <div class="text-[10px] text-gray-500">${p.sku} | ₹${p.price}</div>
           </div>
-        \`).join('');
+        `).join('');
         searchResults.classList.remove('hidden');
       } else {
         searchResults.innerHTML = '<div class="p-2 text-xs text-gray-500">No products found</div>';
@@ -325,23 +356,29 @@ export function onMount(rootElement) {
         return;
       }
 
-      tbody.innerHTML = cart.map((item, index) => \`
-        <tr data-index="\${index}">
-          <td class="px-3 py-2.5 text-xs text-text">\${item.name}</td>
+      tbody.innerHTML = cart.map((item, index) => `
+        <tr data-index="${index}">
+          <td class="px-3 py-2.5 text-xs text-text">${item.name}</td>
           <td class="px-3 py-2.5 text-center">
-            <input type="number" value="\${item.qty}" min="1" class="po-qty-input w-14 px-2 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary">
+            <input type="number" value="${item.qty}" min="1" class="po-qty-input w-14 px-2 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary">
           </td>
           <td class="px-3 py-2.5 text-right">
-            <input type="number" value="\${item.price}" min="0" step="0.01" class="po-price-input w-20 px-2 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+            <input type="number" value="${item.price}" min="0" step="0.01" class="po-price-input w-20 px-2 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
           </td>
-          <td class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹\${(item.qty * item.price).toFixed(2)}</td>
+          <td class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹${(item.qty * item.price).toFixed(2)}</td>
           <td class="px-2 py-2.5 text-right">
-            <button class="po-remove-btn text-gray-400 hover:text-danger">×</button>
+            <button class="po-remove-btn text-gray-400 hover:text-danger">
+              <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+            </button>
           </td>
         </tr>
-      \`).join('');
+      `).join('');
       updateTotals();
+      if (window.lucide) window.lucide.createIcons();
     };
+    
+    // EXPOSE renderCart so it can be called from openForm when editing
+    window._renderCart = renderCart;
 
     const updateTotals = () => {
       const subtotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
@@ -350,8 +387,8 @@ export function onMount(rootElement) {
       
       const grandTotal = subtotal - discount + tax;
       
-      rootElement.querySelector('#po-subtotal').textContent = \`₹\${subtotal.toFixed(2)}\`;
-      rootElement.querySelector('#po-grand-total').textContent = \`₹\${grandTotal.toFixed(2)}\`;
+      rootElement.querySelector('#po-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+      rootElement.querySelector('#po-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
     };
 
     // Listeners for cart inputs
@@ -384,8 +421,8 @@ export function onMount(rootElement) {
     // Save PO
     rootElement.querySelector('#btn-save-po').addEventListener('click', () => {
       const dealerId = rootElement.querySelector('#po-dealer').value;
-      if (!dealerId) { alert('Please select a dealer.'); return; }
-      if (cart.length === 0) { alert('Please add items to purchase.'); return; }
+      if (!dealerId) { window.showToast('Please select a dealer.', 'warning'); return; }
+      if (cart.length === 0) { window.showToast('Please add at least one product.', 'warning'); return; }
 
       const subtotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
       const discount = Number(rootElement.querySelector('#po-discount').value) || 0;
@@ -393,11 +430,14 @@ export function onMount(rootElement) {
       const totalAmount = subtotal - discount + taxTotal;
       const paymentStatus = rootElement.querySelector('#po-payment-status').value;
 
+      const status = rootElement.querySelector('#po-status').value || 'Received';
+
       const invoice = {
+        id: rootElement.querySelector('#po-id').value || null,
         dealerId,
         invoiceNumber: rootElement.querySelector('#po-invoice-no').value,
         date: rootElement.querySelector('#po-date').value,
-        status: 'Received',
+        status: status,
         items: cart,
         subtotal,
         discount,
@@ -408,10 +448,21 @@ export function onMount(rootElement) {
       };
 
       try {
-        DataProvider.savePurchaseInvoice(invoice);
-        window.location.reload();
+        const saved = DataProvider.savePurchaseInvoice(invoice);
+        closeAll();
+        // Refresh table in-place
+        const freshPurchases = DataProvider.getPurchaseInvoices();
+        const tbody = document.querySelector('#purchases-table tbody');
+        if (tbody) {
+          const dealers = DataProvider.getDealers();
+          tbody.innerHTML = freshPurchases.length > 0 
+            ? freshPurchases.map(buildRow).join('')
+            : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No purchases yet</td></tr>';
+          if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        }
+        window.showToast(`Purchase ${saved.id} saved!`, 'success');
       } catch (e) {
-        alert(e.message);
+        window.showToast(e.message, 'danger');
       }
     });
 
@@ -423,7 +474,37 @@ export function onMount(rootElement) {
     formDrawer.classList.add('translate-x-full');
   };
 
-  const openForm = () => {
+  const openForm = (e) => {
+    const id = e?.detail;
+    
+    // Reset Form
+    rootElement.querySelector('#po-dealer').value = '';
+    rootElement.querySelector('#po-id').value = '';
+    rootElement.querySelector('#po-invoice-no').value = '';
+    rootElement.querySelector('#po-date').value = new Date().toISOString().split('T')[0];
+    rootElement.querySelector('#po-status').value = 'Pending';
+    rootElement.querySelector('#po-discount').value = '0';
+    rootElement.querySelector('#po-tax').value = '0';
+    rootElement.querySelector('#po-payment-status').value = 'Unpaid';
+    cart = [];
+    if (window._renderCart) window._renderCart();
+
+    if (id) {
+       const po = DataProvider.getPurchaseInvoices().find(p => p.id === id);
+       if (po) {
+         rootElement.querySelector('#po-dealer').value = po.dealerId || '';
+         rootElement.querySelector('#po-id').value = po.id;
+         rootElement.querySelector('#po-invoice-no').value = po.invoiceNumber || '';
+         rootElement.querySelector('#po-date').value = po.date || new Date().toISOString().split('T')[0];
+         rootElement.querySelector('#po-status').value = po.status || 'Pending';
+         rootElement.querySelector('#po-discount').value = po.discount || 0;
+         rootElement.querySelector('#po-tax').value = po.taxTotal || 0;
+         rootElement.querySelector('#po-payment-status').value = po.paymentStatus || 'Unpaid';
+         cart = po.items ? JSON.parse(JSON.stringify(po.items)) : [];
+         if (window._renderCart) window._renderCart();
+       }
+    }
+
     closeAll();
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
@@ -431,7 +512,18 @@ export function onMount(rootElement) {
   };
 
   window.addEventListener('openPurchaseDrawer', openForm);
+
   
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
+  
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+
+  // Cleanup: prevent duplicate listeners on back-navigation
+  return function cleanup() {
+    window.removeEventListener('openPurchaseDrawer', openForm);
+  };
 }
+

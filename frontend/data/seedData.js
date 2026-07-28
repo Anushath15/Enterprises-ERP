@@ -31,6 +31,11 @@ export const SeedData = {
   ],
   erp_sales_invoices: [],
   erp_purchase_invoices: [],
+  erp_purchases: [],
+  erp_sales_returns: [],
+  erp_purchase_returns: [],
+  erp_deliveries: [],
+  erp_settings_history: [],
   erp_expenses: [
     { id: 'EXP-20260727-000001', date: '2026-07-27', category: 'Tea & Snacks', description: 'Evening tea for staff', amount: 120, method: 'Cash' },
     { id: 'EXP-20260727-000002', date: '2026-07-27', category: 'Transport', description: 'Auto fare for material delivery to site', amount: 350, method: 'Cash' }
@@ -55,3 +60,4 @@ export const SeedData = {
     lastDeliveryNumber: 0
   }
 };
+

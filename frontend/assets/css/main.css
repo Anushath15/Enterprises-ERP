@@ -1,43 +1,201 @@
 /* 
   Global Styles for Senthil Enterprises ERP
-  Contains custom CSS, animations, and scrollbar styling extracted from the original HTML.
+  Contains custom CSS, animations, and scrollbar styling.
+  Version: Stabilization Phase 1
 */
 
-* { font-family: 'Inter', system-ui, sans-serif; }
+* { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
 
-/* Sidebar Utilities */
-.sidebar-link { transition: all 0.15s ease; }
-.sidebar-link:hover { background-color: rgba(37, 99, 235, 0.06); }
-.sidebar-link.active { background-color: rgba(37, 99, 235, 0.1); color: #2563EB; }
-.sidebar-link.active svg { color: #2563EB; }
+/* ======================================
+   SIDEBAR
+====================================== */
+.sidebar-link { transition: all 0.15s ease; border-radius: 0.5rem; }
+.sidebar-link:hover { background-color: rgba(37, 99, 235, 0.06); color: #1F2937; }
+.sidebar-link.active { background-color: rgba(37, 99, 235, 0.1); color: #2563EB; font-weight: 600; }
+.sidebar-link.active div { color: #2563EB; }
+.sidebar-link:not(.active) div { color: #9CA3AF; }
 
-/* Card Utilities */
+/* ======================================
+   CARDS
+====================================== */
 .card-hover { transition: all 0.2s ease; }
 .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0,0,0,0.08), 0 4px 10px -5px rgba(0,0,0,0.04); }
 .stat-card { transition: all 0.2s ease; }
 .stat-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.erp-card {
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.erp-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025);
+  transform: translateY(-2px);
+}
 
-/* Form Utilities */
+/* ======================================
+   FORMS
+====================================== */
 .search-input:focus { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+input, select, textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #2563EB !important;
+}
+input[readonly]:focus, input[readonly]:hover {
+  cursor: not-allowed;
+  box-shadow: none;
+  border-color: #E5E7EB !important;
+}
 
-/* Animations */
+/* ======================================
+   BUTTONS
+====================================== */
+button { transition: all 0.15s ease; }
+button:active { transform: scale(0.98); }
+.action-btn { cursor: pointer; }
+.btn-primary {
+  background: #2563EB;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-primary:hover { background: #1D4ED8; }
+
+/* ======================================
+   ANIMATIONS
+====================================== */
 .notification-dot { animation: pulse 2s infinite; }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-.fade-in { animation: fadeIn 0.4s ease-out; }
+.fade-in { animation: fadeIn 0.35s ease-out; }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Progress Bars */
-.progress-bar { transition: width 0.6s ease; }
+.fade-in-d1 { animation-delay: 0.05s; }
+.fade-in-d2 { animation-delay: 0.10s; }
+.fade-in-d3 { animation-delay: 0.15s; }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* ======================================
+   SCROLLBAR
+====================================== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ======================================
+   PROGRESS BARS
+====================================== */
+.progress-bar { transition: width 0.6s ease; }
+
+/* ======================================
+   TABLES
+====================================== */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+th {
+  background-color: #F8FAFC;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+  font-size: 0.875rem;
+}
+tr:last-child td { border-bottom: none; }
+.row-hover { transition: background-color 0.1s ease; }
+.row-hover:hover td { background-color: #F8FAFC; }
+
+/* ======================================
+   STATUS BADGES
+====================================== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.status-success { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.status-warning { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.status-danger  { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+.status-info    { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+.status-gray    { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
+
+/* ======================================
+   MODALS & DRAWERS
+====================================== */
+.drawer { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.overlay { transition: opacity 0.2s ease; }
+.drawer-enter { transform: translateX(100%); }
+.drawer-enter-active { transform: translateX(0); transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+.drawer-exit { transform: translateX(0); }
+.drawer-exit-active { transform: translateX(100%); transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ======================================
+   EMPTY STATES
+====================================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #64748B;
+  text-align: center;
+}
+.empty-state svg, .empty-state i { 
+  width: 3rem; 
+  height: 3rem; 
+  margin-bottom: 1rem; 
+  color: #CBD5E1; 
+}
+
+/* ======================================
+   PRINT — RECEIPT STYLES
+   (Only active during window.print())
+====================================== */
+@media print {
+  body > * { display: none !important; }
+  #print-receipt-area { display: block !important; }
+  #print-receipt-area {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    width: 80mm;
+    margin: 0 auto;
+    padding: 10px;
+    color: #000;
+  }
+  #print-receipt-area .receipt-title { font-size: 16px; font-weight: bold; text-align: center; }
+  #print-receipt-area .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; }
+  #print-receipt-area table { border-collapse: collapse; width: 100%; }
+  #print-receipt-area td, #print-receipt-area th { padding: 2px 4px; font-size: 11px; }
+  #print-receipt-area .receipt-total { font-size: 14px; font-weight: bold; }
+}
+
+

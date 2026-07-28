@@ -2,6 +2,7 @@ from fastapi import Request, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+import uuid
 from app.schemas.common import error_response
 from app.core.logging import logger
 
@@ -35,17 +36,19 @@ def add_exception_handlers(app: FastAPI):
 
     @app.exception_handler(SQLAlchemyError)
     async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
-        logger.error(f"Database error: {str(exc)}")
+        error_id = str(uuid.uuid4())
+        logger.error(f"[ErrID: {error_id}] Database error: {str(exc)}")
         # Never expose raw DB errors to the client
         return JSONResponse(
             status_code=500,
-            content=error_response(message="A database error occurred").model_dump()
+            content=error_response(message="A database error occurred. Please contact support.", errors={"error_id": error_id}).model_dump()
         )
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+        error_id = str(uuid.uuid4())
+        logger.error(f"[ErrID: {error_id}] Unhandled exception: {str(exc)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content=error_response(message="An unexpected server error occurred").model_dump()
+            content=error_response(message="An unexpected server error occurred. Please contact support.", errors={"error_id": error_id}).model_dump()
         )

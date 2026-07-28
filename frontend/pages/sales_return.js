@@ -1,53 +1,54 @@
 /**
  * Senthil Enterprises ERP - Sales Return Management
+ * FIXES: SR-001 removed hardcoded fake data, SR-002 real DataProvider.saveSalesReturn,
+ *        SR-003 no reload, SR-004 search/filter wired, SR-005 row click pre-fills,
+ *        SR-006 Lucide icons (no inline SVG), SR-007 status tabs wired
  */
-import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
-import { DataProvider } from '../services/DataProvider.js';
+import { DataProvider } from '../services/dataProvider.js';
+
+const RETURN_REASONS = ['Defective', 'Damaged', 'Wrong Product', 'Changed Mind', 'Quality Issue', 'Other'];
 
 export async function render() {
   const returns = DataProvider.getSalesReturns() || [];
-  const customers = DataProvider.getCustomers();
+  const customers = DataProvider.getCustomers() || [];
 
   const renderRow = (ret) => {
-    const customer = DataProvider.getCustomerById(ret.customerId) || { name: 'Unknown', type: '' };
-    const initials = customer.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    const customer = DataProvider.getCustomerById(ret.customerId) || { name: ret.customerName || 'Unknown', type: '' };
+    const initials = customer.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const statusColor = ret.status === 'Pending' ? 'warning' : (ret.status === 'Approved' ? 'success' : 'danger');
 
-    return \`
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openReturnDrawer'))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">\${ret.id}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">\${ret.invoice || '-'}</td>
+    return `
+    <tr class="row-hover cursor-pointer" data-id="${ret.id}" onclick="window.dispatchEvent(new CustomEvent('openReturnDrawer', {detail: '${ret.id}'}))">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${ret.id}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.invoice || '-'}</td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
           <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-            <span class="text-[10px] font-bold text-primary">\${initials}</span>
+            <span class="text-[10px] font-bold text-primary">${initials}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">\${customer.name}</p>
-            <p class="text-[10px] text-gray-400">\${customer.type}</p>
+            <p class="text-sm font-medium text-text">${customer.name}</p>
+            <p class="text-[10px] text-gray-400">${customer.type || ''}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">\${ret.product || '-'}</td>
-      <td class="px-4 py-3.5 text-center text-sm text-gray-600">\${ret.qty || 0}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => i.name).join(', ') : (ret.product || '-')}</td>
+      <td class="px-4 py-3.5 text-center text-sm text-gray-600">${ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : (ret.qty || 0)}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">\${ret.reason || 'Returned'}</span>
+        <span class="status-badge status-danger">${ret.reason || 'Returned'}</span>
       </td>
-      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹\${ret.amount || 0}</td>
+      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${Number(ret.amount || 0).toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-\${statusColor}/10 text-\${statusColor} status-badge">\${ret.status || 'Pending'}</span>
+        <span class="status-badge status-${statusColor}">${ret.status || 'Pending'}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">\${ret.date || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${ret.date ? ret.date.split('T')[0] : '-'}</td>
       <td class="px-4 py-3.5 text-right">
-        <div class="flex items-center justify-end gap-1">
-          <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openReturnDrawer'))">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </button>
-        </div>
+        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openReturnDrawer', {detail: '${ret.id}'}))">
+          <i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i>
+        </button>
       </td>
-    </tr>
-    \`;
+    </tr>`;
   };
 
   return `
@@ -55,31 +56,37 @@ export async function render() {
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-bold text-text">Sales Return Management</h1>
-          <p class="text-sm text-gray-400 mt-1">Manage customer returns, refunds, exchanges, and stock updates.</p>
+          <p class="text-sm text-gray-400 mt-0.5">Manage customer returns, refunds, and stock updates.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="window.dispatchEvent(new CustomEvent('openReturnDrawer'))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Create Return
-          </button>
-        </div>
+        <button onclick="window.dispatchEvent(new CustomEvent('openReturnDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i> Create Return
+        </button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        \${KPICard({ title: 'Total Returns', value: returns.length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'primary' })}
-        \${KPICard({ title: 'Pending Returns', value: returns.filter(r => r.status === 'Pending').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>', color: 'warning' })}
-        \${KPICard({ title: 'Approved Returns', value: returns.filter(r => r.status === 'Approved').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'success' })}
-        \${KPICard({ title: 'Refund Amount', value: '₹' + returns.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN'), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>', color: 'primary' })}
+        ${KPICard({ title: 'Total Returns', value: returns.length.toString(), iconSvg: '<i data-lucide="rotate-ccw"></i>', color: 'primary' })}
+        ${KPICard({ title: 'Pending', value: returns.filter(r => r.status === 'Pending').length.toString(), iconSvg: '<i data-lucide="clock"></i>', color: 'warning' })}
+        ${KPICard({ title: 'Approved', value: returns.filter(r => r.status === 'Approved').length.toString(), iconSvg: '<i data-lucide="check-circle"></i>', color: 'success' })}
+        ${KPICard({ title: 'Refund Value', value: '₹' + returns.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString('en-IN'), iconSvg: '<i data-lucide="credit-card"></i>', color: 'danger' })}
       </div>
 
-      <div class="flex items-center gap-1 border-b border-border mb-6">
-        <button class="px-4 py-3 text-sm font-medium text-primary border-b-2 border-primary">Return Requests</button>
-        <button class="px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text">Approved</button>
-        <button class="px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text">Rejected</button>
-        <button class="px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text">Refunds</button>
+      <!-- Search & Filter Bar -->
+      <div class="bg-white rounded-xl border border-border p-4 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
+        <div class="relative flex-1 min-w-[200px] max-w-md">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="ret-search" placeholder="Search by ID, customer, invoice..."
+            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+        </div>
+        <select id="ret-status-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+        <span id="ret-count-label" class="text-xs text-gray-400 ml-auto">Showing ${returns.length} returns</span>
       </div>
 
-      <div class="bg-white rounded-xl border border-border overflow-hidden">
+      <div class="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
           <table class="w-full text-sm min-w-[1200px]">
             <thead>
@@ -87,140 +94,132 @@ export async function render() {
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Invoice</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Customer</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Products</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-center">Qty</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Reason</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Refund Amount</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Refund</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Created</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Date</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border">
-              \${returns.length > 0 ? returns.map(renderRow).join('') : '<tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">No returns found.</td></tr>'}
+            <tbody id="returns-tbody" class="divide-y divide-border">
+              ${returns.length > 0 ? returns.map(renderRow).join('') : '<tr><td colspan="10" class="px-4 py-12 text-center text-gray-400 text-sm">No returns found.</td></tr>'}
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- Right Drawer Overlay -->
-    <div id="return-drawer-overlay" class="overlay fixed inset-0 bg-black/30 z-[60] opacity-0 pointer-events-none transition-opacity duration-200"></div>
-    
-    <!-- Create Return Drawer -->
-    <aside id="return-form-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[600px] bg-white border-l border-border z-[70] overflow-y-auto shadow-2xl transition-transform duration-250">
-      <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10">
-        <h3 class="text-base font-semibold text-text">Create Sales Return</h3>
-        <button class="close-return-drawer p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    <!-- Overlay -->
+    <div id="return-drawer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- Drawer -->
+    <aside id="return-form-drawer" class="fixed top-0 right-0 h-screen w-[580px] bg-white border-l border-border z-[70] shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-white">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-danger/10 rounded-lg text-danger">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-base font-bold text-text" id="ret-drawer-title">Create Sales Return</h3>
+        </div>
+        <button class="close-return-drawer p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-6 space-y-5">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Return ID (Auto)</label>
-            <input type="text" value="RET-2026-045" disabled class="w-full px-3 py-2.5 bg-gray-100 border border-border rounded-lg text-sm text-gray-500">
+      <div class="p-6 flex-1 overflow-y-auto space-y-4">
+        <form id="return-form" class="space-y-4">
+          <input type="hidden" id="ret-id">
+          <input type="hidden" id="ret-product-id">
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Return Date *</label>
+              <input type="date" id="ret-date" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Original Invoice No.</label>
+              <input type="text" id="ret-invoice" placeholder="INV-..." class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
           </div>
+
           <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Original Invoice Number</label>
-            <input type="text" placeholder="Search INV-..." class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Select Customer</label>
-          <select class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-            \${customers.map(c => \`<option value="\${c.id}">\${c.name}</option>\`).join('')}
-          </select>
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Product Search</label>
-          <input type="text" placeholder="Search product to return..." class="w-full px-3 py-2 bg-white border border-border rounded-lg text-sm focus:outline-none focus:border-primary shadow-sm">
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Return Summary</label>
-          <div class="border border-border rounded-xl overflow-hidden">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50/60">
-                <tr>
-                  <th class="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wide">Product</th>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium text-gray-500 uppercase tracking-wide">Qty</th>
-                  <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wide">Price</th>
-                  <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wide">Refund</th>
-                  <th class="px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                <tr>
-                  <td class="px-3 py-2.5 text-xs text-text">Crompton 1HP Motor</td>
-                  <td class="px-3 py-2.5 text-center"><input type="number" value="1" class="w-14 px-2 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary"></td>
-                  <td class="px-3 py-2.5 text-right text-xs text-text">₹4,200</td>
-                  <td class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹4,200</td>
-                  <td class="px-3 py-2.5 text-right"><button class="text-gray-400 hover:text-danger">×</button></td>
-                </tr>
-              </tbody>
-              <tfoot class="bg-gray-50/60 border-t border-border">
-                <tr>
-                  <td colspan="3" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Total Refund Amount</td>
-                  <td colspan="2" class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹4,200</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Return Reason</label>
-            <select class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-              <option>Defective</option>
-              <option>Damaged</option>
-              <option>Changed Mind</option>
-              <option>Wrong Product</option>
+            <label class="text-xs font-semibold text-gray-600 block mb-1.5">Customer *</label>
+            <select id="ret-customer" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+              <option value="">Select Customer...</option>
+              ${customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
             </select>
           </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Product Name *</label>
+              <input type="text" id="ret-product" required placeholder="Product returned..." class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Quantity *</label>
+              <input type="number" id="ret-qty" required min="1" value="1" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
+          </div>
+
           <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Condition</label>
-            <select class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-              <option>Unopened</option>
-              <option>Opened - Good</option>
-              <option>Opened - Damaged</option>
-            </select>
+            <label class="text-xs font-semibold text-gray-600 block mb-1.5">Refund Amount (₹) *</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+              <input type="number" id="ret-amount" required min="0" placeholder="0.00" class="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm font-bold focus:outline-none focus:border-primary">
+            </div>
           </div>
-        </div>
 
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="restock" checked class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary">
-          <label for="restock" class="text-sm font-medium text-text">Restock item into inventory automatically</label>
-        </div>
-
-        <div class="mt-4 pt-4 border-t border-border">
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Approve return placeholder</label>
-          <div class="flex items-center gap-4">
-             <button class="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-success text-white text-sm font-medium rounded-lg hover:bg-success/90 transition-colors">
-               Approve Return & Process Refund
-             </button>
-             <button class="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-border text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-               Save as Draft
-             </button>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Return Reason *</label>
+              <select id="ret-reason" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+                ${RETURN_REASONS.map(r => `<option value="${r}">${r}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Status *</label>
+              <select id="ret-status" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
           </div>
-        </div>
 
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="ret-restock" checked class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary">
+            <label for="ret-restock" class="text-sm font-medium text-text">Restock item into inventory automatically</label>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-4 border-t border-border bg-gray-50 flex items-center justify-end gap-3 sticky bottom-0">
+        <button class="close-return-drawer px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="save-return-btn" class="px-5 py-2 text-sm font-semibold text-white bg-danger rounded-lg hover:bg-danger/90 flex items-center gap-2 transition-colors">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Return
+        </button>
       </div>
     </aside>
   `;
 }
 
 export function onMount(rootElement) {
-  document.getElementById('sidebar-root').style.display = 'flex';
-  document.getElementById('navbar-root').style.display = 'flex';
+  if (window.lucide) window.lucide.createIcons();
 
+  const allReturns = DataProvider.getSalesReturns() || [];
   const overlay = rootElement.querySelector('#return-drawer-overlay');
   const formDrawer = rootElement.querySelector('#return-form-drawer');
   const closeBtns = rootElement.querySelectorAll('.close-return-drawer');
+  const tbody = rootElement.querySelector('#returns-tbody');
+  const retSearch = rootElement.querySelector('#ret-search');
+  const retStatusFilter = rootElement.querySelector('#ret-status-filter');
+  const countLabel = rootElement.querySelector('#ret-count-label');
+
+  const today = new Date().toISOString().split('T')[0];
+  const retDate = rootElement.querySelector('#ret-date');
+  if (retDate) retDate.value = today;
 
   const closeAll = () => {
     overlay.classList.add('opacity-0', 'pointer-events-none');
@@ -228,15 +227,138 @@ export function onMount(rootElement) {
     formDrawer.classList.add('translate-x-full');
   };
 
-  const openForm = () => {
-    closeAll();
+  const renderRow = (ret) => {
+    const customer = DataProvider.getCustomerById(ret.customerId) || { name: ret.customerName || 'Unknown', type: '' };
+    const initials = customer.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const sc = ret.status === 'Pending' ? 'warning' : (ret.status === 'Approved' ? 'success' : 'danger');
+    return `<tr class="row-hover cursor-pointer" data-id="${ret.id}" onclick="window.dispatchEvent(new CustomEvent('openReturnDrawer', {detail: '${ret.id}'}))">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${ret.id}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.invoice || '-'}</td>
+      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-[10px] font-bold text-primary">${initials}</span></div><div><p class="text-sm font-medium text-text">${customer.name}</p></div></div></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => i.name).join(', ') : (ret.product || '-')}</td>
+      <td class="px-4 py-3.5 text-center text-sm text-gray-600">${ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : (ret.qty || 0)}</td>
+      <td class="px-4 py-3.5"><span class="status-badge status-danger">${ret.reason || '-'}</span></td>
+      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${Number(ret.amount || 0).toLocaleString('en-IN')}</td>
+      <td class="px-4 py-3.5"><span class="status-badge status-${sc}">${ret.status || 'Pending'}</span></td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${ret.date ? ret.date.split('T')[0] : '-'}</td>
+      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openReturnDrawer', {detail: '${ret.id}'}))"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button></td>
+    </tr>`;
+  };
+
+  // Search & filter (SR-004)
+  const applyFilter = () => {
+    const q = (retSearch?.value || '').toLowerCase();
+    const status = retStatusFilter?.value || '';
+    const filtered = allReturns.filter(r => {
+      if (status && r.status !== status) return false;
+      if (q) {
+        const cust = DataProvider.getCustomerById(r.customerId);
+        const custName = (cust?.name || r.customerName || '').toLowerCase();
+        if (!r.id.toLowerCase().includes(q) && !custName.includes(q) && !(r.invoice || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    if (countLabel) countLabel.textContent = `Showing ${filtered.length} of ${allReturns.length} returns`;
+    if (tbody) {
+      tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="10" class="px-4 py-12 text-center text-gray-400 text-sm">No returns match your filter</td></tr>';
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+    }
+  };
+  if (retSearch) retSearch.addEventListener('input', applyFilter);
+  if (retStatusFilter) retStatusFilter.addEventListener('change', applyFilter);
+
+  const openForm = (e) => {
+    const id = e.detail;
+    const form = rootElement.querySelector('#return-form');
+    if (form) form.reset();
+    if (id) {
+      const ret = allReturns.find(r => r.id === id);
+      if (ret) {
+        rootElement.querySelector('#ret-id').value = ret.id;
+        rootElement.querySelector('#ret-date').value = ret.date ? ret.date.split('T')[0] : today;
+        rootElement.querySelector('#ret-invoice').value = ret.invoice || '';
+        rootElement.querySelector('#ret-customer').value = ret.customerId || '';
+        rootElement.querySelector('#ret-product-id').value = ret.items ? ret.items[0]?.productId : '';
+        rootElement.querySelector('#ret-product').value = ret.items ? ret.items[0]?.name : (ret.product || '');
+        rootElement.querySelector('#ret-qty').value = ret.items ? ret.items[0]?.qty : (ret.qty || '');
+        rootElement.querySelector('#ret-amount').value = ret.amount || '';
+        rootElement.querySelector('#ret-reason').value = ret.reason || 'Defective';
+        rootElement.querySelector('#ret-status').value = ret.status || 'Pending';
+      }
+      rootElement.querySelector('#ret-drawer-title').textContent = 'View / Edit Return';
+    } else {
+      rootElement.querySelector('#ret-id').value = '';
+      rootElement.querySelector('#ret-date').value = today;
+      rootElement.querySelector('#ret-drawer-title').textContent = 'Create Sales Return';
+    }
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
     formDrawer.classList.remove('translate-x-full');
   };
 
+  // Fix SR-001: Invoice lookup
+  const invoiceInput = rootElement.querySelector('#ret-invoice');
+  if (invoiceInput) {
+    invoiceInput.addEventListener('blur', () => {
+      const invId = invoiceInput.value.trim();
+      if (!invId) return;
+      const inv = DataProvider.getSalesInvoices().find(i => i.id === invId);
+      if (inv) {
+        if (inv.customerId) rootElement.querySelector('#ret-customer').value = inv.customerId;
+        if (inv.items && inv.items.length === 1) {
+          rootElement.querySelector('#ret-product-id').value = inv.items[0].productId || '';
+          rootElement.querySelector('#ret-product').value = inv.items[0].name;
+          rootElement.querySelector('#ret-qty').value = inv.items[0].qty;
+          rootElement.querySelector('#ret-amount').value = (inv.items[0].qty * inv.items[0].price).toFixed(2);
+        }
+        window.showToast('Invoice details loaded', 'success');
+      }
+    });
+  }
+
   window.addEventListener('openReturnDrawer', openForm);
-  
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
+
+  // Save (SR-001, SR-002, SR-003)
+  rootElement.querySelector('#save-return-btn')?.addEventListener('click', () => {
+    const form = rootElement.querySelector('#return-form');
+    if (!form.reportValidity()) return;
+
+    const customerId = rootElement.querySelector('#ret-customer').value;
+    const productName = rootElement.querySelector('#ret-product').value.trim();
+    const qty = Number(rootElement.querySelector('#ret-qty').value) || 1;
+    const amount = Number(rootElement.querySelector('#ret-amount').value) || 0;
+
+    const ret = {
+      id: rootElement.querySelector('#ret-id').value || null,
+      date: rootElement.querySelector('#ret-date').value,
+      invoice: rootElement.querySelector('#ret-invoice').value.trim(),
+      customerId,
+      product: productName,
+      qty,
+      amount,
+      reason: rootElement.querySelector('#ret-reason').value,
+      status: rootElement.querySelector('#ret-status').value,
+      // Provide items array so DataProvider.saveSalesReturn validates correctly
+      items: [{ productId: rootElement.querySelector('#ret-product-id').value, name: productName, qty, price: amount / qty, total: amount }]
+    };
+
+    try {
+      const saved = DataProvider.saveSalesReturn(ret);
+      const existingIdx = allReturns.findIndex(r => r.id === saved.id);
+      if (existingIdx > -1) allReturns[existingIdx] = saved;
+      else allReturns.unshift(saved);
+
+      closeAll();
+      applyFilter();
+      window.showToast('Sales return saved!', 'success');
+    } catch (err) {
+      window.showToast(err.message, 'danger');
+    }
+  });
+
+  return function cleanup() {
+    window.removeEventListener('openReturnDrawer', openForm);
+  };
 }

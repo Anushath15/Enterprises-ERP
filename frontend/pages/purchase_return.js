@@ -1,214 +1,225 @@
 /**
  * Senthil Enterprises ERP - Purchase Return Management
+ * FIXES: PR-001 removed hardcoded fake data, PR-002 real DataProvider.savePurchaseReturn,
+ *        PR-003 no reload, PR-004 search/filter wired, PR-005 row click pre-fills,
+ *        PR-006 Lucide icons, PR-007 status tabs wired
  */
-import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
-import { DataProvider } from '../services/DataProvider.js';
+import { DataProvider } from '../services/dataProvider.js';
+
+const RETURN_REASONS = ['Defective', 'Damaged in Transit', 'Wrong Item Supplied', 'Excess Quantity', 'Quality Issue', 'Other'];
 
 export async function render() {
   const returns = DataProvider.getPurchaseReturns() || [];
-  const dealers = DataProvider.getDealers();
+  const dealers = DataProvider.getDealers() || [];
 
   const renderRow = (ret) => {
-    const dealer = DataProvider.getDealerById(ret.dealerId) || { name: 'Unknown' };
-    const initials = dealer.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    const dealer = DataProvider.getDealerById(ret.dealerId) || { companyName: ret.dealerName || 'Unknown', type: '' };
+    const initials = dealer.companyName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const statusColor = ret.status === 'Pending' ? 'warning' : (ret.status === 'Approved' ? 'success' : 'danger');
 
-    return \`
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer'))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">\${ret.id}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">\${ret.poNumber || '-'}</td>
+    return `
+    <tr class="row-hover cursor-pointer" data-id="${ret.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${ret.id}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.invoice || '-'}</td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
           <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-            <span class="text-[10px] font-bold text-primary">\${initials}</span>
+            <span class="text-[10px] font-bold text-primary">${initials}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">\${dealer.name}</p>
+            <p class="text-sm font-medium text-text">${dealer.companyName}</p>
+            <p class="text-[10px] text-gray-400">${dealer.type || ''}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">\${ret.product || '-'}</td>
-      <td class="px-4 py-3.5 text-center text-sm text-gray-600">\${ret.qty || 0}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => i.name).join(', ') : (ret.product || '-')}</td>
+      <td class="px-4 py-3.5 text-center text-sm text-gray-600">${ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : (ret.qty || 0)}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">\${ret.reason || 'Returned'}</span>
+        <span class="status-badge status-danger">${ret.reason || 'Returned'}</span>
       </td>
-      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹\${ret.amount || 0}</td>
+      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${Number(ret.amount || 0).toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-\${statusColor}/10 text-\${statusColor} status-badge">\${ret.status || 'Pending'}</span>
+        <span class="status-badge status-${statusColor}">${ret.status || 'Pending'}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">\${ret.date || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${ret.date ? ret.date.split('T')[0] : '-'}</td>
       <td class="px-4 py-3.5 text-right">
-        <div class="flex items-center justify-end gap-1">
-          <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer'))">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
-          </button>
-        </div>
+        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))">
+          <i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i>
+        </button>
       </td>
-    </tr>
-    \`;
+    </tr>`;
   };
 
   return `
     <div class="p-6 max-w-[1600px] mx-auto fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-text">Purchase Return Management</h1>
-          <p class="text-sm text-gray-400 mt-1">Manage stock returns to dealers, debit notes, and inventory adjustments.</p>
+          <h1 class="text-2xl font-bold text-text">Purchase Return (Debit Note)</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Manage goods returned to suppliers and debit note issuance.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer'))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Create Purchase Return
-          </button>
-        </div>
+        <button onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i> Create Debit Note
+        </button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        \${KPICard({ title: 'Pending Returns', value: returns.filter(r => r.status === 'Pending').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>', color: 'warning' })}
-        \${KPICard({ title: 'Approved Returns', value: returns.filter(r => r.status === 'Approved').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'success' })}
-        \${KPICard({ title: 'Rejected Returns', value: returns.filter(r => r.status === 'Rejected').length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'danger' })}
-        \${KPICard({ title: 'Total Return Value', value: '₹' + returns.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN'), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>', color: 'primary' })}
+        ${KPICard({ title: 'Total Debit Notes', value: returns.length.toString(), iconSvg: '<i data-lucide="file-minus"></i>', color: 'primary' })}
+        ${KPICard({ title: 'Pending Approval', value: returns.filter(r => r.status === 'Pending').length.toString(), iconSvg: '<i data-lucide="clock"></i>', color: 'warning' })}
+        ${KPICard({ title: 'Approved', value: returns.filter(r => r.status === 'Approved').length.toString(), iconSvg: '<i data-lucide="check-circle"></i>', color: 'success' })}
+        ${KPICard({ title: 'Total Recoverable', value: '₹' + returns.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString('en-IN'), iconSvg: '<i data-lucide="indian-rupee"></i>', color: 'danger' })}
       </div>
 
-      <div class="flex items-center gap-1 border-b border-border mb-6">
-        <button class="px-4 py-3 text-sm font-medium text-primary border-b-2 border-primary">Return Requests</button>
-        <button class="px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-text">Debit Notes</button>
+      <!-- Search & Filter Bar -->
+      <div class="bg-white rounded-xl border border-border p-4 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
+        <div class="relative flex-1 min-w-[200px] max-w-md">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="pret-search" placeholder="Search by ID, supplier, invoice..."
+            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+        </div>
+        <select id="pret-status-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+        <span id="pret-count-label" class="text-xs text-gray-400 ml-auto">Showing ${returns.length} records</span>
       </div>
 
-      <div class="bg-white rounded-xl border border-border overflow-hidden">
+      <div class="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
           <table class="w-full text-sm min-w-[1200px]">
             <thead>
               <tr class="border-b border-border bg-gray-50/60 text-left">
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Return ID</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">PO Number</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Supplier Inv</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Supplier</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Products</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-center">Qty</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Reason</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Return Amount</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Debit Amt</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Created</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Date</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border">
-              \${returns.length > 0 ? returns.map(renderRow).join('') : '<tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">No returns found.</td></tr>'}
+            <tbody id="pret-tbody" class="divide-y divide-border">
+              ${returns.length > 0 ? returns.map(renderRow).join('') : '<tr><td colspan="10" class="px-4 py-12 text-center text-gray-400 text-sm">No purchase returns found.</td></tr>'}
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- Right Drawer Overlay -->
-    <div id="purchase-return-drawer-overlay" class="overlay fixed inset-0 bg-black/30 z-[60] opacity-0 pointer-events-none transition-opacity duration-200"></div>
-    
-    <!-- Create Purchase Return Drawer -->
-    <aside id="purchase-return-form-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[600px] bg-white border-l border-border z-[70] overflow-y-auto shadow-2xl transition-transform duration-250">
-      <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10">
-        <h3 class="text-base font-semibold text-text">Create Purchase Return</h3>
-        <button class="close-purchase-return-drawer p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    <!-- Overlay -->
+    <div id="pret-drawer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- Drawer -->
+    <aside id="pret-form-drawer" class="fixed top-0 right-0 h-screen w-[580px] bg-white border-l border-border z-[70] shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-white">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-danger/10 rounded-lg text-danger">
+            <i data-lucide="file-minus" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-base font-bold text-text" id="pret-drawer-title">Create Debit Note (Purchase Return)</h3>
+        </div>
+        <button class="close-pret-drawer p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-6 space-y-5">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Return ID (Auto)</label>
-            <input type="text" value="PRET-2026-003" disabled class="w-full px-3 py-2.5 bg-gray-100 border border-border rounded-lg text-sm text-gray-500">
+      <div class="p-6 flex-1 overflow-y-auto space-y-4">
+        <form id="pret-form" class="space-y-4">
+          <input type="hidden" id="pret-id">
+          <input type="hidden" id="pret-product-id">
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Return Date *</label>
+              <input type="date" id="pret-date" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Supplier Invoice No.</label>
+              <input type="text" id="pret-invoice" placeholder="INV-..." class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
           </div>
+
           <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Original PO Number</label>
-            <input type="text" placeholder="Search PO-..." class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Select Dealer / Supplier</label>
-          <select class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-            \${dealers.map(d => \`<option value="\${d.id}">\${d.name}</option>\`).join('')}
-          </select>
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Product Search</label>
-          <input type="text" placeholder="Search product to return..." class="w-full px-3 py-2 bg-white border border-border rounded-lg text-sm focus:outline-none focus:border-primary shadow-sm">
-        </div>
-
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Return Summary</label>
-          <div class="border border-border rounded-xl overflow-hidden">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50/60">
-                <tr>
-                  <th class="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wide">Product</th>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium text-gray-500 uppercase tracking-wide">Qty</th>
-                  <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wide">Price</th>
-                  <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wide">Total</th>
-                  <th class="px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                <tr>
-                  <td class="px-3 py-2.5 text-xs text-text">CPVC Pipe 1" — 3m</td>
-                  <td class="px-3 py-2.5 text-center"><input type="number" value="10" class="w-14 px-2 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary"></td>
-                  <td class="px-3 py-2.5 text-right text-xs text-text">₹385</td>
-                  <td class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹3,850</td>
-                  <td class="px-3 py-2.5 text-right"><button class="text-gray-400 hover:text-danger">×</button></td>
-                </tr>
-              </tbody>
-              <tfoot class="bg-gray-50/60 border-t border-border">
-                <tr>
-                  <td colspan="3" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Total Return Amount</td>
-                  <td colspan="2" class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹3,850</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Return Reason</label>
-            <select class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-              <option>Defective / Damaged</option>
-              <option>Wrong Product Sent</option>
-              <option>Overstock</option>
+            <label class="text-xs font-semibold text-gray-600 block mb-1.5">Supplier / Dealer *</label>
+            <select id="pret-dealer" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+              <option value="">Select Supplier...</option>
+              ${dealers.map(d => `<option value="${d.id}">${d.companyName}</option>`).join('')}
             </select>
           </div>
-        </div>
 
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="debit_note" checked class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary">
-          <label for="debit_note" class="text-sm font-medium text-text">Generate Debit Note for this return</label>
-        </div>
-
-        <div class="mt-4 pt-4 border-t border-border">
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Approve return placeholder</label>
-          <div class="flex items-center gap-4">
-             <button class="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-success text-white text-sm font-medium rounded-lg hover:bg-success/90 transition-colors">
-               Approve Return & Create Debit Note
-             </button>
-             <button class="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-border text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-               Save as Draft
-             </button>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Product Name *</label>
+              <input type="text" id="pret-product" required placeholder="Product returned..." class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Quantity *</label>
+              <input type="number" id="pret-qty" required min="1" value="1" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+            </div>
           </div>
-        </div>
 
+          <div>
+            <label class="text-xs font-semibold text-gray-600 block mb-1.5">Debit Amount (₹) *</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+              <input type="number" id="pret-amount" required min="0" placeholder="0.00" class="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm font-bold focus:outline-none focus:border-primary">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Return Reason *</label>
+              <select id="pret-reason" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+                ${RETURN_REASONS.map(r => `<option value="${r}">${r}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-600 block mb-1.5">Status *</label>
+              <select id="pret-status" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="pret-restock" checked class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary">
+            <label for="pret-restock" class="text-sm font-medium text-text">Deduct item from inventory automatically</label>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-4 border-t border-border bg-gray-50 flex items-center justify-end gap-3 sticky bottom-0">
+        <button class="close-pret-drawer px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-border rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="save-pret-btn" class="px-5 py-2 text-sm font-semibold text-white bg-danger rounded-lg hover:bg-danger/90 flex items-center gap-2 transition-colors">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Debit Note
+        </button>
       </div>
     </aside>
   `;
 }
 
 export function onMount(rootElement) {
-  document.getElementById('sidebar-root').style.display = 'flex';
-  document.getElementById('navbar-root').style.display = 'flex';
+  if (window.lucide) window.lucide.createIcons();
 
-  const overlay = rootElement.querySelector('#purchase-return-drawer-overlay');
-  const formDrawer = rootElement.querySelector('#purchase-return-form-drawer');
-  const closeBtns = rootElement.querySelectorAll('.close-purchase-return-drawer');
+  const allReturns = DataProvider.getPurchaseReturns() || [];
+  const overlay = rootElement.querySelector('#pret-drawer-overlay');
+  const formDrawer = rootElement.querySelector('#pret-form-drawer');
+  const closeBtns = rootElement.querySelectorAll('.close-pret-drawer');
+  const tbody = rootElement.querySelector('#pret-tbody');
+  const pretSearch = rootElement.querySelector('#pret-search');
+  const pretStatusFilter = rootElement.querySelector('#pret-status-filter');
+  const countLabel = rootElement.querySelector('#pret-count-label');
+
+  const today = new Date().toISOString().split('T')[0];
+  const pretDate = rootElement.querySelector('#pret-date');
+  if (pretDate) pretDate.value = today;
 
   const closeAll = () => {
     overlay.classList.add('opacity-0', 'pointer-events-none');
@@ -216,15 +227,139 @@ export function onMount(rootElement) {
     formDrawer.classList.add('translate-x-full');
   };
 
-  const openForm = () => {
-    closeAll();
+  const renderRow = (ret) => {
+    const dealer = DataProvider.getDealerById(ret.dealerId) || { companyName: ret.dealerName || 'Unknown', type: '' };
+    const initials = dealer.companyName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const sc = ret.status === 'Pending' ? 'warning' : (ret.status === 'Approved' ? 'success' : 'danger');
+    return `<tr class="row-hover cursor-pointer" data-id="${ret.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${ret.id}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.invoice || '-'}</td>
+      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-[10px] font-bold text-primary">${initials}</span></div><div><p class="text-sm font-medium text-text">${dealer.companyName}</p></div></div></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => i.name).join(', ') : (ret.product || '-')}</td>
+      <td class="px-4 py-3.5 text-center text-sm text-gray-600">${ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : (ret.qty || 0)}</td>
+      <td class="px-4 py-3.5"><span class="status-badge status-danger">${ret.reason || '-'}</span></td>
+      <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${Number(ret.amount || 0).toLocaleString('en-IN')}</td>
+      <td class="px-4 py-3.5"><span class="status-badge status-${sc}">${ret.status || 'Pending'}</span></td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${ret.date ? ret.date.split('T')[0] : '-'}</td>
+      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button></td>
+    </tr>`;
+  };
+
+  // Search & filter (PR-004)
+  const applyFilter = () => {
+    const q = (pretSearch?.value || '').toLowerCase();
+    const status = pretStatusFilter?.value || '';
+    const filtered = allReturns.filter(r => {
+      if (status && r.status !== status) return false;
+      if (q) {
+        const dealer = DataProvider.getDealerById(r.dealerId);
+        const dealerName = (dealer?.companyName || r.dealerName || '').toLowerCase();
+        if (!r.id.toLowerCase().includes(q) && !dealerName.includes(q) && !(r.invoice || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    if (countLabel) countLabel.textContent = `Showing ${filtered.length} of ${allReturns.length} records`;
+    if (tbody) {
+      tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="10" class="px-4 py-12 text-center text-gray-400 text-sm">No purchase returns match your filter</td></tr>';
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+    }
+  };
+  if (pretSearch) pretSearch.addEventListener('input', applyFilter);
+  if (pretStatusFilter) pretStatusFilter.addEventListener('change', applyFilter);
+
+  const openForm = (e) => {
+    const id = e.detail;
+    const form = rootElement.querySelector('#pret-form');
+    const title = rootElement.querySelector('#pret-drawer-title');
+    if (form) form.reset();
+    if (pretDate) pretDate.value = today;
+    rootElement.querySelector('#pret-status').value = 'Pending';
+
+    if (id) {
+      const ret = allReturns.find(r => r.id === id);
+      if (ret && title) {
+        title.textContent = 'View/Edit Debit Note';
+        rootElement.querySelector('#pret-id').value = ret.id;
+        rootElement.querySelector('#pret-date').value = ret.date ? ret.date.split('T')[0] : today;
+        rootElement.querySelector('#pret-invoice').value = ret.invoice || '';
+        rootElement.querySelector('#pret-dealer').value = ret.dealerId || '';
+        rootElement.querySelector('#pret-product-id').value = ret.items ? ret.items[0]?.productId : '';
+        rootElement.querySelector('#pret-product').value = ret.items ? ret.items[0]?.name : (ret.product || '');
+        rootElement.querySelector('#pret-qty').value = ret.qty || (ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : 1);
+        rootElement.querySelector('#pret-amount').value = ret.amount || '';
+        rootElement.querySelector('#pret-reason').value = ret.reason || 'Defective';
+        rootElement.querySelector('#pret-status').value = ret.status || 'Pending';
+      }
+      rootElement.querySelector('#pret-drawer-title').textContent = 'Create Debit Note';
+    }
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
     formDrawer.classList.remove('translate-x-full');
   };
 
+  // Fix PR-001: Invoice lookup
+  const invoiceInput = rootElement.querySelector('#pret-invoice');
+  if (invoiceInput) {
+    invoiceInput.addEventListener('blur', () => {
+      const invId = invoiceInput.value.trim();
+      if (!invId) return;
+      const inv = DataProvider.getPurchaseInvoices().find(i => i.id === invId);
+      if (inv) {
+        if (inv.dealerId) rootElement.querySelector('#pret-dealer').value = inv.dealerId;
+        if (inv.items && inv.items.length === 1) {
+          rootElement.querySelector('#pret-product-id').value = inv.items[0].productId || '';
+          rootElement.querySelector('#pret-product').value = inv.items[0].name;
+          rootElement.querySelector('#pret-qty').value = inv.items[0].qty;
+          rootElement.querySelector('#pret-amount').value = (inv.items[0].qty * (inv.items[0].price || inv.items[0].costPrice || 0)).toFixed(2);
+        }
+        window.showToast('Purchase invoice details loaded', 'success');
+      }
+    });
+  }
+
   window.addEventListener('openPurchaseReturnDrawer', openForm);
-  
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
+
+  // Save (PR-001, PR-002, PR-003)
+  rootElement.querySelector('#save-pret-btn')?.addEventListener('click', () => {
+    const form = rootElement.querySelector('#pret-form');
+    if (!form.reportValidity()) return;
+
+    const dealerId = rootElement.querySelector('#pret-dealer').value;
+    const productName = rootElement.querySelector('#pret-product').value.trim();
+    const qty = Number(rootElement.querySelector('#pret-qty').value) || 1;
+    const amount = Number(rootElement.querySelector('#pret-amount').value) || 0;
+
+    const ret = {
+      id: rootElement.querySelector('#pret-id').value || null,
+      date: rootElement.querySelector('#pret-date').value,
+      invoice: rootElement.querySelector('#pret-invoice').value.trim(),
+      dealerId,
+      product: productName,
+      qty,
+      amount,
+      reason: rootElement.querySelector('#pret-reason').value,
+      status: rootElement.querySelector('#pret-status').value,
+      // Provide items array so DataProvider.savePurchaseReturn validates correctly
+      items: [{ productId: rootElement.querySelector('#pret-product-id').value, name: productName, qty, price: amount / qty, total: amount }]
+    };
+
+    try {
+      const saved = DataProvider.savePurchaseReturn(ret);
+      const existingIdx = allReturns.findIndex(r => r.id === saved.id);
+      if (existingIdx > -1) allReturns[existingIdx] = saved;
+      else allReturns.unshift(saved);
+
+      closeAll();
+      applyFilter();
+      window.showToast('Debit note saved successfully!', 'success');
+    } catch (err) {
+      window.showToast(err.message, 'danger');
+    }
+  });
+
+  return function cleanup() {
+    window.removeEventListener('openPurchaseReturnDrawer', openForm);
+  };
 }

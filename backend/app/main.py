@@ -14,7 +14,7 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Tighten in production
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,17 +28,14 @@ async def startup_event():
     logger.info(f"Starting {settings.PROJECT_NAME} (Version: {settings.VERSION})")
     logger.info(f"Active Timezone: {settings.TIMEZONE}")
 
-@app.get("/health", tags=["Health"])
-async def health_check():
-    return {"status": "ok", "message": "API is running."}
-
 from fastapi import APIRouter, Depends
-from app.api.v1 import products, contacts, sales, purchases, expenses, daily_closing, dashboard, reports, auth
+from app.api.v1 import products, contacts, sales, purchases, expenses, daily_closing, dashboard, reports, auth, health
 from app.security.current_user import get_current_active_user
 
 api_v1_router = APIRouter()
 
-# Auth is public
+# Public Routes
+api_v1_router.include_router(health.router, prefix="/health", tags=["Health Monitoring"])
 api_v1_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
 # Protected Business Routes

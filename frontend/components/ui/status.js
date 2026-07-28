@@ -41,3 +41,4 @@ export function ProgressBar({ percentage = 0, color = 'primary' }) {
     </div>
   `;
 }
+

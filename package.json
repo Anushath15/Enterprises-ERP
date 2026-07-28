@@ -1,0 +1,19 @@
+{
+  "name": "bs-software",
+  "version": "1.0.0-rc1",
+  "description": "![Version](https://img.shields.io/badge/version-1.0.0--rc1-blue.svg) ![Python](https://img.shields.io/badge/python-3.11+-blue.svg) ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "puppeteer": "^25.4.0"
+  }
+}

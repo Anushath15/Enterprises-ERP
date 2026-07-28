@@ -1,285 +1,460 @@
 /**
- * Senthil Enterprises ERP - Dealers Page Controller
+ * Senthil Enterprises ERP - Dealers (Suppliers) Module
  */
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
-import { DataProvider } from '../services/DataProvider.js';
+import { DataProvider } from '../services/dataProvider.js';
 
 export async function render() {
-  const dealers = DataProvider.getDealers();
-
-  const renderStars = (rating) => {
-    let html = '';
-    const full = Math.floor(rating || 0);
-    for(let i=0; i<5; i++) {
-      if(i < full) html += '<span class="text-warning">★</span>';
-      else html += '<span class="text-gray-300">★</span>';
-    }
-    html += \`<span class="text-xs text-gray-400 ml-1">\${(rating||0).toFixed(1)}</span>\`;
-    return html;
-  };
-
+  const dealers = DataProvider.getDealers() || [];
+  
   const renderRow = (d) => {
-    const initials = d.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-    const isInactive = !d.isActive;
-    const color = d.category === 'Plumbing' ? 'primary' : d.category === 'Electricals' ? 'success' : 'warning';
-    
-    return \`
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openDealerProfile', {detail: '\${d.id}'}))">
+    return `
+    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openDealerDrawer', {detail: '${d.id}'}))">
+      <td class="px-4 py-3.5 text-left" onclick="event.stopPropagation()">
+        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary">
+      </td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-\${color}/10 flex items-center justify-center">
-            <span class="text-xs font-bold text-\${color}">\${initials}</span>
+          <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+            ${(d.companyName || d.name || 'D').substring(0, 2)}
           </div>
           <div>
-            <p class="text-sm font-semibold text-text">\${d.name}</p>
-            <p class="text-[10px] text-gray-400">Since 2024</p>
+            <p class="text-sm font-semibold text-text">${d.companyName || d.name}</p>
+            <p class="text-[10px] text-gray-500 font-medium">${d.contactPerson || d.name} ${d.gst ? `• GST: ${d.gst}` : ''}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">\${d.contactPerson || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">\${d.phone}</td>
-      <td class="px-4 py-3.5">
-        <span class="font-mono text-xs text-gray-500">\${d.gstin || '-'}</span>
-      </td>
-      <td class="px-4 py-3.5 text-right font-semibold \${d.outstanding > 0 ? 'text-warning' : 'text-text'}">₹\${d.outstanding || 0}</td>
-      <td class="px-4 py-3.5 text-right text-sm text-success font-medium">₹0</td>
-      <td class="px-4 py-3.5">
-        <div class="flex items-center gap-1">
-          \${renderStars(4.5)}
-        </div>
-      </td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${d.phone || '-'}</td>
+      <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
       <td class="px-4 py-3.5 text-right">
-        <div class="flex items-center justify-end gap-1">
-          <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" title="Edit" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openDealerForm'))">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
-          </button>
-          <button class="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-gray-100" title="Delete" onclick="event.stopPropagation()">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-          </button>
-        </div>
+        <span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
+      </td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${d.latestPurchase || 'Never'}</td>
+      <td class="px-4 py-3.5 text-center">
+        <span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-warning'}">${d.status || 'Active'}</span>
+      </td>
+      <td class="px-4 py-3.5 text-center">
+        <button class="p-1.5 rounded-lg text-gray-400 hover:text-danger transition-colors" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('deleteDealer', {detail: '${d.id}'}))">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
       </td>
     </tr>
-    \`;
+    `;
   };
 
   return `
-    <div class="p-6 max-w-[1600px] mx-auto fade-in">
+    <div class="p-6 max-w-[1600px] mx-auto pb-20 fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-text">Dealer Management</h1>
-          <p class="text-sm text-gray-400 mt-1">Manage all suppliers, dealers, and their accounts.</p>
+          <h1 class="text-2xl font-bold text-text">Dealers &amp; Suppliers</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Manage vendor accounts, purchase history, and payable ledgers.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3v11.25"/></svg>
-            Import
-          </button>
-          <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Export
-          </button>
-          <button onclick="window.dispatchEvent(new CustomEvent('openDealerForm'))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Add Dealer
-          </button>
-        </div>
+        <button id="add-new-dealer" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i> New Dealer
+        </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        \${KPICard({ title: 'Total Dealers', value: dealers.length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>', color: 'primary' })}
-        \${KPICard({ title: 'Outstanding Amount', value: '₹' + dealers.reduce((sum, d) => sum + (d.outstanding || 0), 0).toLocaleString('en-IN'), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>', color: 'warning' })}
-        \${KPICard({ title: 'Replacement Cases', value: '0', iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>', color: 'danger' })}
-        \${KPICard({ title: 'Pending Payments', value: '₹0', iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'success' })}
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        ${KPICard({ title: 'Total Dealers', value: dealers.length.toString(), iconSvg: '<i data-lucide="truck"></i>', color: 'primary' })}
+        ${KPICard({ title: 'Total Purchases', value: '₹' + dealers.reduce((sum, d) => sum + (d.totalPurchased || 0), 0).toLocaleString('en-IN'), iconSvg: '<i data-lucide="shopping-bag"></i>', color: 'success' })}
+        ${KPICard({ title: 'With Outstanding', value: dealers.filter(d => d.outstanding > 0).length.toString(), iconSvg: '<i data-lucide="alert-circle"></i>', color: 'warning' })}
+        ${KPICard({ title: 'Total Payable', value: '₹' + dealers.reduce((sum, d) => sum + (d.outstanding || 0), 0).toLocaleString('en-IN'), iconSvg: '<i data-lucide="credit-card"></i>', color: 'danger' })}
       </div>
 
-      <div class="bg-white rounded-xl border border-border overflow-hidden mb-6">
+      <!-- Search & Filter -->
+      <div class="bg-white rounded-xl border border-border p-4 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
+        <div class="relative flex-1 min-w-[200px] max-w-md">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="dealer-search" placeholder="Search by company, name, phone, GST..."
+            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
+        </div>
+        <select id="dealer-status-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="outstanding">Has Outstanding</option>
+        </select>
+        <span id="dealer-count-label" class="text-xs text-gray-400 ml-auto">Showing ${dealers.length} dealers</span>
+      </div>
+
+      <div class="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[1200px]">
+          <table class="w-full">
             <thead>
-              <tr class="border-b border-border bg-gray-50/60 text-left">
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Dealer</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Company</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Phone</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">GST</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Outstanding</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Payment Due</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Rating</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
+              <tr class="border-b border-border bg-gray-50/50">
+                <th class="w-10 px-5 py-3"></th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Company &amp; Contact</th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Phone</th>
+                <th class="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Total Purchased</th>
+                <th class="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Payable Balance</th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Last Purchase</th>
+                <th class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Status</th>
+                <th class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border">
-              ${dealers.map(renderRow).join('')}
+            <tbody id="dealers-tbody" class="divide-y divide-border">
+              ${dealers.length ? dealers.map(d => renderRow(d)).join('') : '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No dealers found.</td></tr>'}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
 
-    <!-- Right Drawer Overlay -->
-    <div id="dealer-drawer-overlay" class="overlay fixed inset-0 bg-black/30 z-[60] opacity-0 pointer-events-none transition-opacity duration-200"></div>
+    <!-- Dealer Overlay / Drawer -->
+    <div id="dealer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
     
-    <!-- Dealer Form Drawer -->
-    <aside id="dealer-form-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[520px] bg-white border-l border-border z-[70] overflow-y-auto shadow-2xl transition-transform duration-250">
-      <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10">
-        <h3 class="text-base font-semibold text-text">Add / Edit Dealer</h3>
-        <button class="close-dealer-drawer p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="p-6 space-y-5">
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Dealer Name *</label>
-          <input type="text" placeholder="e.g. Vrindavan Traders" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Company / Firm Name</label>
-          <input type="text" placeholder="e.g. Vrindavan Enterprises" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Phone *</label>
-            <input type="text" placeholder="+91 98765 43210" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Email</label>
-            <input type="email" placeholder="dealer@company.com" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">GST Number</label>
-            <input type="text" placeholder="33AAACV1234E1Z9" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">PAN Number</label>
-            <input type="text" placeholder="AABCV1234E" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-        </div>
-        <div class="flex gap-3 pt-4">
-          <button class="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-            Save Dealer
-          </button>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Dealer Profile Drawer -->
-    <aside id="dealer-profile-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[600px] bg-white border-l border-border z-[75] overflow-y-auto shadow-2xl transition-transform duration-250">
-      <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10">
+    <aside id="dealer-drawer" class="fixed top-0 right-0 h-screen w-full md:w-[850px] bg-gray-50 border-l border-border z-[60] drawer-exit flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-border shadow-sm z-10">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <span class="text-sm font-bold text-primary">VT</span>
+          <div class="p-2 bg-primary/10 rounded-lg text-primary">
+            <i data-lucide="truck" class="w-5 h-5"></i>
           </div>
-          <div>
-            <h3 class="text-base font-semibold text-text">Vrindavan Traders</h3>
-            <p class="text-xs text-gray-400">Dealer since 2022 · GST: 33AAACV1234E1Z9</p>
-          </div>
+          <h3 class="text-lg font-bold text-text" id="drawer-title">New Dealer Profile</h3>
         </div>
-        <button class="close-dealer-drawer p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        <button class="close-dealer-drawer p-2 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div class="p-6 space-y-6" id="dealer-profile-content">
-        <!-- Content injected via JS -->
+      
+      <!-- Tabs -->
+      <div class="bg-white px-6 border-b border-border flex gap-6" id="dealer-tabs">
+        <button class="d-tab-btn active px-1 py-3 text-sm font-semibold border-b-2 border-primary text-primary" data-target="tab-profile">Profile</button>
+        <button class="d-tab-btn px-1 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 hidden" data-target="tab-ledger">Ledger & History</button>
+        <button class="d-tab-btn px-1 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 hidden" data-target="tab-notes">Notes</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6">
+        <form id="dealer-form" class="space-y-6">
+          <input type="hidden" id="d-id">
+          
+          <!-- TAB: PROFILE -->
+          <div id="tab-profile" class="d-tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm">
+                <h4 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-primary"></i> Company Details</h4>
+                <div class="space-y-4">
+                  <div><label class="block text-xs font-semibold text-gray-600 mb-1">Company / Shop Name *</label><input type="text" id="d-company" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  <div><label class="block text-xs font-semibold text-gray-600 mb-1">Contact Person (Name) *</label><input type="text" id="d-name" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">GST Number</label><input type="text" id="d-gst" class="w-full px-3 py-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">PAN Number</label><input type="text" id="d-pan" class="w-full px-3 py-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm">
+                <h4 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-primary"></i> Contact & Address</h4>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Phone *</label><input type="tel" id="d-phone" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Email</label><input type="email" id="d-email" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  </div>
+                  <div><label class="block text-xs font-semibold text-gray-600 mb-1">Billing Address</label><input type="text" id="d-address" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  <div class="grid grid-cols-3 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">City</label><input type="text" id="d-city" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">State</label><input type="text" id="d-state" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">PIN</label><input type="text" id="d-pin" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm md:col-span-2">
+                <h4 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4 text-primary"></i> Commercial Terms</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div class="space-y-4">
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Sales Rep</label><input type="text" id="d-salesrep" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Collection Agent</label><input type="text" id="d-collection" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                  </div>
+                  <div class="space-y-4">
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Credit Limit (₹)</label><input type="number" id="d-credit-limit" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+                    <div>
+                      <label class="block text-xs font-semibold text-gray-600 mb-1">Payment Terms</label>
+                      <select id="d-payment-terms" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                        <option value="Net 0">Immediate (Net 0)</option>
+                        <option value="Net 15">Net 15 Days</option>
+                        <option value="Net 30">Net 30 Days</option>
+                        <option value="Net 45">Net 45 Days</option>
+                        <option value="Net 60">Net 60 Days</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="space-y-4">
+                    <div class="h-full flex flex-col">
+                      <label class="block text-xs font-semibold text-gray-600 mb-1">Bank Account Details</label>
+                      <textarea id="d-bank" class="w-full flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" placeholder="Bank Name, A/C No, IFSC..."></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          
+          <!-- TAB: LEDGER & HISTORY -->
+          <div id="tab-ledger" class="d-tab-content hidden space-y-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="p-4 bg-white border border-border rounded-xl shadow-sm"><p class="text-xs text-gray-500 font-medium">Total Purchased</p><p class="text-xl font-bold text-text mt-1" id="lbl-total-purchased">₹0</p></div>
+              <div class="p-4 bg-red-50 border border-red-100 rounded-xl shadow-sm"><p class="text-xs text-danger font-medium">Payable Amount</p><p class="text-xl font-bold text-danger mt-1" id="lbl-payable">₹0</p></div>
+              <div class="p-4 bg-white border border-border rounded-xl shadow-sm"><p class="text-xs text-gray-500 font-medium">Total Payments</p><p class="text-xl font-bold text-gray-700 mt-1" id="lbl-total-paid">₹0</p></div>
+              <div class="p-4 bg-orange-50 border border-orange-100 rounded-xl shadow-sm"><p class="text-xs text-orange-600 font-medium">Pending Deliveries</p><p class="text-xl font-bold text-orange-700 mt-1">0</p></div>
+            </div>
+            
+            <div class="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+              <div class="px-5 py-3 bg-gray-50 border-b border-border flex justify-between items-center">
+                <h4 class="font-bold text-sm text-gray-700">Purchase Invoices</h4>
+              </div>
+              <div class="max-h-64 overflow-y-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-white sticky top-0 shadow-sm"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Invoice No</th><th class="p-3 text-left">Status</th><th class="p-3 text-right">Amount</th></tr></thead>
+                  <tbody id="dealer-history-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+              <div class="px-5 py-3 bg-gray-50 border-b border-border flex justify-between items-center">
+                <h4 class="font-bold text-sm text-gray-700">Payment History</h4>
+              </div>
+              <div class="p-6 text-center text-gray-500 text-sm">
+                <i data-lucide="receipt" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                No payments recorded yet.
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: NOTES -->
+          <div id="tab-notes" class="d-tab-content hidden h-full">
+            <div class="bg-white p-5 rounded-xl border border-border shadow-sm h-full flex flex-col">
+              <h4 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2"><i data-lucide="sticky-note" class="w-4 h-4 text-primary"></i> Internal Notes</h4>
+              <textarea id="d-notes" class="w-full flex-1 min-h-[300px] px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none bg-yellow-50/30" placeholder="Type internal remarks, agreements, or issues regarding this dealer here..."></textarea>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      
+      <div class="p-5 bg-white border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-end gap-3 z-10">
+        <button type="button" class="close-dealer-drawer px-5 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+        <button id="save-d-btn" type="button" class="px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Dealer Profile
+        </button>
       </div>
     </aside>
   `;
 }
 
-export function onMount(rootElement) {
-  document.getElementById('sidebar-root').style.display = 'flex';
-  document.getElementById('navbar-root').style.display = 'flex';
+export function onMount() {
+  if (window.lucide) window.lucide.createIcons();
 
-  const overlay = rootElement.querySelector('#dealer-drawer-overlay');
-  const formDrawer = rootElement.querySelector('#dealer-form-drawer');
-  const profileDrawer = rootElement.querySelector('#dealer-profile-drawer');
-  const closeBtns = rootElement.querySelectorAll('.close-dealer-drawer');
+  // --- SEARCH & FILTER WIRING (DL-001) ---
+  const allDealers = DataProvider.getDealers() || [];
+  const dealerSearch = document.getElementById('dealer-search');
+  const dealerStatusFilter = document.getElementById('dealer-status-filter');
+  const dealersTbody = document.getElementById('dealers-tbody');
+  const dealerCountLabel = document.getElementById('dealer-count-label');
 
+  const applyDealerFilter = () => {
+    const q = (dealerSearch?.value || '').toLowerCase();
+    const status = dealerStatusFilter?.value || '';
+    const filtered = allDealers.filter(d => {
+      if (q && !(d.companyName || '').toLowerCase().includes(q) && !(d.name || '').toLowerCase().includes(q) && !(d.phone || '').includes(q) && !(d.gst || '').toLowerCase().includes(q)) return false;
+      if (status === 'Active' && d.status !== 'Active') return false;
+      if (status === 'outstanding' && !(d.outstanding > 0)) return false;
+      return true;
+    });
+    if (dealerCountLabel) dealerCountLabel.textContent = `Showing ${filtered.length} of ${allDealers.length} dealers`;
+    if (dealersTbody) {
+      if (filtered.length === 0) {
+        dealersTbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No dealers match your search</td></tr>';
+      } else {
+        dealersTbody.innerHTML = filtered.map(d => `
+          <tr class="row-hover cursor-pointer" data-id="${d.id}" onclick="window.dispatchEvent(new CustomEvent('openDealerDrawer', {detail: '${d.id}'}))">
+            <td class="px-4 py-3.5" onclick="event.stopPropagation()"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
+            <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${(d.companyName || d.name || 'D').substring(0, 2).toUpperCase()}</div><div><p class="text-sm font-semibold text-text">${d.companyName || d.name}</p><p class="text-[10px] text-gray-500">${d.contactPerson || d.name}${d.gst ? ` • ${d.gst}` : ''}</p></div></div></td>
+            <td class="px-4 py-3.5 text-sm font-medium text-text">${d.phone || '-'}</td>
+            <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased || 0).toLocaleString('en-IN')}</td>
+            <td class="px-4 py-3.5 text-right"><span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding || 0).toLocaleString('en-IN')}</span></td>
+            <td class="px-4 py-3.5 text-sm text-gray-500">${d.latestPurchase || 'Never'}</td>
+            <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${d.status || 'Active'}</span></td>
+            <td class="px-4 py-3.5 text-center" onclick="event.stopPropagation()"><button class="p-1.5 rounded-lg text-gray-400 hover:text-danger" onclick="window.dispatchEvent(new CustomEvent('deleteDealer', {detail: '${d.id}'}))"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+          </tr>`).join('');
+        if (window.lucide) window.lucide.createIcons({ nodes: [dealersTbody] });
+      }
+    }
+  };
+  if (dealerSearch) dealerSearch.addEventListener('input', applyDealerFilter);
+  if (dealerStatusFilter) dealerStatusFilter.addEventListener('change', applyDealerFilter);
+
+  const overlay = document.getElementById('dealer-overlay');
+  const drawer = document.getElementById('dealer-drawer');
+  
   const closeAll = () => {
-    overlay.classList.add('opacity-0', 'pointer-events-none');
     overlay.classList.remove('opacity-100');
-    formDrawer.classList.add('translate-x-full');
-    profileDrawer.classList.add('translate-x-full');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+    drawer.classList.remove('drawer-enter-active');
+    drawer.classList.add('drawer-exit-active');
   };
 
-  const openForm = () => {
-    closeAll();
+  // Tab switching logic
+  const tabBtns = document.querySelectorAll('.d-tab-btn');
+  const tabContents = document.querySelectorAll('.d-tab-content');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = btn.getAttribute('data-target');
+      
+      tabBtns.forEach(b => {
+        b.classList.remove('active', 'border-primary', 'text-primary');
+        b.classList.add('border-transparent', 'text-gray-500');
+      });
+      btn.classList.add('active', 'border-primary', 'text-primary');
+      btn.classList.remove('border-transparent', 'text-gray-500');
+      
+      tabContents.forEach(c => c.classList.add('hidden'));
+      document.getElementById(target).classList.remove('hidden');
+    });
+  });
+
+  const openForm = (id = null) => {
+    const title = document.getElementById('drawer-title');
+    const form = document.getElementById('dealer-form');
+    form.reset();
+    document.getElementById('d-id').value = '';
+    
+    // Reset tabs to profile
+    document.querySelector('.d-tab-btn[data-target="tab-profile"]').click();
+    
+    const ledgerTabBtns = document.querySelectorAll('.d-tab-btn[data-target="tab-ledger"], .d-tab-btn[data-target="tab-notes"]');
+    
+    if (id) {
+      title.textContent = 'Edit Dealer Profile';
+      ledgerTabBtns.forEach(b => b.classList.remove('hidden'));
+      
+      import('../services/dataProvider.js').then(({ DataProvider }) => {
+        const d = DataProvider.getDealerById(id);
+        if (d) {
+          document.getElementById('d-id').value = d.id;
+          document.getElementById('d-name').value = d.contactPerson || d.name || '';
+          document.getElementById('d-company').value = d.companyName || d.name || '';
+          document.getElementById('d-gst').value = d.gst || '';
+          document.getElementById('d-pan').value = d.pan || '';
+          document.getElementById('d-phone').value = d.phone || '';
+          document.getElementById('d-email').value = d.email || '';
+          document.getElementById('d-address').value = d.address || '';
+          document.getElementById('d-city').value = d.city || '';
+          document.getElementById('d-state').value = d.state || '';
+          document.getElementById('d-pin').value = d.pin || '';
+          document.getElementById('d-salesrep').value = d.salesRep || '';
+          document.getElementById('d-collection').value = d.collectionAgent || '';
+          document.getElementById('d-credit-limit').value = d.creditLimit || '';
+          document.getElementById('d-payment-terms').value = d.paymentTerms || 'Net 0';
+          document.getElementById('d-bank').value = d.bankDetails || '';
+          document.getElementById('d-notes').value = d.notes || '';
+          
+          document.getElementById('lbl-total-purchased').textContent = '₹' + (d.totalPurchased || 0).toLocaleString('en-IN', {minimumFractionDigits:2});
+          document.getElementById('lbl-payable').textContent = '₹' + (d.outstanding || 0).toLocaleString('en-IN', {minimumFractionDigits:2});
+          document.getElementById('lbl-total-paid').textContent = '₹' + ((d.totalPurchased || 0) - (d.outstanding || 0)).toLocaleString('en-IN', {minimumFractionDigits:2});
+          
+          const invoices = DataProvider.getPurchaseInvoices().filter(inv => inv.dealerId === d.id);
+          const tbody = document.getElementById('dealer-history-tbody');
+          tbody.innerHTML = invoices.map(i => `
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="p-3 font-medium text-gray-700">${i.date.split('T')[0]}</td>
+              <td class="p-3 text-primary font-bold">#${i.id}</td>
+              <td class="p-3"><span class="status-badge ${i.status === 'Paid' ? 'status-success' : 'status-warning'}">${i.status || 'Pending'}</span></td>
+              <td class="p-3 text-right font-bold text-gray-800">₹${i.totalAmount.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="4" class="p-6 text-center text-gray-400">No purchase history available.</td></tr>';
+        }
+      });
+    } else {
+      title.textContent = 'New Dealer Profile';
+      ledgerTabBtns.forEach(b => b.classList.add('hidden'));
+    }
+    
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
-    formDrawer.classList.remove('translate-x-full');
+    drawer.classList.remove('drawer-exit-active', 'drawer-exit');
+    drawer.classList.add('drawer-enter-active');
   };
 
-  const openProfile = (e) => {
-    import('../services/DataProvider.js').then(({ DataProvider }) => {
-      const d = DataProvider.getDealerById(e.detail);
-      if(!d) return;
-
-      const initials = d.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-      const color = d.category === 'Plumbing' ? 'primary' : d.category === 'Electricals' ? 'success' : 'warning';
-
-      rootElement.querySelector('#dealer-profile-drawer .flex.items-center.gap-3').innerHTML = \`
-        <div class="w-10 h-10 rounded-full bg-\${color}/10 flex items-center justify-center">
-          <span class="text-sm font-bold text-\${color}">\${initials}</span>
-        </div>
-        <div>
-          <h3 class="text-base font-semibold text-text">\${d.name}</h3>
-          <p class="text-xs text-gray-400">Dealer since 2024 · GST: \${d.gstin || '-'}</p>
-        </div>
-      \`;
-
-      rootElement.querySelector('#dealer-profile-content').innerHTML = \`
-        <div class="bg-gray-50/60 rounded-xl border border-border p-4">
-          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Company Information</h4>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p class="text-xs text-gray-400">Firm Name</p>
-              <p class="font-medium text-text">\${d.company || '-'}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400">Phone</p>
-              <p class="font-medium text-text">\${d.phone}</p>
-            </div>
-            <div class="col-span-2">
-              <p class="text-xs text-gray-400">Address</p>
-              <p class="font-medium text-text">\${d.address || '-'}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400">GST</p>
-              <p class="font-mono text-xs text-text">\${d.gstin || '-'}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400">Contact Person</p>
-              <p class="font-mono text-xs text-text">\${d.contactPerson || '-'}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-gray-50/60 rounded-xl border border-border p-4">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Outstanding Ledger</h4>
-            <span class="text-sm font-bold text-warning">₹\${d.outstanding || 0}</span>
-          </div>
-          <div class="space-y-2">
-            <!-- Mock pending purchases for now -->
-            <div class="flex items-center justify-between text-sm p-2 rounded-lg bg-white/60 border border-border text-center text-gray-400">
-              No recent purchases found.
-            </div>
-          </div>
-        </div>
-      \`;
-
-      closeAll();
-      overlay.classList.remove('opacity-0', 'pointer-events-none');
-      overlay.classList.add('opacity-100');
-      profileDrawer.classList.remove('translate-x-full');
-    });
-  };
-
-  window.addEventListener('openDealerForm', openForm);
-  window.addEventListener('openDealerProfile', openProfile);
+  const addBtn = document.getElementById('add-new-dealer');
+  if (addBtn) addBtn.addEventListener('click', () => openForm());
   
-  closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
+  window.addEventListener('openDealerDrawer', (e) => openForm(e.detail));
+  
+  window.addEventListener('deleteDealer', (e) => {
+    if (!window.confirm('Delete this dealer? This cannot be undone.')) return;
+    DataProvider.deleteDealer(e.detail);
+    const row = document.querySelector(`#dealers-tbody tr[data-id="${e.detail}"]`);
+    if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
+    window.showToast('Dealer deleted', 'success');
+  });
+
+  const closeBtns = document.querySelectorAll('.close-dealer-drawer');
+  closeBtns.forEach(b => b.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
+
+  const saveBtn = document.getElementById('save-d-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const form = document.getElementById('dealer-form');
+      if (!form.reportValidity()) return;
+      
+      const dealer = {
+        id: document.getElementById('d-id').value || null,
+        name: document.getElementById('d-name').value, // Contact Person
+        contactPerson: document.getElementById('d-name').value,
+        companyName: document.getElementById('d-company').value,
+        gst: document.getElementById('d-gst').value,
+        pan: document.getElementById('d-pan').value,
+        phone: document.getElementById('d-phone').value,
+        email: document.getElementById('d-email').value,
+        address: document.getElementById('d-address').value,
+        city: document.getElementById('d-city').value,
+        state: document.getElementById('d-state').value,
+        pin: document.getElementById('d-pin').value,
+        salesRep: document.getElementById('d-salesrep').value,
+        collectionAgent: document.getElementById('d-collection').value,
+        creditLimit: Number(document.getElementById('d-credit-limit').value || 0),
+        paymentTerms: document.getElementById('d-payment-terms').value,
+        bankDetails: document.getElementById('d-bank').value,
+        notes: document.getElementById('d-notes').value,
+        status: 'Active'
+      };
+      
+      try {
+        DataProvider.saveDealer(dealer);
+        closeAll();
+        // In-place table refresh
+        const freshDealers = DataProvider.getDealers();
+        const tbody = document.getElementById('dealers-tbody');
+        if (tbody) {
+          tbody.innerHTML = freshDealers.length > 0
+            ? freshDealers.map(d => {
+                return `<tr class="row-hover cursor-pointer" data-id="${d.id}" onclick="window.dispatchEvent(new CustomEvent('openDealerDrawer', {detail: '${d.id}'}))">
+                  <td class="px-4 py-3.5" onclick="event.stopPropagation()"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
+                  <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${(d.companyName || d.name || 'D').substring(0,2).toUpperCase()}</div><div><p class="text-sm font-semibold text-text">${d.companyName || d.name}</p><p class="text-[10px] text-gray-500">${d.contactPerson || d.name}${d.gst ? ` • ${d.gst}` : ''}</p></div></div></td>
+                  <td class="px-4 py-3.5 text-sm font-medium text-text">${d.phone || '-'}</td>
+                  <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased||0).toLocaleString('en-IN')}</td>
+                  <td class="px-4 py-3.5 text-right"><span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding||0).toLocaleString('en-IN')}</span></td>
+                  <td class="px-4 py-3.5 text-sm text-gray-500">${d.latestPurchase || 'Never'}</td>
+                  <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${d.status || 'Active'}</span></td>
+                  <td class="px-4 py-3.5 text-center" onclick="event.stopPropagation()"><button class="p-1.5 rounded-lg text-gray-400 hover:text-danger" onclick="window.dispatchEvent(new CustomEvent('deleteDealer', {detail: '${d.id}'}))" ><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                </tr>`;
+              }).join('')
+            : '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400">No dealers</td></tr>';
+          if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        }
+        window.showToast('Dealer saved!', 'success');
+      } catch (err) {
+        window.showToast(err.message, 'danger');
+      }
+    });
+  }
+
+  return function cleanup() {
+    window.removeEventListener('openDealerDrawer', openForm);
+  };
 }

@@ -39,7 +39,7 @@ class ApiClient {
   }
 
   async _request(endpoint, options = {}) {
-    const url = \`\${this.baseURL}\${endpoint}\`;
+    const url = `${this.baseURL}${endpoint}`;
     const token = this._getToken();
     
     const headers = {
@@ -48,7 +48,7 @@ class ApiClient {
     };
 
     if (token) {
-      headers['Authorization'] = \`Bearer \${token}\`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
@@ -80,9 +80,9 @@ class ApiClient {
           searchParams.append(key, params[key]);
         }
       });
-      queryString = \`?\${searchParams.toString()}\`;
+      queryString = `?${searchParams.toString()}`;
     }
-    return this._request(\`\${endpoint}\${queryString}\`, { method: 'GET' });
+    return this._request(`${endpoint}${queryString}`, { method: 'GET' });
   }
 
   async post(endpoint, body) {
@@ -105,3 +105,4 @@ class ApiClient {
 }
 
 export const api = new ApiClient(config.API_BASE_URL);
+

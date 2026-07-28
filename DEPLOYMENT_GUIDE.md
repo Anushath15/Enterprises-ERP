@@ -1,80 +1,104 @@
-# Senthil Enterprises ERP - Deployment Guide
+# Deployment Guide
 
-This guide outlines the production deployment strategy for the Senthil Enterprises ERP.
+This guide details how to securely deploy Senthil Enterprises ERP into a production environment.
 
-## 1. Prerequisites
+## 1. System Requirements
+- Ubuntu 22.04 LTS (or similar Linux distro)
+- PostgreSQL 15+
+- Python 3.11+
+- Nginx
+- SSL Certificate (Let's Encrypt / Certbot)
 
-- **Server**: Ubuntu 22.04 LTS (Recommended) or Windows Server.
-- **Database**: PostgreSQL 16+.
-- **Runtime**: Python 3.12+ (Backend), Node.js (for serving static frontend).
-- **Reverse Proxy**: Nginx or Caddy.
+## 2. Database Preparation
+```bash
+sudo -u postgres psql
+CREATE DATABASE senthil_erp;
+CREATE USER erp_user WITH ENCRYPTED PASSWORD 'your_strong_password';
+GRANT ALL PRIVILEGES ON DATABASE senthil_erp TO erp_user;
+```
 
-## 2. Backend Deployment (FastAPI)
+## 3. Backend Deployment (Gunicorn + Uvicorn)
 
-1. **Clone the Repository**:
+1. **Clone & Install**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/your-org/senthil-erp.git
    cd senthil-erp/backend
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
    ```
 
-2. **Environment Configuration**:
+2. **Environment Variables**
    Create a `.env` file in the `backend/` directory:
    ```env
-   DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/senthil_erp
-   SECRET_KEY=generate-a-secure-random-256-bit-key
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=1440
+   PROJECT_NAME="Senthil Enterprises ERP API"
+   DATABASE_URL="postgresql://erp_user:your_strong_password@localhost/senthil_erp"
+   SECRET_KEY="generate-a-secure-random-key"
+   BACKEND_CORS_ORIGINS='["https://erp.senthilenterprises.com"]'
    ```
 
-3. **Database Migration**:
-   Run Alembic to establish the database schema:
+3. **Migrate Database**
    ```bash
    alembic upgrade head
+   python init_db.py
    ```
-   *Note: Migration `006_auth_schema` will automatically seed the initial `admin` user with password `admin123`.*
 
-4. **Run the Application**:
-   Use Uvicorn with Gunicorn for production concurrency:
+4. **Systemd Service**
+   Create `/etc/systemd/system/senthilerp.service`:
+   ```ini
+   [Unit]
+   Description=Gunicorn instance to serve Senthil ERP
+   After=network.target
+
+   [Service]
+   User=ubuntu
+   Group=www-data
+   WorkingDirectory=/home/ubuntu/senthil-erp/backend
+   Environment="PATH=/home/ubuntu/senthil-erp/backend/venv/bin"
+   ExecStart=/home/ubuntu/senthil-erp/backend/venv/bin/gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
    ```bash
-   gunicorn -k uvicorn.workers.UvicornWorker app.main:app --workers 4 --bind 0.0.0.0:8000
+   sudo systemctl start senthilerp
+   sudo systemctl enable senthilerp
    ```
 
-## 3. Frontend Deployment
+## 4. Frontend Deployment (Nginx)
 
-1. **Configure Environment**:
-   Edit `frontend/config/env.js`:
-   ```javascript
-   export const config = {
-     API_MODE: 'online',
-     API_BASE_URL: 'https://api.senthilenterprises.com/api/v1'
-   };
-   ```
-
-2. **Static Hosting**:
-   The frontend is a vanilla SPA. It does not require a build step. Simply host the `frontend/` directory using Nginx, Apache, or any static file server.
-
-   *Nginx Example Configuration*:
+1. Configure Nginx `/etc/nginx/sites-available/senthil-erp`:
    ```nginx
    server {
        listen 80;
        server_name erp.senthilenterprises.com;
-       root /var/www/senthil-erp/frontend;
-       index index.html;
 
+       # Serve Frontend SPA
        location / {
+           root /home/ubuntu/senthil-erp/frontend;
+           index index.html;
            try_files $uri $uri/ /index.html;
+       }
+
+       # Proxy Backend API
+       location /api/ {
+           proxy_pass http://127.0.0.1:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
        }
    }
    ```
 
-## 4. Continuous Integration (Automated Testing)
+2. **Enable & Secure**
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/senthil-erp /etc/nginx/sites-enabled
+   sudo nginx -t
+   sudo systemctl restart nginx
+   sudo certbot --nginx -d erp.senthilenterprises.com
+   ```
 
-Before any major release, ensure the Backend Integration Test Suite passes:
-```bash
-cd backend
-python -m pytest tests/integration/test_business_workflows.py -v
-```
-This suite verifies:
-- Cross-module transaction safety (Sales vs Inventory).
-- Insufficient stock rollbacks.
-- Financial metric consistency.
+## 5. Monitoring & Rollback
+- View logs: `journalctl -u senthilerp -f`
+- Rollback DB: `alembic downgrade -1`

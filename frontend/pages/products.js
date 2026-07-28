@@ -1,434 +1,545 @@
 /**
  * Senthil Enterprises ERP - Products Page Controller
  */
-import { PrimaryButton } from '../components/ui/buttons.js';
+import { PrimaryButton, SecondaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
-import { DataProvider } from '../services/DataProvider.js';
+import { DataProvider } from '../services/dataProvider.js';
 
-export async function render() {
-  let products = [];
-  try {
-    products = await DataProvider.getProducts();
-  } catch (error) {
-    console.error("Failed to load products", error);
-  }
-
-  const renderRow = (p) => {
-    // Map backend model to UI
-    const initials = p.name.substring(0,2).toUpperCase();
+  const renderRow = window._productsRenderRow = (p) => {
     const isInactive = !p.isActive;
-    const initialsColor = isInactive ? 'gray-400' : 'primary';
     const statusBg = isInactive ? 'bg-gray-100 text-gray-500' : `bg-${p.statusBadge}/10 text-${p.statusBadge}`;
     const stockColor = p.statusBadge === 'danger' ? 'danger' : p.statusBadge === 'warning' ? 'warning' : 'text';
     const statusLabel = isInactive ? 'Inactive' : p.status;
     
     return `
     <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openProductDrawer', {detail: '${p.id}'}))">
-      <td class="px-4 py-3"><div class="w-9 h-9 rounded-lg ${initialsColor === 'gray-400' ? 'bg-gray-100 text-gray-400' : `bg-${initialsColor}/10 text-${initialsColor}`} flex items-center justify-center text-xs font-semibold">${initials}</div></td>
+      <td class="px-4 py-3.5 text-left" onclick="event.stopPropagation()">
+        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary">
+      </td>
       <td class="px-4 py-3 font-medium text-text">${p.id}</td>
-      <td class="px-4 py-3 text-gray-500 font-mono text-xs">${p.sku}</td>
+      <td class="px-4 py-3 text-gray-500 font-mono text-xs">${p.sku || '-'}</td>
       <td class="px-4 py-3 font-medium text-text">${p.name}</td>
-      <td class="px-4 py-3 text-gray-500">${p.category}</td>
-      <td class="px-4 py-3 text-gray-500">${p.brand}</td>
-      <td class="px-4 py-3 text-gray-500">${p.unit}</td>
-      <td class="px-4 py-3 text-right font-medium text-${stockColor}">${p.stock}</td>
-      <td class="px-4 py-3 text-right text-text">₹${p.price}</td>
-      <td class="px-4 py-3 text-right text-text">₹${(p.price * 0.95).toFixed(0)}</td>
-      <td class="px-4 py-3 text-right text-text">₹${(p.price * 0.90).toFixed(0)}</td>
-      <td class="px-4 py-3 text-right text-text">₹${(p.price * 0.92).toFixed(0)}</td>
-      <td class="px-4 py-3 text-right text-text">₹${(p.price * 0.93).toFixed(0)}</td>
-      <td class="px-4 py-3 text-right text-gray-500">${p.taxRate}%</td>
-      <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBg}">${statusLabel}</span></td>
-      <td class="px-4 py-3 text-right">
-        <button class="p-1.5 rounded-md hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('editProduct', {detail: '${p.id}'}))">
-          <svg class="w-4 h-4 text-gray-400 hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
-        </button>
-        <button class="p-1.5 rounded-md hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('deleteProduct', {detail: '${p.id}'}))">
-          <svg class="w-4 h-4 text-gray-400 hover:text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+      <td class="px-4 py-3 text-gray-500">${p.category || '-'}</td>
+      <td class="px-4 py-3 text-gray-500">${p.brand || '-'}</td>
+      <td class="px-4 py-3 text-right text-text font-medium text-${stockColor}">${p.stock} <span class="text-xs text-gray-400 font-normal">${p.unit || 'Nos'}</span></td>
+      <td class="px-4 py-3 text-right text-text">₹${(p.avgCost || p.buyingPrice || 0).toLocaleString('en-IN')}</td>
+      <td class="px-4 py-3 text-right font-medium text-primary">₹${(p.price || 0).toLocaleString('en-IN')}</td>
+      <td class="px-4 py-3 text-right text-gray-500">${p.gst || 0}%</td>
+      <td class="px-4 py-3 text-center"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${statusBg}">${statusLabel}</span></td>
+      <td class="px-4 py-3 text-center">
+        <button class="delete-product-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-danger" data-id="${p.id}" onclick="event.stopPropagation()">
+          <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
     </tr>
     `;
   };
 
+export async function render() {
+
   return `
     <div class="p-6 max-w-[1600px] mx-auto fade-in">
-      <!-- Top Actions -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-text">Products</h1>
-          <p class="text-sm text-gray-400 mt-1">Manage every product available across all categories.</p>
+          <h1 class="text-2xl font-bold text-text">Products &amp; Inventory</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Manage products, pricing, stock levels, and barcodes.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3v11.25"/></svg>
-            Import Products
+          <button id="btn-import-excel" class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success"></i> Import Excel
           </button>
-          <button class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Export Products
-          </button>
-          <button id="btn-add-product" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Add Product
+          <button id="btn-add-product" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Product
           </button>
         </div>
       </div>
 
-      <!-- Statistics Cards -->
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        ${KPICard({ title: 'Total Products', value: products.length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>', color: 'primary' })}
-        ${KPICard({ title: 'Active Products', value: products.filter(p => p.isActive).length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'success' })}
-        ${KPICard({ title: 'Out of Stock', value: products.filter(p => p.stock <= 0).length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>', color: 'danger' })}
-        ${KPICard({ title: 'Low Stock', value: products.filter(p => p.stock > 0 && p.stock <= p.minStock).length.toString(), iconSvg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>', color: 'warning' })}
-        <div class="stat-card bg-white rounded-xl border border-border p-5">
-          <div class="flex items-start justify-between mb-3">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100">
-              <div class="w-5 h-5 text-gray-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></div>
-            </div>
-          </div>
-          <p class="text-2xl font-bold text-text">${products.filter(p => !p.isActive).length}</p>
-          <p class="text-xs text-gray-400 mt-1">Inactive Products</p>
+        ${KPICard({ title: 'Total Products', value: products.length.toString(), iconSvg: '<i data-lucide="package"></i>', color: 'primary' })}
+        ${KPICard({ title: 'Active', value: products.filter(p => p.isActive !== false).length.toString(), iconSvg: '<i data-lucide="check-circle"></i>', color: 'success' })}
+        ${KPICard({ title: 'Out of Stock', value: products.filter(p => p.stock <= 0).length.toString(), iconSvg: '<i data-lucide="alert-triangle"></i>', color: 'danger' })}
+        ${KPICard({ title: 'Low Stock', value: products.filter(p => p.stock > 0 && p.stock <= p.minStock).length.toString(), iconSvg: '<i data-lucide="info"></i>', color: 'warning' })}
+        <div class="bg-white rounded-xl border border-border p-5">
+           <p class="text-xs text-gray-400">Total Stock Value</p>
+           <p class="text-2xl font-bold text-text mt-1">₹${products.reduce((sum, p) => sum + (p.stock * (p.avgCost || p.buyingPrice || p.price || 0)), 0).toLocaleString('en-IN')}</p>
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="bg-white rounded-xl border border-border p-4 mb-6">
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="relative flex-1 min-w-[220px]">
-            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-            <input type="text" placeholder="Search product name, code..." class="search-input w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-primary transition-all">
-          </div>
-          <select class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
-            <option>All Categories</option>
-            <option>Electrical</option>
-            <option>Plumbing / CPVC / UPVC</option>
-            <option>Sanitary</option>
-            <option>Hardware / Fasteners</option>
-          </select>
-          <select class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
-            <option>All Brands</option>
-            <option>Astral</option>
-            <option>Havells</option>
-            <option>Finolex</option>
-          </select>
-          <select class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
-            <option>All Suppliers</option>
-            <option>Vrindavan Traders</option>
-            <option>Astral Pipes Dealer</option>
-          </select>
-          <select class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
-            <option>All Stock Status</option>
-            <option>In Stock</option>
-            <option>Low Stock</option>
-            <option>Out of Stock</option>
-          </select>
-          <select class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm text-gray-600 focus:outline-none focus:border-primary">
-            <option>All GST Rates</option>
-            <option>5%</option>
-            <option>12%</option>
-            <option>18%</option>
-            <option>28%</option>
-          </select>
+      <!-- Search & Filters -->
+      <div class="bg-white rounded-xl border border-border p-4 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
+        <div class="relative flex-1 min-w-[200px] max-w-md">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="product-search" placeholder="Search by name, SKU, barcode, category..." 
+            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
         </div>
+        <select id="product-category-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
+          <option value="">All Categories</option>
+          ${[...new Set(products.map(p => p.category).filter(Boolean))].sort().map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+        </select>
+        <select id="product-stock-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
+          <option value="">All Stock Status</option>
+          <option value="in">In Stock</option>
+          <option value="low">Low Stock</option>
+          <option value="out">Out of Stock</option>
+        </select>
+        <span id="product-count-label" class="text-xs text-gray-400 ml-auto">Showing ${products.length} products</span>
       </div>
 
-      <!-- Product Table -->
-      <div class="bg-white rounded-xl border border-border overflow-hidden">
+      <div class="bg-white rounded-xl border border-border overflow-hidden fade-in fade-in-d3 shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[1700px]">
+          <table class="w-full">
             <thead>
-              <tr class="border-b border-border bg-gray-50/60 text-left">
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Image</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Code</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Barcode</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Product Name</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Category</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Brand</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Unit</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Stock</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Retail</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Project</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Contractor</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Electrician</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Plumber</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">GST</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
+              <tr class="border-b border-border bg-gray-50/50">
+                <th class="w-10 px-5 py-3"></th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">ID</th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">SKU</th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Product Name</th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Category</th>
+                <th class="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Brand</th>
+                <th class="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Stock</th>
+                <th class="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Avg Cost</th>
+                <th class="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Selling Price</th>
+                <th class="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">GST</th>
+                <th class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Status</th>
+                <th class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border">
-              ${products.map(p => renderRow(p)).join('')}
+            <tbody id="products-tbody" class="divide-y divide-border">
+              ${products.length ? products.map(p => renderRow(p)).join('') : '<tr><td colspan="12"><div class="empty-state"><i data-lucide="package"></i><p>No products found.</p></div></td></tr>'}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
 
-    <!-- Drawer Overlay -->
-    <div id="product-drawer-overlay" class="overlay fixed inset-0 bg-black/30 z-[60] opacity-0 pointer-events-none transition-opacity duration-200"></div>
-    
-    <!-- View Drawer -->
-    <aside id="product-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[420px] bg-white border-l border-border z-[70] overflow-y-auto shadow-2xl transition-transform duration-250">
-      <div class="flex items-center justify-between px-5 h-16 border-b border-border sticky top-0 bg-white z-10">
-        <h3 class="text-base font-semibold text-text">Product Details</h3>
-        <button id="close-product-drawer" class="p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    <!-- Product Drawer -->
+    <div id="product-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+    <aside id="product-drawer" class="fixed top-0 right-0 h-screen w-full md:w-[800px] lg:w-[1000px] bg-gray-50 border-l border-border z-[60] transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-border">
+        <h3 class="text-lg font-bold text-text" id="drawer-title">New Product</h3>
+        <button class="close-product-drawer p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10">
+          <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div class="p-5 space-y-5" id="product-drawer-content"></div>
-    </aside>
-
-    <!-- Add/Edit Drawer -->
-    <aside id="product-form-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[500px] bg-white border-l border-border z-[70] flex flex-col shadow-2xl transition-transform duration-250">
-      <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10 flex-shrink-0">
-        <h3 class="text-base font-semibold text-text" id="form-drawer-title">Add Product</h3>
-        <button id="close-form-drawer" class="p-1.5 rounded-md hover:bg-gray-100">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-
-      <div class="p-6 flex-1 overflow-y-auto space-y-5">
-        <form id="product-form">
+      
+      <div class="flex-1 overflow-y-auto">
+        <form id="product-form" class="p-6 space-y-6">
           <input type="hidden" id="p-id">
           
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">SKU *</label>
-              <input type="text" id="p-sku" required class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Barcode</label>
-              <input type="text" id="p-barcode" class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-6">
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm">
+                <h4 class="text-sm font-semibold text-primary mb-3">Basic Details</h4>
+                <div class="space-y-3">
+                  <div><label class="block text-xs font-medium text-gray-500 mb-1">Product Name *</label><input type="text" id="p-name" required class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">SKU</label><input type="text" id="p-sku" class="w-full px-3 py-2 border rounded-lg text-sm uppercase"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Barcode</label><input type="text" id="p-barcode" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Category</label><input type="text" id="p-category" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Subcategory</label><input type="text" id="p-subcategory" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Brand</label><input type="text" id="p-brand" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Unit (e.g. Nos, Kg, Mtr)</label><input type="text" id="p-unit" value="Nos" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  </div>
+                </div>
+              </div>
 
-          <div class="mb-4">
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Product Name *</label>
-            <input type="text" id="p-name" required class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-          </div>
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm">
+                <h4 class="text-sm font-semibold text-primary mb-3">Pricing & Taxation</h4>
+                <div class="space-y-3">
+                  <div class="grid grid-cols-3 gap-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Buying Price</label><input type="number" step="0.01" id="p-buying" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Average Cost</label><input type="number" step="0.01" id="p-avg-cost" readonly class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500" title="Auto-calculated from purchase history"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Latest Cost</label><input type="number" step="0.01" id="p-latest-cost" readonly class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500" title="Cost of last purchase"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3 mt-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Selling Price *</label><input type="number" step="0.01" id="p-price" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">MRP</label><input type="number" step="0.01" id="p-mrp" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">HSN Code</label><input type="text" id="p-hsn" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">GST %</label><input type="number" id="p-gst" value="18" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Category *</label>
-              <input type="text" id="p-category" required class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Brand</label>
-              <input type="text" id="p-brand" class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-          </div>
+            <div class="space-y-6">
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm">
+                <h4 class="text-sm font-semibold text-primary mb-3">Inventory Management</h4>
+                <div class="space-y-3">
+                  <div class="grid grid-cols-4 gap-3">
+                    <div><label class="block text-[10px] font-bold text-gray-600 mb-1">Current Stock *</label><input type="number" id="p-stock" required class="w-full px-2 py-2 border rounded-lg text-sm font-bold text-primary bg-primary/5 focus:ring-2 focus:ring-primary/20"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 mb-1">Reserved (SO)</label><input type="number" id="p-reserved" value="0" readonly class="w-full px-2 py-2 border border-orange-200 rounded-lg text-sm text-orange-600 bg-orange-50/30"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 mb-1">Min Stock</label><input type="number" id="p-minstock" value="5" class="w-full px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-600 mb-1">Max Stock</label><input type="number" id="p-maxstock" value="100" class="w-full px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Rack / Bin</label><input type="text" id="p-rack" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Shelf</label><input type="text" id="p-shelf" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  </div>
+                  <div><label class="block text-xs font-medium text-gray-500 mb-1">Primary Supplier</label><input type="text" id="p-supplier" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                </div>
+              </div>
 
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Base Price (₹) *</label>
-              <input type="number" id="p-price" required min="0" step="0.01" class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+              <div class="bg-white p-5 rounded-xl border border-border shadow-sm">
+                <h4 class="text-sm font-semibold text-primary mb-3">Additional Details</h4>
+                <div class="space-y-3">
+                  <div><label class="block text-xs font-medium text-gray-500 mb-1">Warranty Info</label><input type="text" id="p-warranty" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  <div><label class="block text-xs font-medium text-gray-500 mb-1">Image URL</label><input type="url" id="p-image" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                  <div><label class="block text-xs font-medium text-gray-500 mb-1">Description</label><textarea id="p-desc" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm"></textarea></div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">GST Rate (%) *</label>
-              <select id="p-taxRate" required class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="12">12%</option>
-                <option value="18">18%</option>
-                <option value="28">28%</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Unit *</label>
-              <input type="text" id="p-unit" required placeholder="e.g. Pcs, m" class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Stock</label>
-              <input type="number" id="p-stock" value="0" min="0" class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-            <div>
-              <label class="text-xs font-medium text-gray-500 block mb-1.5">Min Stock</label>
-              <input type="number" id="p-minStock" value="0" min="0" class="w-full px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
-          </div>
-          
-          <div class="mb-4">
-            <label class="text-xs font-medium text-gray-500 flex items-center gap-2">
-              <input type="checkbox" id="p-isActive" checked class="rounded border-gray-300 text-primary focus:ring-primary">
-              Is Active
-            </label>
           </div>
         </form>
       </div>
       
-      <div class="p-4 border-t border-border bg-gray-50 flex items-center justify-end gap-3 sticky bottom-0">
-        <button id="cancel-form-btn" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-border rounded-lg hover:bg-gray-50">Cancel</button>
-        <button id="save-product-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90">Save Product</button>
+      <div class="p-5 bg-white border-t border-border flex justify-end gap-3">
+        <button type="button" class="close-product-drawer px-5 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="save-p-btn" type="button" class="px-5 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Product
+        </button>
       </div>
     </aside>
 
+    <!-- Excel Import Modal -->
+    <div id="import-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center hidden opacity-0 transition-opacity">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform" id="import-modal-content">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-text">Import Products</h3>
+          <button id="close-import" class="text-gray-400 hover:text-danger"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">Upload an Excel file (xlsx, xls, csv). The file must contain headers like: SKU, Name, Stock, BuyingPrice, SellingPrice, MRP, Category, Brand, GST.</p>
+        
+        <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors mb-4 relative">
+          <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+          <i data-lucide="upload-cloud" class="w-10 h-10 text-primary mx-auto mb-2"></i>
+          <p class="text-sm font-medium text-gray-600" id="file-name-label">Click to select or drag and drop</p>
+        </div>
+        
+        <button id="btn-process-import" class="w-full px-4 py-2 bg-success text-white text-sm font-medium rounded-lg hover:bg-success/90 transition-colors disabled:opacity-50" disabled>
+          Process Import
+        </button>
+      </div>
+    </div>
   `;
 }
 
-export function onMount(rootElement) {
-  document.getElementById('sidebar-root').style.display = 'flex';
-  document.getElementById('navbar-root').style.display = 'flex';
-
-  const overlay = rootElement.querySelector('#product-drawer-overlay');
-  const viewDrawer = rootElement.querySelector('#product-drawer');
-  const formDrawer = rootElement.querySelector('#product-form-drawer');
+export function onMount() {
+  if (window.lucide) lucide.createIcons();
   
-  const closeAllDrawers = () => {
-    overlay.classList.add('opacity-0', 'pointer-events-none');
-    overlay.classList.remove('opacity-100');
-    viewDrawer.classList.add('translate-x-full');
-    formDrawer.classList.add('translate-x-full');
+  const allProducts = DataProvider.getProducts();
+  const overlay = document.getElementById('product-overlay');
+  const drawer = document.getElementById('product-drawer');
+  
+  // =====================
+  // SEARCH & FILTER
+  // =====================
+  const searchInput = document.getElementById('product-search');
+  const categoryFilter = document.getElementById('product-category-filter');
+  const stockFilter = document.getElementById('product-stock-filter');
+  const tbody = document.getElementById('products-tbody');
+  const countLabel = document.getElementById('product-count-label');
+
+  const renderRow = window._productsRenderRow;
+
+  if (searchInput && tbody) {
+    const applyFilter = () => {
+      const q = searchInput.value.toLowerCase().trim();
+      const cat = categoryFilter?.value || '';
+      const stock = stockFilter?.value || '';
+
+      const filtered = allProducts.filter(p => {
+        if (q && !p.name.toLowerCase().includes(q) && !(p.sku || '').toLowerCase().includes(q) && !(p.barcode || '').includes(q) && !(p.category || '').toLowerCase().includes(q)) return false;
+        if (cat && p.category !== cat) return false;
+        if (stock === 'in' && !(p.stock > p.minStock)) return false;
+        if (stock === 'low' && !(p.stock > 0 && p.stock <= p.minStock)) return false;
+        if (stock === 'out' && p.stock > 0) return false;
+        return true;
+      });
+
+      if (countLabel) countLabel.textContent = `Showing ${filtered.length} of ${allProducts.length} products`;
+      tbody.innerHTML = filtered.length > 0 
+        ? filtered.map(renderRow).join('') 
+        : '<tr><td colspan="12"><div class="empty-state"><i data-lucide="package"></i><p>No products match your filters</p></div></td></tr>';
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+      
+      // Re-attach delete listener
+      tbody.querySelectorAll('.delete-product-btn').forEach(btn => {
+        btn.addEventListener('click', handleDelete);
+      });
+    };
+
+    searchInput.addEventListener('input', applyFilter);
+    categoryFilter?.addEventListener('change', applyFilter);
+    stockFilter?.addEventListener('change', applyFilter);
+  }
+
+  // Delete handler
+  const handleDelete = (e) => {
+    const id = e.currentTarget.getAttribute('data-id');
+    const row = e.currentTarget.closest('tr');
+    if (!row) return;
+
+    const div = document.createElement('div');
+    div.className = 'fixed inset-0 bg-black/50 z-[100] flex items-center justify-center';
+    div.innerHTML = `
+      <div class="bg-white p-6 rounded-xl shadow-xl max-w-sm w-full">
+        <h3 class="text-lg font-bold text-text mb-2">Delete Product?</h3>
+        <p class="text-sm text-gray-500 mb-6">This cannot be undone.</p>
+        <div class="flex justify-end gap-3">
+          <button id="cancel-del" class="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
+          <button id="confirm-del" class="px-4 py-2 text-sm text-white bg-danger rounded-lg">Delete</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(div);
+
+    div.querySelector('#cancel-del').onclick = () => div.remove();
+    div.querySelector('#confirm-del').onclick = () => {
+      DataProvider.deleteProduct(id);
+      row.style.transition = 'opacity 0.3s';
+      row.style.opacity = '0';
+      setTimeout(() => row.remove(), 300);
+      window.showToast('Product deleted', 'success');
+      div.remove();
+    };
   };
 
-  overlay.addEventListener('click', closeAllDrawers);
-  rootElement.querySelector('#close-product-drawer').addEventListener('click', closeAllDrawers);
-  rootElement.querySelector('#close-form-drawer').addEventListener('click', closeAllDrawers);
-  rootElement.querySelector('#cancel-form-btn').addEventListener('click', closeAllDrawers);
-
-  // VIEW DRAWER
-  window.addEventListener('openProductDrawer', (e) => {
-    const productId = e.detail;
-    import('../services/DataProvider.js').then(({ DataProvider }) => {
-      const p = DataProvider.getProductById(productId);
-      if (!p) return;
-      
-      const initials = p.name.substring(0,2).toUpperCase();
-      const statusBg = !p.isActive ? 'bg-gray-100 text-gray-500' : `bg-${p.statusBadge}/10 text-${p.statusBadge}`;
-      const statusLabel = !p.isActive ? 'Inactive' : p.status;
-
-      rootElement.querySelector('#product-drawer-content').innerHTML = `
-        <!-- Product Image + Basic Details -->
-        <div class="flex items-start gap-4">
-          <div class="w-20 h-20 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg font-semibold flex-shrink-0">${initials}</div>
-          <div>
-            <h4 class="text-sm font-semibold text-text">${p.name}</h4>
-            <p class="text-xs text-gray-400 mt-0.5">${p.sku} · ${p.brand} · ${p.category}</p>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBg} mt-2">${statusLabel}</span>
-          </div>
-        </div>
-
-        <!-- Current Stock -->
-        <div class="bg-gray-50/60 rounded-xl border border-border p-4">
-          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Current Stock</p>
-          <div class="grid grid-cols-3 gap-3">
-            <div class="text-center">
-              <p class="text-lg font-bold text-text">${p.stock}</p>
-              <p class="text-[10px] text-gray-400">${p.unit}</p>
-            </div>
-            <div class="text-center">
-              <p class="text-lg font-bold text-warning">${p.minStock}</p>
-              <p class="text-[10px] text-gray-400">Reorder Level</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pricing -->
-        <div>
-          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Pricing</p>
-          <div class="space-y-2">
-            <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50/50">
-              <span class="text-xs text-gray-500">Retail Price</span>
-              <span class="text-sm font-semibold text-text">₹${p.price}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex gap-2 pt-2 pb-4">
-          <button class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors" onclick="window.dispatchEvent(new CustomEvent('editProduct', {detail: '${p.id}'}))">
-            Edit Product
-          </button>
-        </div>
-      `;
-
-      closeAllDrawers();
-      overlay.classList.remove('opacity-0', 'pointer-events-none');
-      overlay.classList.add('opacity-100');
-      viewDrawer.classList.remove('translate-x-full');
-    });
+  // Attach initial delete listeners
+  document.querySelectorAll('.delete-product-btn').forEach(btn => {
+    btn.addEventListener('click', handleDelete);
   });
 
-  // ADD / EDIT DRAWER
-  const openFormDrawer = (productId = null) => {
-    closeAllDrawers();
-    const form = rootElement.querySelector('#product-form');
+  const closeAll = () => {
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+    drawer.classList.add('translate-x-full');
+  };
+
+  const openForm = (id = null) => {
+    const title = document.getElementById('drawer-title');
+    const form = document.getElementById('product-form');
     form.reset();
+    document.getElementById('p-id').value = '';
     
-    if (productId) {
-      rootElement.querySelector('#form-drawer-title').textContent = 'Edit Product';
-      import('../services/DataProvider.js').then(({ DataProvider }) => {
-        const p = DataProvider.getProductById(productId);
+    if (id) {
+      title.textContent = 'Edit Product';
+      import('../services/dataProvider.js').then(({ DataProvider }) => {
+        const p = DataProvider.getProductById(id);
         if (p) {
-          rootElement.querySelector('#p-id').value = p.id;
-          rootElement.querySelector('#p-sku').value = p.sku || '';
-          rootElement.querySelector('#p-barcode').value = p.barcode || '';
-          rootElement.querySelector('#p-name').value = p.name || '';
-          rootElement.querySelector('#p-category').value = p.category || '';
-          rootElement.querySelector('#p-brand').value = p.brand || '';
-          rootElement.querySelector('#p-price').value = p.price || '';
-          rootElement.querySelector('#p-taxRate').value = p.taxRate || '0';
-          rootElement.querySelector('#p-unit').value = p.unit || '';
-          rootElement.querySelector('#p-stock').value = p.stock || 0;
-          rootElement.querySelector('#p-minStock').value = p.minStock || 0;
-          rootElement.querySelector('#p-isActive').checked = p.isActive !== false;
+          document.getElementById('p-id').value = p.id;
+          document.getElementById('p-name').value = p.name || '';
+          document.getElementById('p-sku').value = p.sku || '';
+          document.getElementById('p-barcode').value = p.barcode || '';
+          document.getElementById('p-category').value = p.category || '';
+          document.getElementById('p-subcategory').value = p.subCategory || '';
+          document.getElementById('p-brand').value = p.brand || '';
+          document.getElementById('p-unit').value = p.unit || 'Nos';
+          
+          document.getElementById('p-buying').value = p.buyingPrice || p.avgCost || 0;
+          document.getElementById('p-avg-cost').value = p.avgCost || p.buyingPrice || 0;
+          document.getElementById('p-latest-cost').value = p.latestCost || p.buyingPrice || 0;
+          document.getElementById('p-price').value = p.price || 0;
+          document.getElementById('p-mrp').value = p.mrp || '';
+          document.getElementById('p-hsn').value = p.hsn || '';
+          document.getElementById('p-gst').value = p.gst || 18;
+          
+          document.getElementById('p-stock').value = p.stock || 0;
+          document.getElementById('p-reserved').value = p.reservedStock || 0;
+          document.getElementById('p-minstock').value = p.minStock || 5;
+          document.getElementById('p-maxstock').value = p.maxStock || 100;
+          document.getElementById('p-rack').value = p.rack || '';
+          document.getElementById('p-shelf').value = p.shelf || '';
+          document.getElementById('p-supplier').value = p.supplier || '';
+          
+          document.getElementById('p-warranty').value = p.warranty || '';
+          document.getElementById('p-image').value = p.image || '';
+          document.getElementById('p-desc').value = p.description || '';
         }
       });
     } else {
-      rootElement.querySelector('#form-drawer-title').textContent = 'Add Product';
-      rootElement.querySelector('#p-id').value = '';
+      title.textContent = 'New Product';
     }
-
+    
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
-    formDrawer.classList.remove('translate-x-full');
+    drawer.classList.remove('translate-x-full');
   };
 
-  rootElement.querySelector('#btn-add-product').addEventListener('click', () => openFormDrawer());
+  const addBtn = document.getElementById('btn-add-product');
+  if (addBtn) addBtn.addEventListener('click', () => openForm());
   
-  window.addEventListener('editProduct', (e) => {
-    openFormDrawer(e.detail);
-  });
+  window.addEventListener('openProductDrawer', (e) => openForm(e.detail));
+  
+  // Legacy deleteProduct event - now handled via delete-product-btn click directly
 
-  window.addEventListener('deleteProduct', (e) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      import('../services/DataProvider.js').then(({ DataProvider }) => {
-        DataProvider.deleteProduct(e.detail);
-        window.location.reload();
+
+  const closeBtns = document.querySelectorAll('.close-product-drawer');
+  closeBtns.forEach(b => b.addEventListener('click', closeAll));
+  overlay.addEventListener('click', closeAll);
+
+  const saveBtn = document.getElementById('save-p-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const form = document.getElementById('product-form');
+      if (!form.reportValidity()) return;
+      
+      const product = {
+        id: document.getElementById('p-id').value || null,
+        name: document.getElementById('p-name').value,
+        sku: document.getElementById('p-sku').value,
+        barcode: document.getElementById('p-barcode').value,
+        category: document.getElementById('p-category').value,
+        subCategory: document.getElementById('p-subcategory').value,
+        brand: document.getElementById('p-brand').value,
+        unit: document.getElementById('p-unit').value,
+        buyingPrice: Number(document.getElementById('p-buying').value || 0),
+        avgCost: Number(document.getElementById('p-avg-cost').value || 0),
+        latestCost: Number(document.getElementById('p-latest-cost').value || 0),
+        price: Number(document.getElementById('p-price').value || 0),
+        mrp: Number(document.getElementById('p-mrp').value || 0),
+        hsn: document.getElementById('p-hsn').value,
+        gst: Number(document.getElementById('p-gst').value || 18),
+        stock: Number(document.getElementById('p-stock').value || 0),
+        reservedStock: Number(document.getElementById('p-reserved').value || 0),
+        minStock: Number(document.getElementById('p-minstock').value || 0),
+        maxStock: Number(document.getElementById('p-maxstock').value || 0),
+        rack: document.getElementById('p-rack').value,
+        shelf: document.getElementById('p-shelf').value,
+        supplier: document.getElementById('p-supplier').value,
+        warranty: document.getElementById('p-warranty').value,
+        image: document.getElementById('p-image').value,
+        description: document.getElementById('p-desc').value,
+        isActive: true
+      };
+      
+      import('../services/dataProvider.js').then(({ DataProvider }) => {
+        try {
+          DataProvider.saveProduct(product);
+          closeAll();
+          // In-place reload of tbody
+          const fresh = DataProvider.getProducts();
+          const tbody2 = document.getElementById('products-tbody');
+          if (tbody2) {
+            tbody2.innerHTML = fresh.length > 0 ? fresh.map(renderRow).join('') : '<tr><td colspan="12"><div class="empty-state"><i data-lucide="package"></i><p>No products found.</p></div></td></tr>';
+            if (window.lucide) window.lucide.createIcons({ nodes: [tbody2] });
+            tbody2.querySelectorAll('.delete-product-btn').forEach(btn => btn.addEventListener('click', handleDelete));
+          }
+          window.showToast('Product saved successfully!', 'success');
+        } catch (err) {
+          window.showToast(err.message, 'danger');
+        }
       });
-    }
-  });
-
-  // SAVE LOGIC
-  rootElement.querySelector('#save-product-btn').addEventListener('click', () => {
-    const form = rootElement.querySelector('#product-form');
-    if (!form.reportValidity()) return;
-
-    const productData = {
-      id: rootElement.querySelector('#p-id').value || null,
-      sku: rootElement.querySelector('#p-sku').value,
-      barcode: rootElement.querySelector('#p-barcode').value,
-      name: rootElement.querySelector('#p-name').value,
-      category: rootElement.querySelector('#p-category').value,
-      brand: rootElement.querySelector('#p-brand').value,
-      price: Number(rootElement.querySelector('#p-price').value),
-      taxRate: Number(rootElement.querySelector('#p-taxRate').value),
-      unit: rootElement.querySelector('#p-unit').value,
-      stock: Number(rootElement.querySelector('#p-stock').value),
-      minStock: Number(rootElement.querySelector('#p-minStock').value),
-      isActive: rootElement.querySelector('#p-isActive').checked,
-    };
-
-    import('../services/DataProvider.js').then(({ DataProvider }) => {
-      try {
-        DataProvider.saveProduct(productData);
-        window.location.reload();
-      } catch (err) {
-        alert(err.message);
-      }
     });
-  });
+  }
+
+  // EXCEL IMPORT LOGIC
+  const importModal = document.getElementById('import-modal');
+  const importContent = document.getElementById('import-modal-content');
+  const btnImportExcel = document.getElementById('btn-import-excel');
+  const closeImport = document.getElementById('close-import');
+  const fileInput = document.getElementById('excel-file');
+  const processBtn = document.getElementById('btn-process-import');
+  const fileNameLabel = document.getElementById('file-name-label');
+  
+  if (btnImportExcel) {
+    btnImportExcel.addEventListener('click', () => {
+      importModal.classList.remove('hidden');
+      setTimeout(() => {
+        importModal.classList.remove('opacity-0');
+        importContent.classList.remove('scale-95');
+      }, 10);
+    });
+  }
+  
+  const hideImport = () => {
+    importModal.classList.add('opacity-0');
+    importContent.classList.add('scale-95');
+    setTimeout(() => importModal.classList.add('hidden'), 300);
+  };
+  
+  if (closeImport) closeImport.addEventListener('click', hideImport);
+  
+  let workbookData = null;
+  
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileNameLabel.textContent = file.name;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        if (!window.XLSX) {
+          alert('SheetJS (XLSX) library not loaded. Ensure internet connection.');
+          return;
+        }
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const firstSheet = workbook.SheetNames[0];
+        workbookData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+        processBtn.disabled = false;
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  
+  if (processBtn) {
+    processBtn.addEventListener('click', () => {
+      if (!workbookData || !workbookData.length) return;
+      import('../services/dataProvider.js').then(({ DataProvider }) => {
+          let imported = 0, updated = 0;
+          const products = DataProvider.getProducts();
+          
+          workbookData.forEach(row => {
+            const sku = row.SKU || row.sku;
+            const name = row.Name || row.name;
+            if (!name) return;
+            
+            let existing = null;
+            if (sku) existing = products.find(p => p.sku === sku);
+            if (!existing) existing = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+            
+            const newProduct = {
+              id: existing ? existing.id : null,
+              name: name,
+              sku: sku || (existing ? existing.sku : ''),
+              barcode: row.Barcode || row.barcode || '',
+              category: row.Category || row.category || '',
+              brand: row.Brand || row.brand || '',
+              unit: row.Unit || row.unit || 'Nos',
+              buyingPrice: Number(row.BuyingPrice || row.buyingPrice || row.Cost || 0),
+              price: Number(row.SellingPrice || row.sellingPrice || row.Price || 0),
+              mrp: Number(row.MRP || row.mrp || 0),
+              gst: Number(row.GST || row.gst || 18),
+              stock: Number(row.Stock || row.stock || row.Qty || 0),
+              isActive: true
+            };
+            
+            DataProvider.saveProduct(newProduct);
+            if (existing) updated++; else imported++;
+          });
+          
+          window.showToast(`Import Complete! Added: ${imported}, Updated: ${updated}`, 'success');
+          hideImport();
+          // Refresh table in-place
+          const fresh = DataProvider.getProducts();
+          const tbody2 = document.getElementById('products-tbody');
+          if (tbody2) {
+            tbody2.innerHTML = fresh.length > 0 ? fresh.map(renderRow).join('') : '<tr><td colspan="12"><div class="empty-state"><i data-lucide="package"></i><p>No products found.</p></div></td></tr>';
+            if (window.lucide) window.lucide.createIcons({ nodes: [tbody2] });
+            tbody2.querySelectorAll('.delete-product-btn').forEach(btn => btn.addEventListener('click', handleDelete));
+          }
+        });
+    });
+  }
+
+  return function cleanup() {
+    window.removeEventListener('openProductDrawer', openForm);
+  };
 }

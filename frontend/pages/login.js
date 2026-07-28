@@ -9,9 +9,7 @@ export async function render() {
   const loginForm = `
     <div class="mb-6 text-center">
       <div class="w-12 h-12 rounded-xl bg-primary mx-auto flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-        </svg>
+        <i data-lucide="zap" class="w-6 h-6 text-white"></i>
       </div>
       <h1 class="text-2xl font-bold text-text">Senthil Enterprises</h1>
       <p class="text-sm text-gray-500 mt-1">ERP System Login</p>
@@ -70,6 +68,7 @@ export function onMount(rootElement) {
   // Hide layout shell (Sidebar/Navbar) on Login page
   document.getElementById('sidebar-root').style.display = 'none';
   document.getElementById('navbar-root').style.display = 'none';
+  if (window.lucide) window.lucide.createIcons();
   
   // Adjust root padding since navbar is hidden
   const pageRoot = document.getElementById('page-root');
@@ -116,3 +115,4 @@ export function onMount(rootElement) {
     });
   }
 }
+

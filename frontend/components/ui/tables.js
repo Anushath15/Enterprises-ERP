@@ -47,3 +47,4 @@ export function TableCell({ content, align = 'left' }) {
   const alignClass = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
   return `<td class="px-6 py-3.5 ${alignClass}">${content}</td>`;
 }
+
