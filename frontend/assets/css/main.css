@@ -182,7 +182,8 @@ tr:last-child td { border-bottom: none; }
 ====================================== */
 @media print {
   body > * { display: none !important; }
-  #print-receipt-area { display: block !important; }
+  #print-receipt-area, #print-barcode-area { display: block !important; }
+  
   #print-receipt-area {
     font-family: 'Courier New', monospace;
     font-size: 12px;
@@ -196,6 +197,13 @@ tr:last-child td { border-bottom: none; }
   #print-receipt-area table { border-collapse: collapse; width: 100%; }
   #print-receipt-area td, #print-receipt-area th { padding: 2px 4px; font-size: 11px; }
   #print-receipt-area .receipt-total { font-size: 14px; font-weight: bold; }
+  
+  #print-barcode-area {
+    width: 50mm;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 

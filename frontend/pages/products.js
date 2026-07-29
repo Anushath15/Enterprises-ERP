@@ -26,7 +26,10 @@ import { DataProvider } from '../services/dataProvider.js';
       <td class="px-4 py-3 text-right font-medium text-primary">₹${(p.price || 0).toLocaleString('en-IN')}</td>
       <td class="px-4 py-3 text-right text-gray-500">${p.gst || 0}%</td>
       <td class="px-4 py-3 text-center"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${statusBg}">${statusLabel}</span></td>
-      <td class="px-4 py-3 text-center">
+      <td class="px-4 py-3 text-center flex items-center justify-center gap-1">
+        <button class="print-barcode-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" data-id="${p.id}" onclick="event.stopPropagation()">
+          <i data-lucide="printer" class="w-4 h-4 pointer-events-none"></i>
+        </button>
         <button class="delete-product-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-danger" data-id="${p.id}" onclick="event.stopPropagation()">
           <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
@@ -316,6 +319,30 @@ export function onMount() {
   // Attach initial delete listeners
   document.querySelectorAll('.delete-product-btn').forEach(btn => {
     btn.addEventListener('click', handleDelete);
+  });
+
+  const handlePrintBarcode = (e) => {
+    const id = e.currentTarget.getAttribute('data-id');
+    const p = allProducts.find(prod => prod.id === id);
+    if (!p) return;
+    const barcodeStr = p.barcode || p.sku || p.id;
+    
+    if (window.JsBarcode) {
+      window.JsBarcode("#barcode", barcodeStr, {
+        format: "CODE128",
+        width: 2,
+        height: 50,
+        displayValue: false
+      });
+      document.getElementById('barcode-text').textContent = p.name + " - " + barcodeStr + " - MRP " + (p.mrp || p.price);
+      window.print();
+    } else {
+      window.showToast('Barcode library not loaded yet.', 'warning');
+    }
+  };
+
+  document.querySelectorAll('.print-barcode-btn').forEach(btn => {
+    btn.addEventListener('click', handlePrintBarcode);
   });
 
   const closeAll = () => {
