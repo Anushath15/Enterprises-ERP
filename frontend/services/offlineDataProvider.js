@@ -493,6 +493,44 @@ export const OfflineDataProvider = {
       return true;
     }
     return false;
+  },
+
+  // ==========================================
+  // RC3 - HISTORICAL RECORDS & ADJUSTMENTS
+  // ==========================================
+  getStockAdjustments() {
+    return this._getAll('erp_stock_adjustments');
+  },
+  saveStockAdjustment(adjustment) {
+    const saved = this._save('erp_stock_adjustments', adjustment, 'ADJ');
+    
+    // Auto-update inventory stock
+    const product = this.getProductById(saved.productId);
+    if (product) {
+      if (saved.adjustmentType === 'Manual Correction' || saved.adjustmentType === 'Found') {
+        product.stock = Number(saved.adjustedQuantity);
+      } else {
+        // Damaged, Broken, Lost, Expired all REDUCE stock. (Unless adjustedQuantity is treated as the new absolute total. The specs say "Current Stock, Adjusted Quantity, Reason". Usually this implies setting the new stock value).
+        product.stock = Number(saved.adjustedQuantity);
+      }
+      this.saveProduct(product);
+    }
+    return saved;
+  },
+
+  getDailyClosingHistory() {
+    return this._getAll('erp_daily_closing_history');
+  },
+  saveDailyClosingHistory(closing) {
+    return this._save('erp_daily_closing_history', closing, 'DCH');
+  },
+
+  getProductPriceHistory(productId) {
+    const all = this._getAll('erp_product_price_history');
+    return productId ? all.filter(p => p.productId === productId) : all;
+  },
+  logProductPriceChange(historyRecord) {
+    return this._save('erp_product_price_history', historyRecord, 'PPH');
   }
 };
 

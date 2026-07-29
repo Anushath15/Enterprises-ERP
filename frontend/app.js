@@ -6,6 +6,7 @@
 
 import { Router } from './router/router.js';
 import { Sidebar, Navbar } from './components/layout/layout.js';
+import { MigrationRC3 } from './services/migration_rc3.js';
 import { DataProvider } from './services/dataProvider.js';
 
 const App = {
@@ -14,6 +15,9 @@ const App = {
    * Renders the base shell (Sidebar, Navbar) and triggers the initial route.
    */
   async init() {
+    // Run schema migrations first
+    MigrationRC3.run();
+
     // Initialize Offline Data Layer
     DataProvider.init();
     
