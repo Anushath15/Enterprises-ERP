@@ -5,7 +5,7 @@
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 
-const EXPENSE_CATEGORIES = ['Tea & Snacks', 'Transport', 'Utilities', 'Maintenance', 'Salary/Wages', 'Rent', 'Stationary', 'Other'];
+const EXPENSE_CATEGORIES = ['Electricity', 'Water', 'Internet', 'Staff Salary', 'Labour', 'Transport', 'Loading & Unloading', 'Stationery', 'Tea & Snacks', 'Maintenance', 'Rent', 'Other'];
 
 export async function render() {
   const expenses = DataProvider.getExpenses() || [];

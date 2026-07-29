@@ -30,12 +30,25 @@ export async function render() {
       <div class="bg-white erp-card p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center border-t-4 border-t-primary">
         <div>
           <h1 class="text-2xl font-bold text-text mb-1">Day Book & Cash Reconciliation</h1>
-          <p class="text-sm text-gray-500">Senthil Enterprises • Statement for ${currentDate}</p>
+          <p class="text-sm text-gray-500 flex items-center gap-2">
+            <span>Senthil Enterprises • Statement for ${currentDate}</span>
+            <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+            <span id="live-clock" class="font-mono text-primary font-medium"></span>
+          </p>
         </div>
         <div class="mt-4 md:mt-0 flex gap-3">
           <button id="dc-print-btn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg flex items-center gap-2">
             <i data-lucide="printer" class="w-4 h-4"></i> Print Statement
           </button>
+        </div>
+      </div>
+
+      <!-- Closing Banner -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm">
+        <i data-lucide="info" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5"></i>
+        <div>
+          <h4 class="text-sm font-bold text-blue-900">End of Day Procedure</h4>
+          <p class="text-sm text-blue-700 mt-1">Please verify all physical cash in the till matches the System Expected Cash. Any difference must be logged with remarks before closing the day.</p>
         </div>
       </div>
 
@@ -177,6 +190,16 @@ export async function render() {
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
 
+  const clockEl = document.getElementById('live-clock');
+  let clockInterval;
+  if (clockEl) {
+    const updateClock = () => {
+      clockEl.textContent = new Date().toLocaleTimeString('en-IN');
+    };
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+  }
+
   const expectedCashEl = document.getElementById('system-expected-cash');
   const actualCashInput = document.getElementById('actual-cash');
   const differenceEl = document.getElementById('cash-difference');
@@ -232,4 +255,8 @@ export function onMount(rootElement) {
        }
     });
   }
+
+  return function cleanup() {
+    if (clockInterval) clearInterval(clockInterval);
+  };
 }
