@@ -7,7 +7,7 @@ export const SeedData = {
   erp_settings: {
     shopName: 'Senthil Enterprises',
     tagline: 'Hardware, Electrical, Plumbing, Sanitary and Construction Materials',
-    address: 'No. 123, College Road, Kanniyakumari, Tamil Nadu - 629702',
+    address: 'Chukkuparai Eherivezhai, College Road, Kanniyakumari, Tamil Nadu - 629702',
     phone: '+91 9876543210',
     email: 'contact@senthilenterprises.com',
     gstin: '33AAAAA0000A1Z5',

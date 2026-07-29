@@ -58,6 +58,29 @@ export async function render() {
   const lowStockProducts = products.filter(p => Number(p.stock ?? 0) <= Number(p.minStock ?? 5) && Number(p.stock ?? 0) > 0);
   const deadStockProducts = products.filter(p => Number(p.stock ?? 0) <= 0);
   
+  // Profit Analysis (Today & Last 7 Days)
+  const calculateProfit = (invoiceList) => {
+    let revenue = 0;
+    let cogs = 0;
+    invoiceList.forEach(inv => {
+      revenue += Number(inv.totalAmount || inv.total || 0);
+      (inv.items || []).forEach(item => {
+        const prod = products.find(p => p.id === item.id) || {};
+        const cost = Number(prod.avgCost || prod.purchasePrice || prod.buyingPrice || 0);
+        cogs += (cost * Number(item.qty || 1));
+      });
+    });
+    return { revenue, cogs, grossProfit: revenue - cogs };
+  };
+
+  const todaysProfit = calculateProfit(todaysInvoices);
+  const last7DaysInvoices = invoices.filter(inv => last7Days.includes((inv.date || '').split('T')[0]));
+  const weekProfit = calculateProfit(last7DaysInvoices);
+  
+  const weekExpenses = expenses.filter(e => last7Days.includes((e.date || '').split('T')[0]))
+                               .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const netWeekProfit = weekProfit.grossProfit - weekExpenses;
+  
   // Deliveries
   const pendingDeliveries = deliveries.filter(d => d.status === 'Pending').length;
 
@@ -333,22 +356,56 @@ export async function render() {
               
               ${lowStockProducts.slice(0,6).map(p => `
                 <div class="flex items-center justify-between pb-2 border-b border-gray-100 last:border-0 last:pb-0">
-                  <div class="truncate pr-4">
+                  <div class="truncate pr-2">
                     <p class="text-xs font-bold text-gray-800 truncate">${p.name}</p>
-                    <p class="text-[10px] text-gray-500">Min required: ${p.minStock || 5}</p>
+                    <p class="text-[10px] text-gray-500">Min: ${p.minStock || 5}</p>
                   </div>
-                  <div class="text-right shrink-0">
-                    <span class="text-sm font-bold text-orange-600">${p.stock}</span>
-                    <span class="text-[10px] text-gray-500 block">${p.unit || 'Nos'}</span>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <div class="text-right">
+                      <span class="text-sm font-bold text-orange-600">${p.stock}</span>
+                      <span class="text-[10px] text-gray-500 block">${p.unit || 'Nos'}</span>
+                    </div>
+                    <button class="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-colors" title="Purchase" onclick="window.location.hash='#/purchases'; setTimeout(() => window.dispatchEvent(new CustomEvent('draftPurchase', {detail: '${p.id}'})), 200)">
+                      <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                    </button>
                   </div>
                 </div>
               `).join('')}
             </div>
-            ${lowStockProducts.length > 6 ? `
-              <div class="p-3 bg-gray-50 text-center border-t border-border">
-                <button class="text-xs font-bold text-primary hover:underline" onclick="window.location.hash='#/inventory'">View All Inventory</button>
+              ${lowStockProducts.length > 6 ? `
+                <div class="p-3 bg-gray-50 text-center border-t border-border">
+                  <button class="text-xs font-bold text-primary hover:underline" onclick="window.location.hash='#/inventory'">View All Inventory</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          
+          <!-- Profit Analysis Widget -->
+          <div class="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+            <div class="p-4 bg-green-50 border-b border-green-100 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-green-800 flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Profit Analysis</h3>
+              <span class="bg-green-200 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Last 7 Days</span>
+            </div>
+            <div class="p-4 space-y-4">
+              <div>
+                <p class="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">Gross Profit (7D)</p>
+                <div class="flex items-end justify-between">
+                  <h4 class="text-xl font-bold text-gray-800">₹${weekProfit.grossProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</h4>
+                  <span class="text-xs text-gray-500 mb-1">Rev: ₹${weekProfit.revenue.toLocaleString('en-IN')}</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                  <div class="bg-green-500 h-1.5 rounded-full" style="width: ${Math.min(100, Math.max(0, (weekProfit.grossProfit / (weekProfit.revenue || 1)) * 100))}%"></div>
+                </div>
               </div>
-            ` : ''}
+              
+              <div class="pt-3 border-t border-gray-100">
+                <p class="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">Net Profit (After Exp)</p>
+                <div class="flex items-end justify-between">
+                  <h4 class="text-xl font-bold ${netWeekProfit >= 0 ? 'text-success' : 'text-danger'}">₹${netWeekProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</h4>
+                  <span class="text-xs text-gray-500 mb-1">Exp: ₹${weekExpenses.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>
