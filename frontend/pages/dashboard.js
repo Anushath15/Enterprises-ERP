@@ -258,6 +258,37 @@ export async function render() {
         <!-- Right Column: Alerts & Status -->
         <div class="space-y-6">
           
+          ${Card({
+            title: 'Pilot Deployment Setup',
+            icon: 'rocket',
+            content: `
+              <div class="space-y-3 pt-2">
+                <a href="#/onboarding-stock" class="block p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <i data-lucide="package-open" class="w-4 h-4 text-primary group-hover:scale-110 transition-transform"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-text">1. Opening Stock Wizard</h4>
+                      <p class="text-[10px] text-gray-500 mt-0.5">Enter initial inventory quantities</p>
+                    </div>
+                  </div>
+                </a>
+                <a href="#/onboarding-balances" class="block p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                      <i data-lucide="scale" class="w-4 h-4 text-orange-600 group-hover:scale-110 transition-transform"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-text">2. Opening Balances</h4>
+                      <p class="text-[10px] text-gray-500 mt-0.5">Initialize customer and dealer ledgers</p>
+                    </div>
+                  </div>
+                </a>
+              </div>
+            `
+          })}
+
           <!-- Action Center / Alerts -->
           <div class="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
             <div class="p-4 bg-red-50 border-b border-red-100 flex items-center justify-between">

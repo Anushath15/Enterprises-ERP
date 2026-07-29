@@ -138,6 +138,20 @@ export const routes = [
     roles: ['admin']
   },
   {
+    path: '/onboarding-stock',
+    name: 'Opening Stock',
+    componentPath: '../pages/wizard_stock.js',
+    authRequired: true,
+    roles: ['admin']
+  },
+  {
+    path: '/onboarding-balances',
+    name: 'Opening Balances',
+    componentPath: '../pages/wizard_balances.js',
+    authRequired: true,
+    roles: ['admin']
+  },
+  {
     path: '/notifications',
     name: 'Notifications',
     componentPath: '../pages/notifications.js',

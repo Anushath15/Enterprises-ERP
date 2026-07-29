@@ -36,7 +36,7 @@ import { DataProvider } from '../services/dataProvider.js';
   };
 
 export async function render() {
-
+  const products = DataProvider.getProducts();
   return `
     <div class="p-6 max-w-[1600px] mx-auto fade-in">
       <div class="flex items-center justify-between mb-6">
