@@ -1,6 +1,6 @@
 # Senthil Enterprises ERP
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0--rc3-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)
