@@ -81,27 +81,6 @@ export async function render() {
               </div>
             </div>
 
-            <!-- Discount + Tax row -->
-            <div class="px-4 py-3 border-t border-border bg-gray-50/50 space-y-2">
-              <div class="flex items-center gap-3">
-                <span class="text-xs font-medium text-gray-500 w-20">Discount</span>
-                <div class="flex items-center gap-2 flex-1">
-                  <input type="number" id="discount-val" value="0" min="0" class="w-16 px-2 py-1.5 text-xs border border-border rounded-lg bg-white text-center focus:outline-none focus:border-primary">
-                  <select id="discount-type" class="text-xs border border-border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-primary">
-                    <option value="percent">%</option>
-                    <option value="flat">₹ Flat</option>
-                  </select>
-                  <span class="text-xs text-success font-semibold ml-auto" id="cart-discount-text">- ₹0.00</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-xs font-medium text-gray-500 w-20">GST (Tax)</span>
-                <div class="flex items-center flex-1">
-                  <span class="text-xs text-gray-500">Per item rate</span>
-                  <span class="text-xs font-semibold text-text ml-auto" id="cart-tax-text">+ ₹0.00</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           <!-- Invoice Summary -->
@@ -112,15 +91,27 @@ export async function render() {
                 <span class="font-medium text-text" id="summary-subtotal">₹0.00</span>
               </div>
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500">Discount</span>
+                <span class="text-gray-500">Item Discounts</span>
                 <span class="font-medium text-success" id="summary-discount">- ₹0.00</span>
               </div>
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500">GST</span>
-                <span class="font-medium text-text" id="summary-tax">+ ₹0.00</span>
+                <span class="text-gray-500">Taxable Amount</span>
+                <span class="font-medium text-text" id="summary-taxable">₹0.00</span>
               </div>
-              <div class="border-t border-border pt-2 flex items-center justify-between">
-                <span class="text-base font-bold text-text">Total Amount</span>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">CGST</span>
+                <span class="font-medium text-gray-500" id="summary-cgst">+ ₹0.00</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">SGST</span>
+                <span class="font-medium text-gray-500" id="summary-sgst">+ ₹0.00</span>
+              </div>
+              <div class="flex items-center justify-between text-sm border-b border-border pb-2">
+                <span class="text-gray-500 font-semibold">Total GST</span>
+                <span class="font-medium text-text font-semibold" id="summary-tax">+ ₹0.00</span>
+              </div>
+              <div class="pt-1 flex items-center justify-between">
+                <span class="text-base font-bold text-text">Grand Total</span>
                 <span class="text-2xl font-extrabold text-primary" id="summary-total">₹0.00</span>
               </div>
             </div>
@@ -146,8 +137,11 @@ export async function render() {
 
             <!-- Action Buttons -->
             <div class="grid grid-cols-2 gap-2">
-              <button id="btn-save-invoice" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm col-span-2">
-                <i data-lucide="save" class="w-4 h-4"></i> Save & Print Invoice (F2)
+              <button id="btn-save-invoice" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
+                <i data-lucide="save" class="w-4 h-4"></i> Save (F2)
+              </button>
+              <button id="btn-print-last" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-border text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                <i data-lucide="printer" class="w-4 h-4"></i> Print Last
               </button>
             </div>
           </div>
@@ -297,15 +291,48 @@ export function onMount(rootElement) {
   };
 
   const getCartTotals = () => {
-    let subtotal = 0, taxTotal = 0;
+    let subtotal = 0, taxTotal = 0, totalDiscount = 0, cgstTotal = 0, sgstTotal = 0, taxableAmount = 0;
     cart.forEach(item => {
-      const itemTotal = item.price * item.qty;
-      subtotal += itemTotal;
-      taxTotal += itemTotal * ((item.taxRate || 0) / 100);
+      const lineBase = item.price * item.qty;
+      const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
+      const lineAfterDisc = lineBase - lineDisc;
+      const lineTax = lineAfterDisc * ((item.taxRate || 0) / 100);
+      
+      subtotal += lineBase;
+      totalDiscount += lineDisc;
+      taxableAmount += lineAfterDisc;
+      taxTotal += lineTax;
+      cgstTotal += (lineTax / 2);
+      sgstTotal += (lineTax / 2);
     });
-    let discountAmount = discountType === 'percent' ? subtotal * (discountVal / 100) : Math.min(discountVal, subtotal);
-    const grandTotal = subtotal - discountAmount + taxTotal;
-    return { subtotal, taxTotal, discountAmount, grandTotal };
+    
+    const grandTotal = taxableAmount + taxTotal;
+    return { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal };
+  };
+
+  const updateCartTotalsUI = () => {
+    const { subtotal, totalDiscount, taxableAmount, cgstTotal, sgstTotal, grandTotal, taxTotal } = getCartTotals();
+    
+    rootElement.querySelector('#cart-count').textContent = `(${cart.length} item${cart.length !== 1 ? 's' : ''})`;
+    rootElement.querySelector('#summary-subtotal-label').textContent = `Subtotal (${cart.length} items)`;
+    rootElement.querySelector('#summary-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+    
+    const discountEl = rootElement.querySelector('#summary-discount');
+    if (discountEl) discountEl.textContent = `- ₹${totalDiscount.toFixed(2)}`;
+    
+    const taxableEl = rootElement.querySelector('#summary-taxable');
+    if (taxableEl) taxableEl.textContent = `₹${taxableAmount.toFixed(2)}`;
+    
+    const cgstEl = rootElement.querySelector('#summary-cgst');
+    if (cgstEl) cgstEl.textContent = `+ ₹${cgstTotal.toFixed(2)}`;
+    
+    const sgstEl = rootElement.querySelector('#summary-sgst');
+    if (sgstEl) sgstEl.textContent = `+ ₹${sgstTotal.toFixed(2)}`;
+
+    const taxEl = rootElement.querySelector('#summary-tax');
+    if (taxEl) taxEl.textContent = `+ ₹${taxTotal.toFixed(2)}`;
+    
+    rootElement.querySelector('#summary-total').textContent = `₹${grandTotal.toFixed(2)}`;
   };
 
   const renderCart = () => {
@@ -316,42 +343,65 @@ export function onMount(rootElement) {
           <i data-lucide="shopping-cart" class="w-8 h-8 text-gray-200"></i>
           <span>Cart is empty. Click a product to add.</span>
         </div>`;
-      if (window.lucide) window.lucide.createIcons({ nodes: [container] });
     } else {
       container.innerHTML = cart.map(item => {
-        const itemTotal = (item.price * item.qty).toFixed(2);
+        const lineBase = item.price * item.qty;
+        const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
+        const itemTotal = (lineBase - lineDisc).toFixed(2);
         return `
-          <div class="cart-item flex items-center gap-3 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${item.id}">
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-semibold text-text truncate">${item.name}</p>
-              <p class="text-[10px] text-gray-400">₹${item.price} × ${item.qty}</p>
+          <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${item.id}">
+            <div class="flex items-center justify-between">
+               <div class="flex-1 min-w-0">
+                 <p class="text-xs font-semibold text-text truncate">${item.name}</p>
+                 <p class="text-[10px] text-gray-400">₹${item.price} @ ${item.taxRate || 0}% GST</p>
+               </div>
+               <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
+                 <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+               </button>
             </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <button class="qty-btn w-6 h-6 flex items-center justify-center rounded border border-border text-gray-500 hover:bg-gray-100 text-xs font-bold" data-delta="-1">−</button>
-              <span class="w-7 text-center text-xs font-bold text-text">${item.qty}</span>
-              <button class="qty-btn w-6 h-6 flex items-center justify-center rounded border border-border text-gray-500 hover:bg-gray-100 text-xs font-bold" data-delta="1">+</button>
+            
+            <div class="flex items-center justify-between gap-2 mt-1">
+              <div class="flex items-center gap-1 shrink-0">
+                <span class="text-[10px] text-gray-400">Qty:</span>
+                <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${item.qty}" min="1">
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <span class="text-[10px] text-gray-400">Disc %:</span>
+                <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${item.discountPercent || 0}" min="0" max="100">
+              </div>
+              <div class="text-right shrink-0">
+                <p class="text-sm font-bold text-text row-total">₹${itemTotal}</p>
+              </div>
             </div>
-            <div class="text-right shrink-0">
-              <p class="text-sm font-bold text-text">₹${itemTotal}</p>
-            </div>
-            <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
           </div>`;
       }).join('');
-      if (window.lucide) window.lucide.createIcons({ nodes: [container] });
     }
-
-    const { subtotal, taxTotal, discountAmount, grandTotal } = getCartTotals();
-    rootElement.querySelector('#cart-count').textContent = `(${cart.length} item${cart.length !== 1 ? 's' : ''})`;
-    rootElement.querySelector('#cart-discount-text').textContent = `- ₹${discountAmount.toFixed(2)}`;
-    rootElement.querySelector('#cart-tax-text').textContent = `+ ₹${taxTotal.toFixed(2)}`;
-    rootElement.querySelector('#summary-subtotal-label').textContent = `Subtotal (${cart.length} items)`;
-    rootElement.querySelector('#summary-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-    rootElement.querySelector('#summary-discount').textContent = `- ₹${discountAmount.toFixed(2)}`;
-    rootElement.querySelector('#summary-tax').textContent = `+ ₹${taxTotal.toFixed(2)}`;
-    rootElement.querySelector('#summary-total').textContent = `₹${grandTotal.toFixed(2)}`;
+    if (window.lucide) window.lucide.createIcons({ nodes: [container] });
+    updateCartTotalsUI();
   };
+
+  // Delegate input events without re-rendering to prevent cursor jump
+  rootElement.querySelector('#cart-container').addEventListener('input', (e) => {
+     const cartItemEl = e.target.closest('.cart-item');
+     if (!cartItemEl) return;
+     const id = cartItemEl.getAttribute('data-id');
+     const item = cart.find(i => i.id === id);
+     if (!item) return;
+
+     if (e.target.classList.contains('pos-qty-input')) {
+        item.qty = Number(e.target.value) || 1;
+     } else if (e.target.classList.contains('pos-disc-input')) {
+        item.discountPercent = Number(e.target.value) || 0;
+     }
+
+     // Update specific row total text
+     const lineBase = item.price * item.qty;
+     const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
+     const itemTotal = (lineBase - lineDisc).toFixed(2);
+     cartItemEl.querySelector('.row-total').textContent = `₹${itemTotal}`;
+
+     updateCartTotalsUI();
+  });
 
   // =====================
   // CART ACTIONS
@@ -458,6 +508,7 @@ export function onMount(rootElement) {
   // =====================
 
   const printReceipt = (invoice) => {
+    if (!invoice) return;
     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
     const shopName = settings.shopName || 'Senthil Enterprises';
     const shopAddress = settings.address || '';
@@ -477,22 +528,27 @@ export function onMount(rootElement) {
       <div style="font-size:11px;"><b>Customer:</b> ${invoice.customerName || 'Walk-in'}</div>
       <div style="font-size:11px;"><b>Payment:</b> ${invoice.paymentMode}</div>
       <div class="receipt-divider"></div>
-      <table>
+      <table style="width: 100%; font-size: 10px;">
         <tr><th style="text-align:left">Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr>
-        ${(invoice.items || []).map(item => `
+        ${(invoice.items || []).map(item => {
+           const disc = item.discountAmount > 0 ? `<br><small style="color:#666">(-₹${item.discountAmount.toFixed(2)})</small>` : '';
+           return `
           <tr>
-            <td style="font-size:10px;">${item.name}</td>
+            <td style="font-size:10px;">${item.name}${disc}</td>
             <td style="text-align:center">${item.qty}</td>
             <td style="text-align:right">₹${item.price}</td>
-            <td style="text-align:right">₹${(item.qty * item.price).toFixed(2)}</td>
-          </tr>`).join('')}
+            <td style="text-align:right">₹${item.total.toFixed(2)}</td>
+          </tr>`;
+        }).join('')}
       </table>
       <div class="receipt-divider"></div>
       <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Subtotal</span><span>₹${invoice.subtotal.toFixed(2)}</span></div>
-      ${invoice.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Discount</span><span>- ₹${invoice.discount.toFixed(2)}</span></div>` : ''}
-      ${invoice.taxTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>GST</span><span>+ ₹${invoice.taxTotal.toFixed(2)}</span></div>` : ''}
+      ${invoice.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${invoice.discount.toFixed(2)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${invoice.taxableAmount.toFixed(2)}</span></div>
+      ${invoice.cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${invoice.cgstTotal.toFixed(2)}</span></div>` : ''}
+      ${invoice.sgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>SGST</span><span>+ ₹${invoice.sgstTotal.toFixed(2)}</span></div>` : ''}
       <div class="receipt-divider"></div>
-      <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>TOTAL</span><span>₹${invoice.totalAmount.toFixed(2)}</span></div>
+      <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>GRAND TOTAL</span><span>₹${invoice.totalAmount.toFixed(2)}</span></div>
       <div class="receipt-divider"></div>
       <div style="text-align:center;font-size:10px;margin-top:8px;">Thank you for shopping with us!</div>
       <div style="text-align:center;font-size:10px;">Please visit again.</div>`;
@@ -514,23 +570,32 @@ export function onMount(rootElement) {
       return;
     }
 
-    const { subtotal, taxTotal, discountAmount, grandTotal } = getCartTotals();
+    const { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal } = getCartTotals();
 
     const invoice = {
       date: new Date().toISOString(),
       customerId: selectedCustomer ? selectedCustomer.id : null,
       customerName: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
-      items: cart.map(i => ({
-        productId: i.id,
-        name: i.name,
-        qty: i.qty,
-        price: i.price,
-        taxRate: i.taxRate,
-        total: i.price * i.qty
-      })),
+      items: cart.map(i => {
+         const lineBase = i.price * i.qty;
+         const lineDisc = lineBase * ((i.discountPercent || 0) / 100);
+         return {
+           productId: i.id,
+           name: i.name,
+           qty: i.qty,
+           price: i.price,
+           taxRate: i.taxRate,
+           discountPercent: i.discountPercent || 0,
+           discountAmount: lineDisc,
+           total: lineBase - lineDisc
+         };
+      }),
       subtotal,
-      discount: discountAmount,
+      discount: totalDiscount,
+      taxableAmount,
       taxTotal,
+      cgstTotal,
+      sgstTotal,
       totalAmount: grandTotal,
       paymentMode,
       paymentStatus: paymentMode === 'Credit' ? 'Pending' : 'Paid Full',
@@ -544,12 +609,7 @@ export function onMount(rootElement) {
       
       // Reset state in-place — NO page reload
       cart = [];
-      discountVal = 0;
-      discountType = 'percent';
       paymentMode = 'Cash';
-      
-      rootElement.querySelector('#discount-val').value = 0;
-      rootElement.querySelector('#discount-type').value = 'percent';
       
       // Reset payment mode UI
       rootElement.querySelectorAll('.payment-btn').forEach(btn => {
@@ -570,9 +630,6 @@ export function onMount(rootElement) {
       renderProducts();
       
       window.showToast(`Invoice ${saved.id} saved successfully!`, 'success');
-      
-      // Print receipt
-      setTimeout(() => printReceipt(saved), 300);
       
     } catch (err) {
       window.showToast(err.message, 'danger');
@@ -655,15 +712,7 @@ export function onMount(rootElement) {
     renderProducts();
   });
 
-  // Discount
-  rootElement.querySelector('#discount-val').addEventListener('input', (e) => {
-    discountVal = Math.max(0, Number(e.target.value) || 0);
-    renderCart();
-  });
-  rootElement.querySelector('#discount-type').addEventListener('change', (e) => {
-    discountType = e.target.value;
-    renderCart();
-  });
+  // Discount (removed global discount, handled per-item via delegation)
 
   // Payment mode
   rootElement.querySelectorAll('.payment-btn').forEach(btn => {
@@ -709,6 +758,15 @@ export function onMount(rootElement) {
 
   // Save invoice
   rootElement.querySelector('#btn-save-invoice').addEventListener('click', saveInvoice);
+
+  // Print Last Invoice
+  rootElement.querySelector('#btn-print-last').addEventListener('click', () => {
+    if (lastSavedInvoice) {
+      printReceipt(lastSavedInvoice);
+    } else {
+      window.showToast('No invoice saved in this session.', 'warning');
+    }
+  });
 
   // Keyboard shortcuts
   const keyHandler = (e) => {

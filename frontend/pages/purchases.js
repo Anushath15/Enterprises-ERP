@@ -186,34 +186,30 @@ export async function render() {
             <table class="w-full text-sm">
               <thead class="bg-gray-50/60">
                 <tr>
-                  <th class="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wide">Product</th>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium text-gray-500 uppercase tracking-wide w-20">Qty</th>
-                  <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wide w-24">Unit Price</th>
-                  <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wide w-24">Total</th>
+                  <th class="px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Product</th>
+                  <th class="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase w-16">Qty</th>
+                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-20">Purchase</th>
+                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">GST%</th>
+                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-20">Selling</th>
+                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">Margin%</th>
+                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-24">Total</th>
                   <th class="px-2 py-2 w-8"></th>
                 </tr>
               </thead>
               <tbody id="po-cart-items" class="divide-y divide-border">
-                <tr><td colspan="5" class="text-center py-4 text-gray-500 text-sm">No items added</td></tr>
+                <tr><td colspan="8" class="text-center py-4 text-gray-500 text-sm">No items added</td></tr>
               </tbody>
               <tfoot class="bg-gray-50/60 border-t border-border">
                 <tr>
-                  <td colspan="3" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Subtotal</td>
+                  <td colspan="6" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Subtotal</td>
                   <td colspan="2" class="px-3 py-2.5 text-right text-xs font-semibold text-text" id="po-subtotal">₹0.00</td>
+                </tr>
+                <tr>
+                  <td colspan="6" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Total GST</td>
+                  <td colspan="2" class="px-3 py-2.5 text-right text-xs font-semibold text-text" id="po-tax">₹0.00</td>
                 </tr>
               </tfoot>
             </table>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Discount (₹)</label>
-            <input type="number" id="po-discount" value="0" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Tax Amount (₹)</label>
-            <input type="number" id="po-tax" value="0" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
           </div>
         </div>
         
@@ -338,7 +334,9 @@ export function onMount(rootElement) {
               productId: product.id,
               name: product.name,
               qty: 1,
-              price: product.price // Using current retail price as default purchase price for demo
+              purchasePrice: product.purchasePrice || (product.price * 0.8), 
+              gst: 0,
+              sellingPrice: product.price || 0
             });
           }
           renderCart();
@@ -351,28 +349,44 @@ export function onMount(rootElement) {
     const renderCart = () => {
       const tbody = rootElement.querySelector('#po-cart-items');
       if (cart.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500 text-sm">No items added</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500 text-sm">No items added</td></tr>';
         updateTotals();
         return;
       }
 
-      tbody.innerHTML = cart.map((item, index) => `
+      tbody.innerHTML = cart.map((item, index) => {
+        const costWithTax = item.purchasePrice * (1 + (item.gst / 100));
+        let margin = 0;
+        if (costWithTax > 0) {
+           margin = ((item.sellingPrice - costWithTax) / costWithTax) * 100;
+        }
+
+        return `
         <tr data-index="${index}">
-          <td class="px-3 py-2.5 text-xs text-text">${item.name}</td>
-          <td class="px-3 py-2.5 text-center">
-            <input type="number" value="${item.qty}" min="1" class="po-qty-input w-14 px-2 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary">
+          <td class="px-2 py-2.5 text-xs text-text truncate max-w-[150px]">${item.name}</td>
+          <td class="px-2 py-2.5 text-center">
+            <input type="number" value="${item.qty}" min="1" class="po-qty-input w-12 px-1 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary">
           </td>
-          <td class="px-3 py-2.5 text-right">
-            <input type="number" value="${item.price}" min="0" step="0.01" class="po-price-input w-20 px-2 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+          <td class="px-2 py-2.5 text-right">
+            <input type="number" value="${item.purchasePrice.toFixed(2)}" min="0" step="0.01" class="po-purchase-input w-16 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
           </td>
-          <td class="px-3 py-2.5 text-right text-xs font-semibold text-text">₹${(item.qty * item.price).toFixed(2)}</td>
+          <td class="px-2 py-2.5 text-right">
+            <input type="number" value="${item.gst}" min="0" step="0.1" class="po-gst-input w-12 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+          </td>
+          <td class="px-2 py-2.5 text-right">
+             <input type="number" value="${item.sellingPrice.toFixed(2)}" min="0" step="0.01" class="po-selling-input w-16 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+          </td>
+          <td class="px-2 py-2.5 text-right text-xs ${margin < 0 ? 'text-danger' : 'text-success'} font-medium">
+             ${margin.toFixed(1)}%
+          </td>
+          <td class="px-2 py-2.5 text-right text-xs font-semibold text-text">₹${(item.qty * item.purchasePrice).toFixed(2)}</td>
           <td class="px-2 py-2.5 text-right">
             <button class="po-remove-btn text-gray-400 hover:text-danger">
               <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
             </button>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
       updateTotals();
       if (window.lucide) window.lucide.createIcons();
     };
@@ -381,13 +395,20 @@ export function onMount(rootElement) {
     window._renderCart = renderCart;
 
     const updateTotals = () => {
-      const subtotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-      const discount = Number(rootElement.querySelector('#po-discount').value) || 0;
-      const tax = Number(rootElement.querySelector('#po-tax').value) || 0;
+      let subtotal = 0;
+      let totalGst = 0;
+
+      cart.forEach(item => {
+         const rowSub = item.qty * item.purchasePrice;
+         const rowGst = rowSub * (item.gst / 100);
+         subtotal += rowSub;
+         totalGst += rowGst;
+      });
       
-      const grandTotal = subtotal - discount + tax;
+      const grandTotal = subtotal + totalGst;
       
       rootElement.querySelector('#po-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+      rootElement.querySelector('#po-tax').textContent = `₹${totalGst.toFixed(2)}`;
       rootElement.querySelector('#po-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
     };
 
@@ -395,18 +416,42 @@ export function onMount(rootElement) {
     rootElement.querySelector('#po-cart-items').addEventListener('input', (e) => {
       const tr = e.target.closest('tr');
       if (!tr) return;
-      const idx = tr.getAttribute('data-index');
+      const idx = parseInt(tr.getAttribute('data-index'), 10);
+      const item = cart[idx];
+      if (!item) return;
+      
       if (e.target.classList.contains('po-qty-input')) {
-        cart[idx].qty = Number(e.target.value) || 1;
-        renderCart();
-      } else if (e.target.classList.contains('po-price-input')) {
-        cart[idx].price = Number(e.target.value) || 0;
-        renderCart();
+        item.qty = Number(e.target.value) || 1;
+      } else if (e.target.classList.contains('po-purchase-input')) {
+        item.purchasePrice = Number(e.target.value) || 0;
+      } else if (e.target.classList.contains('po-gst-input')) {
+        item.gst = Number(e.target.value) || 0;
+      } else if (e.target.classList.contains('po-selling-input')) {
+        item.sellingPrice = Number(e.target.value) || 0;
       }
+
+      // Update row UI (Total & Margin)
+      const costWithTax = item.purchasePrice * (1 + (item.gst / 100));
+      let margin = 0;
+      if (costWithTax > 0) {
+         margin = ((item.sellingPrice - costWithTax) / costWithTax) * 100;
+      }
+      const marginTd = tr.querySelector('td:nth-child(6)');
+      if (marginTd) {
+         marginTd.textContent = `${margin.toFixed(1)}%`;
+         marginTd.className = `px-2 py-2.5 text-right text-xs ${margin < 0 ? 'text-danger' : 'text-success'} font-medium`;
+      }
+      
+      const rowTotalTd = tr.querySelector('td:nth-child(7)');
+      if (rowTotalTd) {
+         rowTotalTd.textContent = `₹${(item.qty * item.purchasePrice).toFixed(2)}`;
+      }
+
+      updateTotals();
     });
 
     rootElement.querySelector('#po-cart-items').addEventListener('click', (e) => {
-      if (e.target.classList.contains('po-remove-btn')) {
+      if (e.target.closest('.po-remove-btn')) {
         const tr = e.target.closest('tr');
         if (tr) {
           cart.splice(tr.getAttribute('data-index'), 1);
@@ -415,21 +460,36 @@ export function onMount(rootElement) {
       }
     });
 
-    rootElement.querySelector('#po-discount').addEventListener('input', updateTotals);
-    rootElement.querySelector('#po-tax').addEventListener('input', updateTotals);
-
     // Save PO
     rootElement.querySelector('#btn-save-po').addEventListener('click', () => {
       const dealerId = rootElement.querySelector('#po-dealer').value;
       if (!dealerId) { window.showToast('Please select a dealer.', 'warning'); return; }
       if (cart.length === 0) { window.showToast('Please add at least one product.', 'warning'); return; }
 
-      const subtotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-      const discount = Number(rootElement.querySelector('#po-discount').value) || 0;
-      const taxTotal = Number(rootElement.querySelector('#po-tax').value) || 0;
-      const totalAmount = subtotal - discount + taxTotal;
-      const paymentStatus = rootElement.querySelector('#po-payment-status').value;
+      let subtotal = 0;
+      let totalGst = 0;
 
+      const items = cart.map(item => {
+         const rowSub = item.qty * item.purchasePrice;
+         const rowGst = rowSub * (item.gst / 100);
+         subtotal += rowSub;
+         totalGst += rowGst;
+
+         return {
+           productId: item.productId,
+           name: item.name,
+           qty: item.qty,
+           purchasePrice: item.purchasePrice,
+           sellingPrice: item.sellingPrice,
+           gst: item.gst,
+           cgst: item.gst / 2,
+           sgst: item.gst / 2,
+           total: rowSub + rowGst
+         };
+      });
+
+      const totalAmount = subtotal + totalGst;
+      const paymentStatus = rootElement.querySelector('#po-payment-status').value;
       const status = rootElement.querySelector('#po-status').value || 'Received';
 
       const invoice = {
@@ -438,10 +498,12 @@ export function onMount(rootElement) {
         invoiceNumber: rootElement.querySelector('#po-invoice-no').value,
         date: rootElement.querySelector('#po-date').value,
         status: status,
-        items: cart,
+        items: items,
         subtotal,
-        discount,
-        taxTotal,
+        discount: 0,
+        taxTotal: totalGst,
+        cgst: totalGst / 2,
+        sgst: totalGst / 2,
         totalAmount,
         paymentStatus,
         amountPaid: paymentStatus === 'Paid Full' ? totalAmount : 0
@@ -449,6 +511,32 @@ export function onMount(rootElement) {
 
       try {
         const saved = DataProvider.savePurchaseInvoice(invoice);
+
+        // If Received, log price changes to historical table
+        if (saved.status === 'Received') {
+           saved.items.forEach(it => {
+              const prod = DataProvider.getProductById(it.productId);
+              if (prod) {
+                  if (prod.purchasePrice !== it.purchasePrice || prod.price !== it.sellingPrice) {
+                      DataProvider.logProductPriceChange({
+                          productId: it.productId,
+                          oldPurchasePrice: prod.purchasePrice || 0,
+                          newPurchasePrice: it.purchasePrice,
+                          oldSellingPrice: prod.price || 0,
+                          newSellingPrice: it.sellingPrice,
+                          dealerId: saved.dealerId,
+                          invoiceId: saved.id,
+                          date: new Date().toISOString()
+                      });
+                  }
+                  // Update master product file
+                  prod.purchasePrice = it.purchasePrice;
+                  prod.price = it.sellingPrice;
+                  DataProvider.saveProduct(prod);
+              }
+           });
+        }
+
         closeAll();
         // Refresh table in-place
         const freshPurchases = DataProvider.getPurchaseInvoices();
@@ -456,7 +544,44 @@ export function onMount(rootElement) {
         if (tbody) {
           const dealers = DataProvider.getDealers();
           tbody.innerHTML = freshPurchases.length > 0 
-            ? freshPurchases.map(buildRow).join('')
+            ? freshPurchases.map(po => {
+                // Using renderPORow logic
+                const dealer = dealers.find(d => d.id === po.dealerId) || { companyName: 'Unknown', phone: '' };
+                const dealerName = dealer.companyName || dealer.name || 'Unknown';
+                const initials = dealerName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+                const dealerColor = 'primary'; 
+                const statusColor = po.status === 'Pending' ? 'warning' : (po.status === 'Received' ? 'success' : 'danger');
+
+                return `
+                <tr class="row-hover cursor-pointer" data-id="${po.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer', {detail: '${po.id}'}))">
+                  <td class="px-4 py-3.5 font-semibold text-primary text-sm">${po.invoiceNumber || po.id}</td>
+                  <td class="px-4 py-3.5">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-7 h-7 rounded-full bg-${dealerColor}/10 flex items-center justify-center">
+                        <span class="text-[10px] font-bold text-${dealerColor}">${initials}</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-medium text-text">${dealerName}</p>
+                        <p class="text-[10px] text-gray-400">${dealer.phone}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3.5 text-sm ${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">${po.date}</td>
+                  <td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td>
+                  <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${(po.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  <td class="px-4 py-3.5">
+                    <span class="status-badge status-${statusColor}">${po.status}</span>
+                  </td>
+                  <td class="px-4 py-3.5 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                      <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                `;
+            }).join('')
             : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No purchases yet</td></tr>';
           if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
         }
@@ -483,8 +608,6 @@ export function onMount(rootElement) {
     rootElement.querySelector('#po-invoice-no').value = '';
     rootElement.querySelector('#po-date').value = new Date().toISOString().split('T')[0];
     rootElement.querySelector('#po-status').value = 'Pending';
-    rootElement.querySelector('#po-discount').value = '0';
-    rootElement.querySelector('#po-tax').value = '0';
     rootElement.querySelector('#po-payment-status').value = 'Unpaid';
     cart = [];
     if (window._renderCart) window._renderCart();
@@ -497,8 +620,6 @@ export function onMount(rootElement) {
          rootElement.querySelector('#po-invoice-no').value = po.invoiceNumber || '';
          rootElement.querySelector('#po-date').value = po.date || new Date().toISOString().split('T')[0];
          rootElement.querySelector('#po-status').value = po.status || 'Pending';
-         rootElement.querySelector('#po-discount').value = po.discount || 0;
-         rootElement.querySelector('#po-tax').value = po.taxTotal || 0;
          rootElement.querySelector('#po-payment-status').value = po.paymentStatus || 'Unpaid';
          cart = po.items ? JSON.parse(JSON.stringify(po.items)) : [];
          if (window._renderCart) window._renderCart();
