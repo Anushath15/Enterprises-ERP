@@ -33,6 +33,20 @@ export const routes = [
     roles: ['admin', 'manager']
   },
   {
+    path: '/categories',
+    name: 'Categories',
+    componentPath: '../pages/categories.js',
+    authRequired: true,
+    roles: ['admin', 'manager']
+  },
+  {
+    path: '/stock-adjustments',
+    name: 'Stock Adjustments',
+    componentPath: '../pages/stock_adjustments.js',
+    authRequired: true,
+    roles: ['admin', 'manager']
+  },
+  {
     path: '/customers',
     name: 'Customers',
     componentPath: '../pages/customers.js',

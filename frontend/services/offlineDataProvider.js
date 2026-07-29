@@ -165,6 +165,29 @@ export const OfflineDataProvider = {
   deleteProduct(id) {
     return this._softDelete('erp_products', id);
   },
+
+  // ==========================================
+  // STOCK ADJUSTMENTS
+  // ==========================================
+  getStockAdjustments() {
+    return this._getAll('erp_stock_adjustments').sort((a, b) => new Date(b.date) - new Date(a.date));
+  },
+  saveStockAdjustment(adj) {
+    const saved = this._save('erp_stock_adjustments', adj, 'ADJ');
+    
+    // Actually update the stock
+    const product = this.getProductById(adj.productId);
+    if (product) {
+      if (adj.type === 'Add') {
+        product.stock += Number(adj.qty);
+      } else if (adj.type === 'Remove') {
+        product.stock -= Number(adj.qty);
+      }
+      this.saveProduct(product);
+    }
+    return saved;
+  },
+
   updateStock(id, qtyChange) {
     const product = this.getProductById(id);
     if (product) {
@@ -176,6 +199,26 @@ export const OfflineDataProvider = {
         this.createNotification('warning', 'Low Stock Alert', `${product.name} is running low (${product.stock} left).`);
       }
     }
+  },
+
+  // ==========================================
+  // CATEGORIES
+  // ==========================================
+  getCategories() {
+    return this._getAll('erp_categories');
+  },
+  getCategoryById(id) {
+    return this._getById('erp_categories', id);
+  },
+  saveCategory(category) {
+    const existing = this.getCategories();
+    if (existing.some(c => c.name.toLowerCase() === category.name.toLowerCase() && c.id !== category.id)) {
+      throw new Error('Category with this name already exists.');
+    }
+    return this._save('erp_categories', category, 'CAT');
+  },
+  deleteCategory(id) {
+    return this._softDelete('erp_categories', id);
   },
 
   // ==========================================

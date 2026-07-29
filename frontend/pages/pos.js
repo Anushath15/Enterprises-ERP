@@ -234,7 +234,8 @@ export function onMount(rootElement) {
       filtered = filtered.filter(p => 
         p.name.toLowerCase().includes(q) || 
         (p.sku || '').toLowerCase().includes(q) ||
-        (p.barcode || '').includes(q)
+        (p.barcode || '').includes(q) ||
+        (p.brand || '').toLowerCase().includes(q)
       );
     }
     rootElement.querySelector('#product-count').textContent = `Showing ${filtered.length}`;

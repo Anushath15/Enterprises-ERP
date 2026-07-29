@@ -137,7 +137,10 @@ export async function render() {
                     <div><label class="block text-xs font-medium text-gray-500 mb-1">Barcode</label><input type="text" id="p-barcode" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
                   </div>
                   <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-medium text-gray-500 mb-1">Category</label><input type="text" id="p-category" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+                      <select id="p-category" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select>
+                    </div>
                     <div><label class="block text-xs font-medium text-gray-500 mb-1">Subcategory</label><input type="text" id="p-subcategory" class="w-full px-3 py-2 border rounded-lg text-sm"></div>
                   </div>
                   <div class="grid grid-cols-2 gap-3">
@@ -254,7 +257,7 @@ export function onMount() {
       const stock = stockFilter?.value || '';
 
       const filtered = allProducts.filter(p => {
-        if (q && !p.name.toLowerCase().includes(q) && !(p.sku || '').toLowerCase().includes(q) && !(p.barcode || '').includes(q) && !(p.category || '').toLowerCase().includes(q)) return false;
+        if (q && !p.name.toLowerCase().includes(q) && !(p.sku || '').toLowerCase().includes(q) && !(p.barcode || '').includes(q) && !(p.category || '').toLowerCase().includes(q) && !(p.brand || '').toLowerCase().includes(q)) return false;
         if (cat && p.category !== cat) return false;
         if (stock === 'in' && !(p.stock > p.minStock)) return false;
         if (stock === 'low' && !(p.stock > 0 && p.stock <= p.minStock)) return false;
@@ -331,6 +334,11 @@ export function onMount() {
       title.textContent = 'Edit Product';
       import('../services/dataProvider.js').then(({ DataProvider }) => {
         const p = DataProvider.getProductById(id);
+        const categories = DataProvider.getCategories() || [];
+        const catSelect = document.getElementById('p-category');
+        catSelect.innerHTML = '<option value="">Select Category</option>' + 
+          categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
         if (p) {
           document.getElementById('p-id').value = p.id;
           document.getElementById('p-name').value = p.name || '';
@@ -364,6 +372,12 @@ export function onMount() {
       });
     } else {
       title.textContent = 'New Product';
+      import('../services/dataProvider.js').then(({ DataProvider }) => {
+        const categories = DataProvider.getCategories() || [];
+        const catSelect = document.getElementById('p-category');
+        catSelect.innerHTML = '<option value="">Select Category</option>' + 
+          categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+      });
     }
     
     overlay.classList.remove('opacity-0', 'pointer-events-none');
@@ -506,21 +520,30 @@ export function onMount() {
             if (!existing) existing = products.find(p => p.name.toLowerCase() === name.toLowerCase());
             
             const newProduct = {
+              ...(existing || {}),
               id: existing ? existing.id : null,
               name: name,
               sku: sku || (existing ? existing.sku : ''),
-              barcode: row.Barcode || row.barcode || '',
-              category: row.Category || row.category || '',
-              brand: row.Brand || row.brand || '',
-              unit: row.Unit || row.unit || 'Nos',
-              buyingPrice: Number(row.BuyingPrice || row.buyingPrice || row.Cost || 0),
-              price: Number(row.SellingPrice || row.sellingPrice || row.Price || 0),
-              mrp: Number(row.MRP || row.mrp || 0),
-              gst: Number(row.GST || row.gst || 18),
-              stock: Number(row.Stock || row.stock || row.Qty || 0),
+              barcode: row.Barcode || row.barcode || (existing ? existing.barcode : ''),
+              category: row.Category || row.category || (existing ? existing.category : ''),
+              brand: row.Brand || row.brand || (existing ? existing.brand : ''),
+              unit: row.Unit || row.unit || (existing ? existing.unit : 'Nos'),
+              buyingPrice: Number(row.BuyingPrice || row.buyingPrice || row.Cost || (existing ? existing.buyingPrice : 0)),
+              purchasePrice: Number(row.BuyingPrice || row.buyingPrice || row.Cost || (existing ? existing.purchasePrice : 0)),
+              price: Number(row.SellingPrice || row.sellingPrice || row.Price || (existing ? existing.price : 0)),
+              mrp: Number(row.MRP || row.mrp || (existing ? existing.mrp : 0)),
+              gst: Number(row.GST || row.gst || (existing ? existing.gst : 18)),
+              stock: Number(row.Stock || row.stock || row.Qty || (existing ? existing.stock : 0)),
               isActive: true
             };
             
+            if (newProduct.category) {
+              const cats = DataProvider.getCategories() || [];
+              if (!cats.find(c => c.name.toLowerCase() === newProduct.category.toLowerCase())) {
+                DataProvider.saveCategory({ name: newProduct.category, isActive: true });
+              }
+            }
+
             DataProvider.saveProduct(newProduct);
             if (existing) updated++; else imported++;
           });

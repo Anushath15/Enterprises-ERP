@@ -17,6 +17,7 @@ export const MigrationRC3 = {
     // 1. Migrate Products (Units & Barcodes)
     let products = LocalStorageService.get('erp_products') || [];
     let productsModified = false;
+    const categorySet = new Set();
     products = products.map(p => {
       let modified = false;
       if (!p.unit) {
@@ -33,10 +34,28 @@ export const MigrationRC3 = {
         p.purchasePrice = Number(p.price || 0) * 0.8;
         modified = true;
       }
+      if (p.category) categorySet.add(p.category);
       if (modified) productsModified = true;
       return p;
     });
     if (productsModified) LocalStorageService.set('erp_products', products);
+
+    // 1.5 Backfill Categories
+    if (!LocalStorageService.get('erp_categories')) {
+      const categories = Array.from(categorySet).map((catName, idx) => ({
+        id: `CAT-${String(idx + 1).padStart(6, '0')}`,
+        name: catName,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1
+      }));
+      // Add defaults if none exist
+      if (categories.length === 0) {
+        categories.push({ id: 'CAT-000001', name: 'General', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), version: 1 });
+      }
+      LocalStorageService.set('erp_categories', categories);
+    }
 
     // 2. Migrate Sales Invoices (GST Split & Margin)
     let sales = LocalStorageService.get('erp_sales_invoices') || [];

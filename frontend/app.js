@@ -46,6 +46,8 @@ const App = {
         { path: '#/sales', label: 'Sales Register', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>' },
         { path: '#/purchases', label: 'Purchases', icon: '<i data-lucide="shopping-bag" class="w-5 h-5"></i>' },
         { path: '#/inventory', label: 'Products', icon: '<i data-lucide="package" class="w-5 h-5"></i>' },
+        { path: '#/categories', label: 'Categories', icon: '<i data-lucide="folder" class="w-5 h-5"></i>' },
+        { path: '#/stock-adjustments', label: 'Stock Adj.', icon: '<i data-lucide="sliders" class="w-5 h-5"></i>' },
         { path: '#/customers', label: 'Customers', icon: '<i data-lucide="users" class="w-5 h-5"></i>' },
         { path: '#/dealers', label: 'Dealers', icon: '<i data-lucide="building-2" class="w-5 h-5"></i>' },
         { path: '#/delivery', label: 'Delivery', icon: '<i data-lucide="truck" class="w-5 h-5"></i>' },
