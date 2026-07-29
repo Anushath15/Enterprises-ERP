@@ -45,7 +45,7 @@ export async function render() {
   // Sales & Collections
   const todaysInvoices = invoices.filter(inv => (inv.date || '').startsWith(today));
   const todaysSales = todaysInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || inv.total || 0), 0);
-  const todaysCollection = todaysInvoices.reduce((sum, inv) => sum + Number(inv.paid || inv.totalAmount || 0), 0); // Assuming paid if not specified
+  const todaysCollection = todaysInvoices.reduce((sum, inv) => sum + Number(inv.amountPaid || inv.totalAmount || 0), 0); // Assuming paid if not specified
   
   // Receivables & Payables
   const customerReceivables = customers.reduce((sum, c) => sum + Number(c.outstanding || 0), 0);

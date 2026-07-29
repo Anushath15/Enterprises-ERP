@@ -1,45 +1,59 @@
-# Manual Acceptance Checklist (v1.0.0-rc1)
+# Manual QA Verification Results
 
-## Data Integrity
-- [ ] Purchase increases stock
-- [ ] Sale decreases stock
-- [ ] Sales Return restores stock
-- [ ] Purchase Return reduces stock
-- [ ] Customer outstanding updates
-- [ ] Dealer outstanding updates
-- [ ] Expense updates reports
-- [ ] Dashboard KPIs update
+## Dashboard ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/
 
-## UI
-- [ ] Every page loads
-- [ ] No console errors
-- [ ] No broken icons
-- [ ] No broken routing
-- [ ] No duplicate rows
-- [ ] No reloads
-- [ ] No alert()
-- [ ] No stale DOM
+## POS ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/pos
 
-## Browser Compatibility
-- [ ] Chrome
-- [ ] Edge
-- [ ] Firefox
+## Sales ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/sales
 
-## Persistence
-- [ ] Refresh browser
-- [ ] Close browser and Reopen
-- [ ] Verify Products exist
-- [ ] Verify Customers exist
-- [ ] Verify Sales exist
-- [ ] Verify Purchases exist
-- [ ] Verify Settings exist
+## Purchases ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/purchases
 
-## Import / Export
-- [ ] Excel import
-- [ ] JSON backup
-- [ ] JSON restore
+## Products ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/inventory
 
-## LocalStorage Recovery
-- [ ] Fill LocalStorage nearly full (approx 5MB)
-- [ ] Confirm graceful warning
-- [ ] Confirm no corrupted data
+## Customers ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/customers
+
+## Dealers ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/dealers
+
+## Delivery ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/delivery
+
+## Sales Return ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/sales-returns
+
+## Purchase Return ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/purchase-returns
+
+## Expenses ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/expenses
+
+## House Projects ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/house-projects
+
+## Warranty ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/warranty
+
+## Reports ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/reports
+
+## Daily Closing ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/daily-closing
+
+## Credit Management ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/credit-management
+
+## Staff ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/staff
+
+## Users ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/users
+
+## Settings ❌ FAILED
+- **Exception:** net::ERR_CONNECTION_REFUSED at http://localhost:5500/#/settings
+

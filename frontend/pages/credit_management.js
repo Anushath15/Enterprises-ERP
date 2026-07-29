@@ -279,11 +279,11 @@ export function onMount(rootElement) {
         </div>`;
 
       // Load real payment history from invoices
-      const invoices = DataProvider.getSalesInvoices().filter(inv => inv.customerId === currentCustomerId && inv.paidAmount > 0);
+      const invoices = DataProvider.getSalesInvoices().filter(inv => inv.customerId === currentCustomerId && inv.amountPaid > 0);
       const payHistTbody = rootElement.querySelector('#credit-payment-history');
       if (payHistTbody) {
         payHistTbody.innerHTML = invoices.length > 0
-          ? invoices.slice(0, 10).map(inv => `<tr><td class="px-3 py-2 text-text">${inv.date || '-'}</td><td class="px-3 py-2 text-gray-600">${inv.paymentMethod || 'Cash'} (${inv.id})</td><td class="px-3 py-2 text-right font-medium text-success">+ ₹${Number(inv.paidAmount || 0).toLocaleString('en-IN')}</td></tr>`).join('')
+          ? invoices.slice(0, 10).map(inv => `<tr><td class="px-3 py-2 text-text">${inv.date || '-'}</td><td class="px-3 py-2 text-gray-600">${inv.paymentMethod || 'Cash'} (${inv.id})</td><td class="px-3 py-2 text-right font-medium text-success">+ ₹${Number(inv.amountPaid || 0).toLocaleString('en-IN')}</td></tr>`).join('')
           : '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-400">No payment records found</td></tr>';
       }
     }

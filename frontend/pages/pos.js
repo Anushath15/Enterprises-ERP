@@ -387,6 +387,15 @@ export function onMount(rootElement) {
   const updateCartQty = (productId, delta) => {
     const item = cart.find(i => i.id === productId);
     if (!item) return;
+    
+    if (delta > 0) {
+      const product = allProducts.find(p => p.id === productId);
+      if (product && item.qty >= product.stock) {
+        window.showToast(`Only ${product.stock} ${product.unit || 'units'} available`, 'warning');
+        return;
+      }
+    }
+    
     item.qty += delta;
     if (item.qty <= 0) cart = cart.filter(i => i.id !== productId);
     renderCart();

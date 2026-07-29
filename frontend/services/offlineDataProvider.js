@@ -145,7 +145,7 @@ export const OfflineDataProvider = {
     }
 
     const existing = this.getProducts();
-    if (!product.id && product.sku && existing.some(p => p.sku === product.sku)) {
+    if (product.sku && existing.some(p => p.sku === product.sku && p.id !== product.id)) {
       throw new Error('Product with this SKU already exists.');
     }
     
@@ -189,7 +189,7 @@ export const OfflineDataProvider = {
   },
   saveCustomer(customer) {
     const existing = this.getCustomers();
-    if (!customer.id && existing.some(c => c.name.toLowerCase() === customer.name.toLowerCase())) {
+    if (existing.some(c => c.name.toLowerCase() === customer.name.toLowerCase() && c.id !== customer.id)) {
       throw new Error('Customer with this name already exists.');
     }
     customer.creditLimit = Number(customer.creditLimit || 0);
@@ -293,52 +293,67 @@ export const OfflineDataProvider = {
       throw new Error('Cannot save an empty invoice.');
     }
     
-    // Save invoice
-    const savedInvoice = this._save('erp_sales_invoices', invoice, 'SAL');
-    
-    // Decrease inventory
-    invoice.items.forEach(item => {
-      this.updateStock(item.productId, -Number(item.qty));
-      const product = this.getProductById(item.productId);
-      if (product) {
-        product.lastSaleDate = new Date().toISOString().split('T')[0];
-        this.saveProduct(product);
+    // Backup state for atomicity (BUG-02 fix)
+    const backupInvoices = JSON.stringify(LocalStorageService.get('erp_sales_invoices'));
+    const backupProducts = JSON.stringify(LocalStorageService.get('erp_products'));
+    const backupCustomers = JSON.stringify(LocalStorageService.get('erp_customers'));
+    const backupProjects = JSON.stringify(LocalStorageService.get('erp_house_projects'));
+
+    try {
+      // Save invoice
+      const savedInvoice = this._save('erp_sales_invoices', invoice, 'SAL');
+      
+      // Decrease inventory
+      invoice.items.forEach(item => {
+        this.updateStock(item.productId, -Number(item.qty));
+        const product = this.getProductById(item.productId);
+        if (product) {
+          product.lastSaleDate = new Date().toISOString().split('T')[0];
+          this.saveProduct(product);
+        }
+      });
+      
+      // House Project integration
+      if (invoice.projectId) {
+        const projects = this._getAll('erp_house_projects');
+        const project = projects.find(p => p.id === invoice.projectId);
+        if (project) {
+          if (!project.invoices) project.invoices = [];
+          project.invoices.push(savedInvoice.id);
+          
+          const total = Number(invoice.totalAmount || invoice.total || 0);
+          project.outstanding = (Number(project.outstanding) || 0) + total;
+          this._save('erp_house_projects', project, 'PRJ');
+        }
       }
-    });
-    
-    // House Project integration
-    if (invoice.projectId) {
-      const projects = this._getAll('erp_house_projects');
-      const project = projects.find(p => p.id === invoice.projectId);
-      if (project) {
-        if (!project.invoices) project.invoices = [];
-        project.invoices.push(savedInvoice.id);
-        
+      
+      // Update customer outstanding if credit payment
+      if (invoice.paymentStatus !== 'Paid Full' && invoice.customerId) {
         const total = Number(invoice.totalAmount || invoice.total || 0);
-        project.outstanding = (Number(project.outstanding) || 0) + total;
-        this._save('erp_house_projects', project, 'PRJ');
+        const amountDue = total - Number(invoice.amountPaid || 0);
+        if (amountDue > 0) {
+          this.updateCustomerBalance(invoice.customerId, amountDue);
+        }
       }
-    }
-    
-    // Update customer outstanding if credit payment
-    if (invoice.paymentStatus !== 'Paid Full' && invoice.customerId) {
-      const total = Number(invoice.totalAmount || invoice.total || 0);
-      const amountDue = total - Number(invoice.amountPaid || 0);
-      if (amountDue > 0) {
-        this.updateCustomerBalance(invoice.customerId, amountDue);
+      
+      // Update Customer last purchase date
+      if (invoice.customerId) {
+        const customer = this.getCustomerById(invoice.customerId);
+        if (customer) {
+          customer.lastPurchaseDate = new Date().toISOString().split('T')[0];
+          this.saveCustomer(customer);
+        }
       }
+      
+      return savedInvoice;
+    } catch (e) {
+      // Restore state on failure
+      if (backupInvoices) LocalStorageService.set('erp_sales_invoices', JSON.parse(backupInvoices));
+      if (backupProducts) LocalStorageService.set('erp_products', JSON.parse(backupProducts));
+      if (backupCustomers) LocalStorageService.set('erp_customers', JSON.parse(backupCustomers));
+      if (backupProjects) LocalStorageService.set('erp_house_projects', JSON.parse(backupProjects));
+      throw e;
     }
-    
-    // Update Customer last purchase date
-    if (invoice.customerId) {
-      const customer = this.getCustomerById(invoice.customerId);
-      if (customer) {
-        customer.lastPurchaseDate = new Date().toISOString().split('T')[0];
-        this.saveCustomer(customer);
-      }
-    }
-    
-    return savedInvoice;
   },
   getExpenses() {
     return this._getAll('erp_expenses');
