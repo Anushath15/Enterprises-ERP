@@ -110,7 +110,7 @@ export function onMount(rootElement) {
         btn.innerHTML = originalText;
         btn.disabled = false;
         // Simple error alert for now; could use Toast component
-        alert(error.message || 'Login failed');
+        window.showToast(error.message || 'Login failed', 'danger');
       }
     });
   }

@@ -4,6 +4,7 @@
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const dealers = DataProvider.getDealers() || [];
@@ -398,6 +399,9 @@ export function onMount() {
 
   const saveBtn = document.getElementById('save-d-btn');
   if (saveBtn) {
+    const formEl = document.getElementById('dealer-form');
+    if (formEl) DraftManager.init('dealer', formEl);
+
     saveBtn.addEventListener('click', () => {
       const form = document.getElementById('dealer-form');
       if (!form.reportValidity()) return;
@@ -426,6 +430,7 @@ export function onMount() {
       
       try {
         DataProvider.saveDealer(dealer);
+        DraftManager.clearDraft('dealer');
         closeAll();
         // In-place table refresh
         const freshDealers = DataProvider.getDealers();

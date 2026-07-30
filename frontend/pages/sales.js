@@ -361,6 +361,8 @@ export function onMount(rootElement) {
           <div class="flex justify-between text-sm"><span class="text-gray-500">Subtotal</span><span class="font-medium">₹${Number(inv.subtotal || 0).toFixed(2)}</span></div>
           ${Number(inv.discount || 0) > 0 ? `<div class="flex justify-between text-sm"><span class="text-gray-500">Discount</span><span class="font-medium text-success">- ₹${Number(inv.discount || 0).toFixed(2)}</span></div>` : ''}
           ${Number(inv.taxTotal || 0) > 0 ? `<div class="flex justify-between text-sm"><span class="text-gray-500">GST</span><span class="font-medium">+ ₹${Number(inv.taxTotal || 0).toFixed(2)}</span></div>` : ''}
+          ${Number(inv.cgstTotal || 0) > 0 ? `<div class="flex justify-between text-xs text-gray-500 pl-4"><span class="text-gray-400">CGST</span><span>+ ₹${Number(inv.cgstTotal).toFixed(2)}</span></div>` : ''}
+          ${Number(inv.sgstTotal || 0) > 0 ? `<div class="flex justify-between text-xs text-gray-500 pl-4"><span class="text-gray-400">SGST</span><span>+ ₹${Number(inv.sgstTotal).toFixed(2)}</span></div>` : ''}
           <div class="border-t border-border pt-2 flex justify-between text-base font-bold"><span>Total</span><span class="text-primary">₹${Number(inv.totalAmount || 0).toFixed(2)}</span></div>
         </div>
       </div>`;
@@ -432,6 +434,9 @@ export function onMount(rootElement) {
       </table>
       <div class="receipt-divider"></div>
       ${Number(inv.discount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Discount</span><span>- ₹${Number(inv.discount).toFixed(2)}</span></div>` : ''}
+      ${Number(inv.taxTotal || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Total GST</span><span>+ ₹${Number(inv.taxTotal).toFixed(2)}</span></div>` : ''}
+      ${Number(inv.cgstTotal || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:#666;"><span> - CGST</span><span>+ ₹${Number(inv.cgstTotal).toFixed(2)}</span></div>` : ''}
+      ${Number(inv.sgstTotal || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:#666;"><span> - SGST</span><span>+ ₹${Number(inv.sgstTotal).toFixed(2)}</span></div>` : ''}
       <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>TOTAL</span><span>₹${Number(inv.totalAmount || 0).toFixed(2)}</span></div>
       <div class="receipt-divider"></div>
       <div style="text-align:center;font-size:10px;">Thank you!</div>`;

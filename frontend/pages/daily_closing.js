@@ -2,6 +2,7 @@
  * Senthil Enterprises ERP - Daily Closing (Accounting View)
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const currentDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -149,10 +150,24 @@ export async function render() {
               </h3>
             </div>
             
-            <div class="p-6 space-y-5">
+            <form id="daily-closing-form" class="p-6 space-y-5">
               <div class="bg-gray-50 p-4 rounded-lg border border-border text-center">
                 <p class="text-sm text-gray-500 font-medium mb-1">Expected Cash</p>
                 <p class="text-3xl font-bold text-gray-800" id="system-expected-cash" data-value="${expectedCash}">₹${expectedCash.toLocaleString('en-IN')}</p>
+              </div>
+
+              <div class="bg-white p-4 rounded-lg border border-border">
+                <p class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i> Business Session</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs text-gray-500">Open Time</label>
+                    <input type="time" id="session-open" class="w-full px-3 py-2 border rounded-lg text-sm focus:border-primary focus:outline-none">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-500">Close Time</label>
+                    <input type="time" id="session-close" class="w-full px-3 py-2 border rounded-lg text-sm focus:border-primary focus:outline-none">
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -172,7 +187,7 @@ export async function render() {
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Closing Remarks</label>
                 <textarea id="closing-remarks" rows="2" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Note any short/excess reasons..."></textarea>
               </div>
-            </div>
+            </form>
             
             <div class="px-6 py-4 bg-gray-50 border-t border-border">
               <button id="close-day-btn" class="w-full py-3 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
@@ -206,6 +221,17 @@ export function onMount(rootElement) {
   const diffContainer = document.getElementById('difference-container');
   const closeBtn = document.getElementById('close-day-btn');
   const printBtn = document.getElementById('dc-print-btn');
+
+  const formEl = document.getElementById('daily-closing-form');
+  if (formEl) DraftManager.init('dailyClosing', formEl);
+
+  const sessionOpenEl = document.getElementById('session-open');
+  const sessionCloseEl = document.getElementById('session-close');
+  if (sessionOpenEl && sessionCloseEl) {
+     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+     sessionOpenEl.value = settings.sessionOpen || '09:00';
+     sessionCloseEl.value = settings.sessionClose || '21:00';
+  }
 
   if (printBtn) {
     printBtn.addEventListener('click', () => window.print());
@@ -247,8 +273,18 @@ export function onMount(rootElement) {
        const nextOpeningCash = actualCashInput.value;
        
        if(window.confirm(`Are you sure you want to close the day? The Opening Cash for tomorrow will be set to ₹${nextOpeningCash}.`)) {
-          localStorage.setItem('erp_opening_cash', nextOpeningCash);
-          window.showToast("Day successfully closed! Generating summary...", 'success');
+           localStorage.setItem('erp_opening_cash', nextOpeningCash);
+           localStorage.setItem('erp_last_closed_date', new Date().toISOString().split('T')[0]);
+           
+           if (sessionOpenEl && sessionCloseEl) {
+             const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+             settings.sessionOpen = sessionOpenEl.value;
+             settings.sessionClose = sessionCloseEl.value;
+             localStorage.setItem('erp_settings', JSON.stringify(settings));
+           }
+
+           DraftManager.clearDraft('dailyClosing');
+           window.showToast("Day Closed Successfully. System is locked until tomorrow.", "success");
           setTimeout(() => {
             window.location.hash = '#/';
           }, 1500);

@@ -4,6 +4,7 @@
 import { PrimaryButton, SecondaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
   const renderRow = window._productsRenderRow = (p) => {
     const isInactive = !p.isActive;
@@ -27,10 +28,15 @@ import { DataProvider } from '../services/dataProvider.js';
       <td class="px-4 py-3 text-right text-gray-500">${p.gst || 0}%</td>
       <td class="px-4 py-3 text-center"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${statusBg}">${statusLabel}</span></td>
       <td class="px-4 py-3 text-center flex items-center justify-center gap-1">
-        <button class="print-barcode-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary" data-id="${p.id}" onclick="event.stopPropagation()">
+        ${p.stock <= p.minStock ? `
+        <button class="purchase-stock-btn action-icon p-1.5 rounded-lg text-orange-500 hover:text-orange-700 hover:bg-orange-50 transition-colors" data-id="${p.id}" title="Purchase Stock" onclick="event.stopPropagation()">
+          <i data-lucide="shopping-cart" class="w-4 h-4 pointer-events-none"></i>
+        </button>
+        ` : ''}
+        <button class="print-barcode-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-primary transition-colors" data-id="${p.id}" title="Print Barcode" onclick="event.stopPropagation()">
           <i data-lucide="printer" class="w-4 h-4 pointer-events-none"></i>
         </button>
-        <button class="delete-product-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-danger" data-id="${p.id}" onclick="event.stopPropagation()">
+        <button class="delete-product-btn action-icon p-1.5 rounded-lg text-gray-400 hover:text-danger transition-colors" data-id="${p.id}" title="Delete Product" onclick="event.stopPropagation()">
           <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -341,8 +347,48 @@ export function onMount() {
     }
   };
 
+  // Attach initial listeners
+  document.querySelectorAll('.delete-product-btn').forEach(btn => {
+    btn.addEventListener('click', handleDelete);
+  });
+
+  const handlePrintBarcode = (e) => {
+    const id = e.currentTarget.getAttribute('data-id');
+    const p = allProducts.find(prod => prod.id === id);
+    if (!p) return;
+    const barcodeStr = p.barcode || p.sku || p.id;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head><title>Print Barcode - ${p.name}</title></head>
+        <body style="margin:0; padding:20px; font-family:sans-serif; text-align:center;">
+          <h3 style="margin:0 0 10px 0;">${p.name}</h3>
+          <p style="margin:0 0 5px 0; font-size:12px; color:#666;">${barcodeStr}</p>
+          <img src="https://barcodeapi.org/api/128/${barcodeStr}" style="max-width:100%; height:80px;" alt="barcode">
+          <p style="margin:10px 0 0 0; font-weight:bold;">₹${(p.price || 0).toLocaleString('en-IN')}</p>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
   document.querySelectorAll('.print-barcode-btn').forEach(btn => {
     btn.addEventListener('click', handlePrintBarcode);
+  });
+
+  // Event delegation for dynamically added action buttons
+  document.getElementById('products-tbody')?.addEventListener('click', (e) => {
+    const purchaseBtn = e.target.closest('.purchase-stock-btn');
+    if (purchaseBtn) {
+      const id = purchaseBtn.getAttribute('data-id');
+      localStorage.setItem('erp_pending_purchase_product', id);
+      window.location.hash = '#/purchases';
+    }
   });
 
   const closeAll = () => {
@@ -426,6 +472,9 @@ export function onMount() {
 
   const saveBtn = document.getElementById('save-p-btn');
   if (saveBtn) {
+    const formEl = document.getElementById('product-form');
+    if (formEl) DraftManager.init('product', formEl);
+
     saveBtn.addEventListener('click', () => {
       const form = document.getElementById('product-form');
       if (!form.reportValidity()) return;
@@ -462,6 +511,7 @@ export function onMount() {
       import('../services/dataProvider.js').then(({ DataProvider }) => {
         try {
           DataProvider.saveProduct(product);
+          DraftManager.clearDraft('product');
           closeAll();
           // In-place reload of tbody
           const fresh = DataProvider.getProducts();
@@ -517,7 +567,7 @@ export function onMount() {
       const reader = new FileReader();
       reader.onload = function(e) {
         if (!window.XLSX) {
-          alert('SheetJS (XLSX) library not loaded. Ensure internet connection.');
+          window.showToast('SheetJS (XLSX) library not loaded. Ensure internet connection.', 'danger');
           return;
         }
         const data = new Uint8Array(e.target.result);

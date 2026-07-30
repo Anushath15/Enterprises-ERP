@@ -5,6 +5,7 @@
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const customers = DataProvider.getCustomers() || [];
@@ -530,6 +531,10 @@ export function onMount() {
 
   document.getElementById('btn-add-new-customer')?.addEventListener('click', () => openForm());
   window.addEventListener('openCustomerDrawer', (e) => openForm(e.detail));
+  
+  // Initialize Draft Recovery
+  const formEl = document.getElementById('customer-form');
+  if (formEl) DraftManager.init('customer', formEl);
   document.querySelectorAll('.close-customer-drawer').forEach(b => b.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
@@ -556,6 +561,7 @@ export function onMount() {
 
     try {
       DataProvider.saveCustomer(customer);
+      DraftManager.clearDraft('customer');
       closeAll();
       // In-place refresh
       const fresh = DataProvider.getCustomers();

@@ -2,6 +2,7 @@
  * Senthil Enterprises ERP - Staff Management
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const staff = DataProvider.getStaff() || [];
@@ -197,6 +198,10 @@ export function onMount(rootElement) {
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
 
+  // Initialize Draft Recovery
+  const formEl = rootElement.querySelector('#staff-form');
+  if (formEl) DraftManager.init('staff', formEl);
+
   const saveBtn = rootElement.querySelector('#save-staff-btn');
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
@@ -214,6 +219,7 @@ export function onMount(rootElement) {
 
       try {
         const saved = DataProvider.saveStaff(emp);
+        DraftManager.clearDraft('staff');
         const existingIdx = allStaff.findIndex(s => s.id === saved.id);
         if (existingIdx > -1) allStaff[existingIdx] = saved;
         else allStaff.unshift(saved);

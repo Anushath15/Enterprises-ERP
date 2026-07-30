@@ -5,6 +5,7 @@
  */
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 const CLAIM_STATUSES = ['No Claim', 'Active Claim', 'Sent to Company', 'Resolved', 'Rejected'];
 const REPLACEMENT_STATUSES = ['-', 'Pending', 'Repaired', 'Replaced (New Item)'];
@@ -259,6 +260,10 @@ export function onMount(rootElement) {
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
 
+  // Initialize Draft Recovery
+  const formEl = rootElement.querySelector('#warranty-form');
+  if (formEl) DraftManager.init('warranty', formEl);
+
   // Save (W-001, W-002) — real DataProvider call, no alert(), no reload
   rootElement.querySelector('#save-warranty-btn')?.addEventListener('click', () => {
     const form = rootElement.querySelector('#warranty-form');
@@ -277,6 +282,7 @@ export function onMount(rootElement) {
 
     try {
       const saved = DataProvider.saveWarranty(warranty);
+      DraftManager.clearDraft('warranty');
       const existingIdx = allWarranties.findIndex(w => w.id === saved.id);
       if (existingIdx > -1) allWarranties[existingIdx] = saved;
       else allWarranties.unshift(saved);

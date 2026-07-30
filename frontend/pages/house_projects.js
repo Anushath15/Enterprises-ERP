@@ -4,6 +4,7 @@
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const projects = DataProvider.getProjects() || [];
@@ -421,6 +422,10 @@ export function onMount() {
   closeBtns.forEach(b => b.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
 
+  // Initialize Draft Recovery
+  const formEl = document.getElementById('project-form');
+  if (formEl) DraftManager.init('project', formEl);
+
   const saveBtn = document.getElementById('save-prj-btn');
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
@@ -460,6 +465,7 @@ export function onMount() {
         }
 
         const saved = DataProvider.saveProject(project);
+        DraftManager.clearDraft('project');
         closeAll();
         window.showToast('Project saved!', 'success');
 

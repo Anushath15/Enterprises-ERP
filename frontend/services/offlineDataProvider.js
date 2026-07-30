@@ -127,6 +127,42 @@ export const OfflineDataProvider = {
   },
 
   // ==========================================
+  // EXPENSE CATEGORIES
+  // ==========================================
+  getExpenseCategories() {
+    const cats = this._getAll('erp_expense_categories');
+    if (cats.length === 0) {
+      // Default fallback if none exists
+      return [
+        { id: 'CAT-1', name: 'Electricity', isActive: true },
+        { id: 'CAT-2', name: 'Water', isActive: true },
+        { id: 'CAT-3', name: 'Internet', isActive: true },
+        { id: 'CAT-4', name: 'Staff Salary', isActive: true },
+        { id: 'CAT-5', name: 'Labour', isActive: true },
+        { id: 'CAT-6', name: 'Transport', isActive: true },
+        { id: 'CAT-7', name: 'Loading/Unloading', isActive: true },
+        { id: 'CAT-8', name: 'Tea & Snacks', isActive: true },
+        { id: 'CAT-9', name: 'Stationery', isActive: true },
+        { id: 'CAT-10', name: 'Rent', isActive: true },
+        { id: 'CAT-11', name: 'Maintenance', isActive: true },
+        { id: 'CAT-12', name: 'Marketing', isActive: true }
+      ];
+    }
+    return cats;
+  },
+  saveExpenseCategory(category) {
+    const existing = this.getExpenseCategories();
+    // Prevent duplicates
+    if (existing.some(c => c.name.toLowerCase() === category.name.toLowerCase() && c.id !== category.id)) {
+      throw new Error('Expense category with this name already exists.');
+    }
+    return this._save('erp_expense_categories', category, 'ECAT');
+  },
+  deleteExpenseCategory(id) {
+    return this._softDelete('erp_expense_categories', id);
+  },
+
+  // ==========================================
   // PRODUCTS
   // ==========================================
   getProducts() {
@@ -160,7 +196,36 @@ export const OfflineDataProvider = {
       product.statusBadge = 'success';
     }
 
-    return this._save('erp_products', product, 'PRD');
+    const saved = this._save('erp_products', product, 'PRD');
+
+    // Price History Logging
+    if (product.id) {
+      const oldProduct = existing.find(p => p.id === product.id);
+      if (oldProduct) {
+        const priceChanged = oldProduct.price !== product.price;
+        const buyPriceChanged = oldProduct.buyingPrice !== product.buyingPrice;
+        const avgCostChanged = oldProduct.avgCost !== product.avgCost;
+
+        if (priceChanged || buyPriceChanged || avgCostChanged) {
+          const history = LocalStorageService.get('erp_product_price_history') || [];
+          history.push({
+            id: `PPH-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+            productId: product.id,
+            date: new Date().toISOString(),
+            oldPrice: oldProduct.price,
+            newPrice: product.price,
+            oldBuyingPrice: oldProduct.buyingPrice,
+            newBuyingPrice: product.buyingPrice,
+            oldAvgCost: oldProduct.avgCost,
+            newAvgCost: product.avgCost,
+            reason: 'Manual Update / Purchase'
+          });
+          LocalStorageService.set('erp_product_price_history', history);
+        }
+      }
+    }
+
+    return saved;
   },
   deleteProduct(id) {
     return this._softDelete('erp_products', id);

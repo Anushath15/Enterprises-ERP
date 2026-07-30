@@ -118,5 +118,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 300);
     }, 3000);
   };
+
+  // Global Keyboard Shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F2') { e.preventDefault(); window.location.hash = '#/pos'; }
+    if (e.key === 'F4') { e.preventDefault(); window.location.hash = '#/purchases'; }
+    if (e.key === 'F6') { e.preventDefault(); window.location.hash = '#/settings'; }
+    
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      // Find a button that looks like a save button and click it
+      const saveBtn = document.querySelector('button[id^="save-"], button[id*="-save-"], button[id$="-save"], button[id="btn-save-po"]');
+      if (saveBtn) saveBtn.click();
+      else window.showToast('No active save action found', 'info');
+    }
+    
+    if (e.ctrlKey && e.key === 'p') {
+      // Browsers handle Ctrl+P natively, but we can override it if a specific print button exists
+      const printBtn = document.querySelector('button[id^="print-"], button[id*="-print"], .print-btn');
+      if (printBtn) {
+        e.preventDefault();
+        printBtn.click();
+      }
+    }
+  });
 });
 

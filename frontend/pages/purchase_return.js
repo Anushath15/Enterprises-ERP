@@ -6,6 +6,7 @@
  */
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 const RETURN_REASONS = ['Defective', 'Damaged in Transit', 'Wrong Item Supplied', 'Excess Quantity', 'Quality Issue', 'Other'];
 
@@ -321,6 +322,10 @@ export function onMount(rootElement) {
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
 
+  // Initialize Draft Recovery
+  const formEl = rootElement.querySelector('#pret-form');
+  if (formEl) DraftManager.init('purchaseReturn', formEl);
+
   // Save (PR-001, PR-002, PR-003)
   rootElement.querySelector('#save-pret-btn')?.addEventListener('click', () => {
     const form = rootElement.querySelector('#pret-form');
@@ -347,6 +352,7 @@ export function onMount(rootElement) {
 
     try {
       const saved = DataProvider.savePurchaseReturn(ret);
+      DraftManager.clearDraft('purchaseReturn');
       const existingIdx = allReturns.findIndex(r => r.id === saved.id);
       if (existingIdx > -1) allReturns[existingIdx] = saved;
       else allReturns.unshift(saved);

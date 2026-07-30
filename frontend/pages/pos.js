@@ -3,6 +3,7 @@
  * Fixes: BUG-004 (no reload), BUG-005 (print receipt), BUG-010 (no alerts)
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const productsData = DataProvider.getProducts().filter(p => p.isActive);
@@ -199,6 +200,28 @@ export function onMount(rootElement) {
   allProducts = DataProvider.getProducts().filter(p => p.isActive);
   allCustomers = DataProvider.getCustomers().filter(c => c.isActive !== false);
 
+  const savePosDraft = () => {
+    DraftManager.saveDraft('pos', {
+      cart,
+      selectedCustomer,
+      paymentMode,
+      activeCategory,
+      searchQuery
+    });
+  };
+
+  const draft = DraftManager.getDraft('pos');
+  if (draft) {
+    cart = draft.cart || [];
+    selectedCustomer = draft.selectedCustomer || null;
+    paymentMode = draft.paymentMode || 'Cash';
+    activeCategory = draft.activeCategory || 'All Products';
+    searchQuery = draft.searchQuery || '';
+    if ((cart.length > 0 || selectedCustomer) && window.showToast) {
+       setTimeout(() => window.showToast('POS draft restored automatically', 'info'), 500);
+    }
+  }
+
   // =====================
   // RENDER FUNCTIONS
   // =====================
@@ -289,6 +312,7 @@ export function onMount(rootElement) {
         <i data-lucide="alert-triangle" class="w-3 h-3"></i> Credit Pending
       </div>` : ''}`;
     if (window.lucide) window.lucide.createIcons({ nodes: [container] });
+    savePosDraft();
   };
 
   const getCartTotals = () => {
@@ -334,6 +358,7 @@ export function onMount(rootElement) {
     if (taxEl) taxEl.textContent = `+ ₹${taxTotal.toFixed(2)}`;
     
     rootElement.querySelector('#summary-total').textContent = `₹${grandTotal.toFixed(2)}`;
+    savePosDraft();
   };
 
   const renderCart = () => {
@@ -607,9 +632,9 @@ export function onMount(rootElement) {
     try {
       const saved = DataProvider.saveSalesInvoice(invoice);
       lastSavedInvoice = saved;
+      DraftManager.clearDraft('pos');
       
-      // Reset state in-place — NO page reload
-      cart = [];
+      cart = [];    // Reset state in-place — NO page reload
       paymentMode = 'Cash';
       
       // Reset payment mode UI
@@ -648,6 +673,7 @@ export function onMount(rootElement) {
   // Search & Category
   rootElement.querySelector('#pos-search-input').addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
+    savePosDraft();
     renderProducts();
   });
 
@@ -675,6 +701,7 @@ export function onMount(rootElement) {
       e.currentTarget.classList.remove('bg-white', 'text-gray-600', 'border-border');
       e.currentTarget.classList.add('active', 'text-white', 'border-primary', 'bg-primary');
       activeCategory = e.currentTarget.getAttribute('data-category');
+      savePosDraft();
       renderProducts();
     });
   });
@@ -701,6 +728,7 @@ export function onMount(rootElement) {
     }
     if (e.target.closest('.cart-del-btn')) {
       cart = cart.filter(i => i.id !== id);
+      savePosDraft();
       renderCart();
       renderProducts();
     }
@@ -709,27 +737,39 @@ export function onMount(rootElement) {
   rootElement.querySelector('#clear-cart-btn').addEventListener('click', () => {
     if (cart.length === 0) return;
     cart = [];
+    savePosDraft();
     renderCart();
     renderProducts();
   });
 
-  // Discount (removed global discount, handled per-item via delegation)
-
   // Payment mode
   rootElement.querySelectorAll('.payment-btn').forEach(btn => {
+    if (btn.getAttribute('data-mode') === paymentMode) {
+      btn.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
+      btn.classList.remove('border-border', 'bg-white', 'text-gray-500');
+    } else {
+      btn.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
+      btn.classList.add('border-border', 'bg-white', 'text-gray-500');
+    }
+  });
+
+  rootElement.querySelectorAll('.payment-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      rootElement.querySelectorAll('.payment-btn').forEach(b => {
-        b.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
-        b.classList.add('border', 'border-border', 'bg-white', 'text-gray-500');
-        b.querySelector('i')?.classList.remove('text-primary');
-        b.querySelector('span')?.classList.remove('text-primary', 'font-bold');
+      const b = e.target.closest('.payment-btn');
+      rootElement.querySelectorAll('.payment-btn').forEach(x => {
+        x.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
+        x.classList.add('border-border', 'bg-white', 'text-gray-500');
+        x.querySelector('span').classList.remove('text-primary');
+        x.querySelector('span').classList.add('text-gray-500');
+        x.querySelector('i').classList.remove('text-primary');
       });
-      const t = e.currentTarget;
-      t.classList.remove('border', 'border-border', 'bg-white', 'text-gray-500');
-      t.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
-      t.querySelector('i')?.classList.add('text-primary');
-      t.querySelector('span')?.classList.add('text-primary', 'font-bold');
-      paymentMode = t.getAttribute('data-mode');
+      b.classList.remove('border-border', 'bg-white', 'text-gray-500');
+      b.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
+      b.querySelector('span').classList.remove('text-gray-500');
+      b.querySelector('span').classList.add('text-primary');
+      b.querySelector('i').classList.add('text-primary');
+      paymentMode = b.getAttribute('data-mode');
+      savePosDraft();
     });
   });
 

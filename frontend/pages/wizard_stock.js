@@ -1,10 +1,8 @@
 /**
  * Senthil Enterprises ERP - Opening Stock Wizard
  * Allows rapid entry of opening quantities and purchase costs.
- */
 import { DataProvider } from '../services/dataProvider.js';
-
-export async function render() {
+import { DraftManager } from '../services/draftManager.js';
   return `
     <div class="p-6 max-w-7xl mx-auto">
       <div class="bg-white rounded-xl border border-border shadow-sm flex flex-col h-[calc(100vh-120px)]">
@@ -28,21 +26,23 @@ export async function render() {
         </div>
 
         <!-- Table -->
-        <div class="flex-1 overflow-auto">
-          <table class="w-full text-left border-collapse">
-            <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-border">SKU</th>
-                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-border">Product Name</th>
-                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-border w-32">Opening Qty</th>
-                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-border w-32">Purchase Cost (₹)</th>
-                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-border w-48">Supplier Name</th>
-              </tr>
-            </thead>
-            <tbody id="wizard-tbody" class="divide-y divide-border">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
+        <div class="flex-1 overflow-y-auto">
+          <form id="wizard-stock-form" class="h-full">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-white sticky top-0 shadow-sm z-10 border-b border-border">
+                <tr>
+                  <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-32">SKU</th>
+                  <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Name</th>
+                  <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-32">Opening Qty</th>
+                  <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-32">Cost Price</th>
+                  <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-48">Supplier (Optional)</th>
+                </tr>
+              </thead>
+              <tbody id="wizard-tbody" class="divide-y divide-border">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </form>
         </div>
         
         <!-- Footer / Pagination (Mock) -->
@@ -82,13 +82,13 @@ export function onMount(rootElement) {
         <td class="px-4 py-2 text-xs text-gray-500 font-mono">${p.sku}</td>
         <td class="px-4 py-2 text-sm font-medium text-text">${p.name}</td>
         <td class="px-4 py-2">
-          <input type="number" min="0" class="input-qty w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Qty">
+          <input type="number" id="qty-${p.id}" min="0" class="input-qty w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Qty">
         </td>
         <td class="px-4 py-2">
-          <input type="number" min="0" step="0.01" class="input-cost w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Cost">
+          <input type="number" id="cost-${p.id}" min="0" step="0.01" class="input-cost w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Cost">
         </td>
         <td class="px-4 py-2">
-          <input type="text" class="input-supplier w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Optional" value="${p.supplier || ''}">
+          <input type="text" id="sup-${p.id}" class="input-supplier w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Optional" value="${p.supplier || ''}">
         </td>
       </tr>
     `).join('');
@@ -100,6 +100,9 @@ export function onMount(rootElement) {
     renderTable(e.target.value);
   });
   
+  const formEl = rootElement.querySelector('#wizard-stock-form');
+  if (formEl) DraftManager.init('wizardStock', formEl);
+
   rootElement.querySelector('#btn-save-wizard').addEventListener('click', () => {
     const rows = tbody.querySelectorAll('tr[data-id]');
     const entries = [];
@@ -155,6 +158,7 @@ export function onMount(rootElement) {
       });
       
       window.showToast(`Saved ${entries.length} items to Opening Stock!`, 'success');
+      DraftManager.clearDraft('wizardStock');
       
       // Refresh list
       allProducts = DataProvider.getProducts().filter(p => p.isActive && p.stock === 0);

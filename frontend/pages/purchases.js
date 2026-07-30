@@ -4,6 +4,7 @@
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const purchases = DataProvider.getPurchaseInvoices();
@@ -186,14 +187,16 @@ export async function render() {
             <table class="w-full text-sm">
               <thead class="bg-gray-50/60">
                 <tr>
-                  <th class="px-2 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Product</th>
-                  <th class="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase w-16">Qty</th>
-                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-20">Purchase</th>
-                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">GST%</th>
-                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-20">Selling</th>
-                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">Margin%</th>
-                  <th class="px-2 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-24">Total</th>
-                  <th class="px-2 py-2 w-8"></th>
+                  <th class="px-1 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Product</th>
+                  <th class="px-1 py-2 text-center text-[10px] font-medium text-gray-500 uppercase w-12">Qty</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">Inc GST</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-12">GST%</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">Ex GST</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-12">Disc%</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-16">Selling</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-12">Margin%</th>
+                  <th class="px-1 py-2 text-right text-[10px] font-medium text-gray-500 uppercase w-20">Total</th>
+                  <th class="px-1 py-2 w-6"></th>
                 </tr>
               </thead>
               <tbody id="po-cart-items" class="divide-y divide-border">
@@ -201,11 +204,11 @@ export async function render() {
               </tbody>
               <tfoot class="bg-gray-50/60 border-t border-border">
                 <tr>
-                  <td colspan="6" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Subtotal</td>
+                  <td colspan="8" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Subtotal</td>
                   <td colspan="2" class="px-3 py-2.5 text-right text-xs font-semibold text-text" id="po-subtotal">₹0.00</td>
                 </tr>
                 <tr>
-                  <td colspan="6" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Total GST</td>
+                  <td colspan="8" class="px-3 py-2.5 text-right text-xs font-medium text-gray-500">Total GST</td>
                   <td colspan="2" class="px-3 py-2.5 text-right text-xs font-semibold text-text" id="po-tax">₹0.00</td>
                 </tr>
               </tfoot>
@@ -247,6 +250,19 @@ export function onMount(rootElement) {
   // Set default date
   const today = new Date().toISOString().split('T')[0];
   rootElement.querySelector('#po-date').value = today;
+
+  // Initialize Draft Recovery
+  if (formDrawer) {
+    DraftManager.init('purchase', formDrawer, (draft) => {
+       for (const [id, value] of Object.entries(draft)) {
+         const el = formDrawer.querySelector(`#${id}`);
+         if (el) {
+           if (el.type === 'checkbox') el.checked = value;
+           else el.value = value;
+         }
+       }
+    });
+  }
 
   // --- SEARCH & FILTER WIRING (PU-003) ---
   const allPurchases = DataProvider.getPurchaseInvoices();
@@ -330,12 +346,17 @@ export function onMount(rootElement) {
           if (existing) {
             existing.qty += 1;
           } else {
+            const exGst = product.purchasePrice || product.avgCost || (product.price * 0.8) || 0;
+            const gst = product.gst || 18;
+            const incGst = exGst * (1 + (gst / 100));
             cart.push({
               productId: product.id,
               name: product.name,
               qty: 1,
-              purchasePrice: product.purchasePrice || (product.price * 0.8), 
-              gst: 0,
+              incGst: incGst,
+              exGst: exGst,
+              gst: gst,
+              discount: 0,
               sellingPrice: product.price || 0
             });
           }
@@ -355,32 +376,46 @@ export function onMount(rootElement) {
       }
 
       tbody.innerHTML = cart.map((item, index) => {
-        const costWithTax = item.purchasePrice * (1 + (item.gst / 100));
+        item.incGst = item.incGst || 0;
+        item.exGst = item.exGst || 0;
+        item.gst = item.gst || 0;
+        item.discount = item.discount || 0;
+        item.sellingPrice = item.sellingPrice || 0;
+        
+        const costAfterDiscountExGst = item.exGst * (1 - (item.discount / 100));
+        const costAfterDiscountIncGst = item.incGst * (1 - (item.discount / 100));
+
         let margin = 0;
-        if (costWithTax > 0) {
-           margin = ((item.sellingPrice - costWithTax) / costWithTax) * 100;
+        if (costAfterDiscountIncGst > 0) {
+           margin = ((item.sellingPrice - costAfterDiscountIncGst) / costAfterDiscountIncGst) * 100;
         }
 
         return `
         <tr data-index="${index}">
-          <td class="px-2 py-2.5 text-xs text-text truncate max-w-[150px]">${item.name}</td>
-          <td class="px-2 py-2.5 text-center">
+          <td class="px-1 py-2.5 text-xs text-text truncate max-w-[150px]">${item.name}</td>
+          <td class="px-1 py-2.5 text-center">
             <input type="number" value="${item.qty}" min="1" class="po-qty-input w-12 px-1 py-1 text-xs border border-border rounded bg-white text-center focus:outline-none focus:border-primary">
           </td>
-          <td class="px-2 py-2.5 text-right">
-            <input type="number" value="${item.purchasePrice.toFixed(2)}" min="0" step="0.01" class="po-purchase-input w-16 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+          <td class="px-1 py-2.5 text-right">
+            <input type="number" value="${item.incGst.toFixed(2)}" min="0" step="0.01" class="po-inc-gst-input w-16 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
           </td>
-          <td class="px-2 py-2.5 text-right">
+          <td class="px-1 py-2.5 text-right">
             <input type="number" value="${item.gst}" min="0" step="0.1" class="po-gst-input w-12 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
           </td>
-          <td class="px-2 py-2.5 text-right">
+          <td class="px-1 py-2.5 text-right">
+            <input type="number" value="${item.exGst.toFixed(2)}" min="0" step="0.01" class="po-ex-gst-input w-16 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+          </td>
+          <td class="px-1 py-2.5 text-right">
+            <input type="number" value="${item.discount}" min="0" step="0.1" class="po-disc-input w-12 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
+          </td>
+          <td class="px-1 py-2.5 text-right">
              <input type="number" value="${item.sellingPrice.toFixed(2)}" min="0" step="0.01" class="po-selling-input w-16 px-1 py-1 text-xs border border-border rounded bg-white text-right focus:outline-none focus:border-primary">
           </td>
-          <td class="px-2 py-2.5 text-right text-xs ${margin < 0 ? 'text-danger' : 'text-success'} font-medium">
+          <td class="px-1 py-2.5 text-right text-xs ${margin < 0 ? 'text-danger' : 'text-success'} font-medium po-margin-td">
              ${margin.toFixed(1)}%
           </td>
-          <td class="px-2 py-2.5 text-right text-xs font-semibold text-text">₹${(item.qty * item.purchasePrice).toFixed(2)}</td>
-          <td class="px-2 py-2.5 text-right">
+          <td class="px-1 py-2.5 text-right text-xs font-semibold text-text po-total-td">₹${(item.qty * costAfterDiscountExGst).toFixed(2)}</td>
+          <td class="px-1 py-2.5 text-right">
             <button class="po-remove-btn text-gray-400 hover:text-danger">
               <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
             </button>
@@ -399,8 +434,9 @@ export function onMount(rootElement) {
       let totalGst = 0;
 
       cart.forEach(item => {
-         const rowSub = item.qty * item.purchasePrice;
-         const rowGst = rowSub * (item.gst / 100);
+         const costAfterDiscountExGst = (item.exGst || 0) * (1 - ((item.discount || 0) / 100));
+         const rowSub = (item.qty || 1) * costAfterDiscountExGst;
+         const rowGst = rowSub * ((item.gst || 0) / 100);
          subtotal += rowSub;
          totalGst += rowGst;
       });
@@ -420,31 +456,55 @@ export function onMount(rootElement) {
       const item = cart[idx];
       if (!item) return;
       
+      let recomputeIncGst = false;
+      let recomputeExGst = false;
+
       if (e.target.classList.contains('po-qty-input')) {
         item.qty = Number(e.target.value) || 1;
-      } else if (e.target.classList.contains('po-purchase-input')) {
-        item.purchasePrice = Number(e.target.value) || 0;
+      } else if (e.target.classList.contains('po-inc-gst-input')) {
+        item.incGst = Number(e.target.value) || 0;
+        recomputeExGst = true;
+      } else if (e.target.classList.contains('po-ex-gst-input')) {
+        item.exGst = Number(e.target.value) || 0;
+        recomputeIncGst = true;
       } else if (e.target.classList.contains('po-gst-input')) {
         item.gst = Number(e.target.value) || 0;
+        recomputeIncGst = true; 
+      } else if (e.target.classList.contains('po-disc-input')) {
+        item.discount = Number(e.target.value) || 0;
       } else if (e.target.classList.contains('po-selling-input')) {
         item.sellingPrice = Number(e.target.value) || 0;
       }
 
-      // Update row UI (Total & Margin)
-      const costWithTax = item.purchasePrice * (1 + (item.gst / 100));
-      let margin = 0;
-      if (costWithTax > 0) {
-         margin = ((item.sellingPrice - costWithTax) / costWithTax) * 100;
+      if (recomputeExGst) {
+         item.exGst = item.incGst / (1 + (item.gst / 100));
+         const input = tr.querySelector('.po-ex-gst-input');
+         if (input && input !== e.target) input.value = item.exGst.toFixed(2);
       }
-      const marginTd = tr.querySelector('td:nth-child(6)');
-      if (marginTd) {
-         marginTd.textContent = `${margin.toFixed(1)}%`;
-         marginTd.className = `px-2 py-2.5 text-right text-xs ${margin < 0 ? 'text-danger' : 'text-success'} font-medium`;
+      if (recomputeIncGst) {
+         item.incGst = item.exGst * (1 + (item.gst / 100));
+         const input = tr.querySelector('.po-inc-gst-input');
+         if (input && input !== e.target) input.value = item.incGst.toFixed(2);
+      }
+
+      // Update row UI (Total & Margin)
+      const costAfterDiscountExGst = item.exGst * (1 - ((item.discount || 0) / 100));
+      const costAfterDiscountIncGst = item.incGst * (1 - ((item.discount || 0) / 100));
+
+      let margin = 0;
+      if (costAfterDiscountIncGst > 0) {
+         margin = ((item.sellingPrice - costAfterDiscountIncGst) / costAfterDiscountIncGst) * 100;
       }
       
-      const rowTotalTd = tr.querySelector('td:nth-child(7)');
+      const marginTd = tr.querySelector('.po-margin-td');
+      if (marginTd) {
+         marginTd.textContent = `${margin.toFixed(1)}%`;
+         marginTd.className = `px-1 py-2.5 text-right text-xs ${margin < 0 ? 'text-danger' : 'text-success'} font-medium po-margin-td`;
+      }
+      
+      const rowTotalTd = tr.querySelector('.po-total-td');
       if (rowTotalTd) {
-         rowTotalTd.textContent = `₹${(item.qty * item.purchasePrice).toFixed(2)}`;
+         rowTotalTd.textContent = `₹${(item.qty * costAfterDiscountExGst).toFixed(2)}`;
       }
 
       updateTotals();
@@ -470,17 +530,20 @@ export function onMount(rootElement) {
       let totalGst = 0;
 
       const items = cart.map(item => {
-         const rowSub = item.qty * item.purchasePrice;
-         const rowGst = rowSub * (item.gst / 100);
+         const costAfterDiscountExGst = (item.exGst || 0) * (1 - ((item.discount || 0) / 100));
+         const rowSub = (item.qty || 1) * costAfterDiscountExGst;
+         const rowGst = rowSub * ((item.gst || 0) / 100);
          subtotal += rowSub;
          totalGst += rowGst;
 
          return {
-           productId: item.productId,
+           productId: item.productId || item.id,
            name: item.name,
            qty: item.qty,
-           purchasePrice: item.purchasePrice,
+           purchasePrice: item.exGst, // Base ex-GST price preserved
+           incGst: item.incGst,
            sellingPrice: item.sellingPrice,
+           discount: item.discount || 0,
            gst: item.gst,
            cgst: item.gst / 2,
            sgst: item.gst / 2,
@@ -502,6 +565,8 @@ export function onMount(rootElement) {
         subtotal,
         discount: 0,
         taxTotal: totalGst,
+        cgstTotal: totalGst / 2,
+        sgstTotal: totalGst / 2,
         cgst: totalGst / 2,
         sgst: totalGst / 2,
         totalAmount,
@@ -537,6 +602,7 @@ export function onMount(rootElement) {
            });
         }
 
+        DraftManager.clearDraft('purchase');
         closeAll();
         // Refresh table in-place
         const freshPurchases = DataProvider.getPurchaseInvoices();
@@ -638,6 +704,34 @@ export function onMount(rootElement) {
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
   
+  // Pending purchase redirect hook
+  setTimeout(() => {
+    const pendingId = localStorage.getItem('erp_pending_purchase_product');
+    if (pendingId) {
+      localStorage.removeItem('erp_pending_purchase_product');
+      openForm();
+      const p = DataProvider.getProductById(pendingId);
+      if (p) {
+        const exGst = p.purchasePrice || p.avgCost || (p.price * 0.8) || 0;
+        const gst = p.gst || 18;
+        const incGst = exGst * (1 + (gst / 100));
+        cart = [{
+          productId: p.id,
+          name: p.name,
+          sku: p.sku || '',
+          qty: 1,
+          incGst: incGst,
+          exGst: exGst,
+          gst: gst,
+          discount: 0,
+          sellingPrice: p.price || 0
+        }];
+        if (window._renderCart) window._renderCart();
+        window.showToast(`${p.name} added to purchase`, 'success');
+      }
+    }
+  }, 300);
+
   if (window.lucide) {
     window.lucide.createIcons();
   }

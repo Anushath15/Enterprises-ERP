@@ -103,24 +103,24 @@ export function onMount(rootElement) {
   const countLabel = rootElement.querySelector('#cat-count-label');
 
   const renderTable = (data) => {
-    countLabel.textContent = \`Showing \${data.length} categories\`;
+    countLabel.textContent = `Showing ${data.length} categories`;
     if (data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-400 text-sm">No categories found.</td></tr>';
     } else {
-      tbody.innerHTML = data.map(cat => \`
-        <tr class="row-hover cursor-pointer" data-id="\${cat.id}" onclick="window.dispatchEvent(new CustomEvent('openCategoryDrawer', {detail: '\${cat.id}'}))">
-          <td class="px-4 py-3.5 font-semibold text-primary text-sm">\${cat.id}</td>
-          <td class="px-4 py-3.5 font-medium text-text">\${cat.name}</td>
+      tbody.innerHTML = data.map(cat => `
+        <tr class="row-hover cursor-pointer" data-id="${cat.id}" onclick="window.dispatchEvent(new CustomEvent('openCategoryDrawer', {detail: '${cat.id}'}))">
+          <td class="px-4 py-3.5 font-semibold text-primary text-sm">${cat.id}</td>
+          <td class="px-4 py-3.5 font-medium text-text">${cat.name}</td>
           <td class="px-4 py-3.5">
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-success/10 text-success uppercase tracking-wider">Active</span>
           </td>
           <td class="px-4 py-3.5 text-right">
-            <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openCategoryDrawer', {detail: '\${cat.id}'}))">
+            <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openCategoryDrawer', {detail: '${cat.id}'}))">
               <i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i>
             </button>
           </td>
         </tr>
-      \`).join('');
+      `).join('');
     }
     if (window.lucide) window.lucide.createIcons();
   };

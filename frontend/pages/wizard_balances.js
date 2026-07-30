@@ -3,6 +3,7 @@
  * Rapid entry for initial Customer and Dealer balances.
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   return `
@@ -24,8 +25,8 @@ export async function render() {
         </div>
 
         <!-- Form Area -->
-        <div class="flex-1 overflow-auto p-6" id="wizard-form-area">
-          <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="flex-1 overflow-auto p-6">
+          <form id="wizard-form-area" class="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Name <span class="text-danger">*</span></label>
               <input type="text" id="ob-name" class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" placeholder="e.g. Ramesh Constructions">
@@ -46,7 +47,7 @@ export async function render() {
               <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Credit Limit (₹)</label>
               <input type="number" min="0" step="1000" id="ob-limit" class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" placeholder="Max allowed credit" value="50000">
             </div>
-          </div>
+          </form>
           
           <button id="btn-add-ob" class="bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors w-full flex justify-center items-center gap-2">
             <i data-lucide="plus" class="w-4 h-4"></i> Add Entry
@@ -137,6 +138,9 @@ export function onMount(rootElement) {
   
   tabs.forEach(t => t.addEventListener('click', () => switchTab(t.getAttribute('data-tab'))));
   
+  const formEl = rootElement.querySelector('#wizard-form-area');
+  if (formEl) DraftManager.init('wizardBalances', formEl);
+
   rootElement.querySelector('#btn-add-ob').addEventListener('click', () => {
     const name = nameInp.value.trim();
     if (!name) {
@@ -164,6 +168,7 @@ export function onMount(rootElement) {
       }
       
       window.showToast(`${currentTab === 'customers' ? 'Customer' : 'Dealer'} added!`, 'success');
+      DraftManager.clearDraft('wizardBalances');
       
       nameInp.value = '';
       phoneInp.value = '';
