@@ -1,9 +1,11 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Credit Management
  */
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const customers = DataProvider.getCustomers();
@@ -25,15 +27,15 @@ export async function render() {
     }
 
     return `
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openCreditDrawer', {detail: '${cust.id}'}))">
+    <tr class="row-hover cursor-pointer" data-credit-row="${escapeHtml(cust.id)}">
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span class="text-xs font-bold text-primary">${initials}</span>
+            <span class="text-xs font-bold text-primary">${escapeHtml(initials)}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">${cust.name}</p>
-            <p class="text-[10px] text-gray-400">${cust.id} • ${cust.type}</p>
+            <p class="text-sm font-medium text-text">${escapeHtml(cust.name)}</p>
+            <p class="text-[10px] text-gray-400">${escapeHtml(cust.id)} • ${escapeHtml(cust.type)}</p>
           </div>
         </div>
       </td>
@@ -42,10 +44,10 @@ export async function render() {
       <td class="px-4 py-3.5 text-right font-medium text-warning">₹0</td>
       <td class="px-4 py-3.5 text-sm text-gray-500">-</td>
       <td class="px-4 py-3.5">
-        <span class="status-badge status-${statusColor}">${status}</span>
+        <span class="status-badge status-${statusColor}">${escapeHtml(status)}</span>
       </td>
       <td class="px-4 py-3.5 text-right">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openCreditDrawer', {detail: '${cust.id}'}))">
+        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100">
           <i data-lucide="indian-rupee" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -219,14 +221,14 @@ export function onMount(rootElement) {
     let status = 'Good', statusColor = 'success';
     if (cust.outstanding >= (cust.creditLimit || 0) * 0.9 && cust.creditLimit > 0) { status = 'Warning'; statusColor = 'warning'; }
     if (cust.outstanding > (cust.creditLimit || 0) && cust.creditLimit > 0) { status = 'Overdue'; statusColor = 'danger'; }
-    return `<tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openCreditDrawer', {detail: '${cust.id}'}))">
-      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-xs font-bold text-primary">${initials}</span></div><div><p class="text-sm font-medium text-text">${cust.name}</p><p class="text-[10px] text-gray-400">${cust.id} • ${cust.type}</p></div></div></td>
+    return `<tr class="row-hover cursor-pointer" data-credit-row="${escapeHtml(cust.id)}">
+      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-xs font-bold text-primary">${escapeHtml(initials)}</span></div><div><p class="text-sm font-medium text-text">${escapeHtml(cust.name)}</p><p class="text-[10px] text-gray-400">${escapeHtml(cust.id)} • ${escapeHtml(cust.type)}</p></div></div></td>
       <td class="px-4 py-3.5 text-right font-semibold text-danger">₹${cust.outstanding.toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5 text-right text-sm text-gray-600">₹${(cust.creditLimit || 0).toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5 text-right font-medium text-warning">₹0</td>
       <td class="px-4 py-3.5 text-sm text-gray-500">-</td>
-      <td class="px-4 py-3.5"><span class="status-badge status-${statusColor}">${status}</span></td>
-      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openCreditDrawer', {detail: '${cust.id}'}))" ><i data-lucide="indian-rupee" class="w-4 h-4 pointer-events-none"></i></button></td>
+      <td class="px-4 py-3.5"><span class="status-badge status-${statusColor}">${escapeHtml(status)}</span></td>
+      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100"><i data-lucide="indian-rupee" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
@@ -252,7 +254,8 @@ export function onMount(rootElement) {
       if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
     }
   };
-  if (creditSearch) creditSearch.addEventListener('input', applyFilter);
+  const handleSearchInput = () => applyFilter();
+  if (creditSearch) creditSearch.addEventListener('input', handleSearchInput);
   if (creditStatusFilter) creditStatusFilter.addEventListener('change', applyFilter);
 
   const closeAll = () => {
@@ -268,14 +271,14 @@ export function onMount(rootElement) {
       rootElement.querySelector('#credit-customer-summary').innerHTML = `
         <div class="flex justify-between items-start mb-4">
           <div>
-            <h4 class="font-semibold text-text text-lg">${cust.name}</h4>
-            <p class="text-xs text-gray-500 mt-0.5">${cust.type} • ${cust.id}</p>
+            <h4 class="font-semibold text-text text-lg">${escapeHtml(cust.name)}</h4>
+            <p class="text-xs text-gray-500 mt-0.5">${escapeHtml(cust.type)} • ${escapeHtml(cust.id)}</p>
           </div>
         </div>
         <div class="grid grid-cols-3 gap-4 border-t border-border pt-4">
           <div><p class="text-[10px] text-gray-500 uppercase tracking-wide">Outstanding</p><p class="font-bold text-danger">₹${(cust.outstanding || 0).toLocaleString('en-IN')}</p></div>
           <div><p class="text-[10px] text-gray-500 uppercase tracking-wide">Credit Limit</p><p class="font-semibold text-text">₹${(cust.creditLimit || 0).toLocaleString('en-IN')}</p></div>
-          <div><p class="text-[10px] text-gray-500 uppercase tracking-wide">Phone</p><p class="font-semibold text-text">${cust.phone || '-'}</p></div>
+          <div><p class="text-[10px] text-gray-500 uppercase tracking-wide">Phone</p><p class="font-semibold text-text">${escapeHtml(cust.phone || '-')}</p></div>
         </div>`;
 
       // Load real payment history from invoices
@@ -283,7 +286,7 @@ export function onMount(rootElement) {
       const payHistTbody = rootElement.querySelector('#credit-payment-history');
       if (payHistTbody) {
         payHistTbody.innerHTML = invoices.length > 0
-          ? invoices.slice(0, 10).map(inv => `<tr><td class="px-3 py-2 text-text">${inv.date || '-'}</td><td class="px-3 py-2 text-gray-600">${inv.paymentMethod || 'Cash'} (${inv.id})</td><td class="px-3 py-2 text-right font-medium text-success">+ ₹${Number(inv.amountPaid || 0).toLocaleString('en-IN')}</td></tr>`).join('')
+          ? invoices.slice(0, 10).map(inv => `<tr><td class="px-3 py-2 text-text">${escapeHtml(inv.date || '-')}</td><td class="px-3 py-2 text-gray-600">${escapeHtml(inv.paymentMethod || 'Cash')} (${escapeHtml(inv.id)})</td><td class="px-3 py-2 text-right font-medium text-success">+ ₹${Number(inv.amountPaid || 0).toLocaleString('en-IN')}</td></tr>`).join('')
           : '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-400">No payment records found</td></tr>';
       }
     }
@@ -292,41 +295,49 @@ export function onMount(rootElement) {
     formDrawer.classList.remove('translate-x-full');
   };
 
-  const saveBtn = rootElement.querySelector('#save-credit-payment-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      if (!currentCustomerId) return;
-      const amount = parseFloat(rootElement.querySelector('#credit-payment-amount')?.value) || 0;
-      if (amount <= 0) { window.showToast('Please enter a valid payment amount.', 'warning'); return; }
+  const handleRowClick = (e) => {
+    const row = e.target.closest('[data-credit-row]');
+    if (!row) return;
+    const id = row.getAttribute('data-credit-row');
+    if (id) window.dispatchEvent(new CustomEvent('openCreditDrawer', { detail: id }));
+  };
+  if (tbody) tbody.addEventListener('click', handleRowClick);
 
-      try {
-        DataProvider.updateCustomerBalance(currentCustomerId, -amount);
-        closeAll();
-        // In-place update the row
-        const cust = DataProvider.getCustomerById(currentCustomerId);
-        if (cust) {
-          const row = tbody?.querySelector(`tr[onclick*="${currentCustomerId}"]`);
-          if (row) {
-            const outstandingTd = row.querySelectorAll('td')[1];
-            if (outstandingTd) outstandingTd.textContent = '₹' + (cust.outstanding || 0).toLocaleString('en-IN');
-          }
-          // Remove row if outstanding is now 0
-          if ((cust.outstanding || 0) <= 0) {
-            const rowToRemove = tbody?.querySelector(`tr[onclick*="${currentCustomerId}"]`);
-            if (rowToRemove) { rowToRemove.style.opacity = '0'; setTimeout(() => rowToRemove.remove(), 300); }
-          }
+  const handleSavePayment = () => {
+    if (!currentCustomerId) return;
+    const amount = parseFloat(rootElement.querySelector('#credit-payment-amount')?.value) || 0;
+    if (amount <= 0) { NotificationService.warning('Please enter a valid payment amount.'); return; }
+
+    try {
+      DataProvider.updateCustomerBalance(currentCustomerId, -amount);
+      closeAll();
+      // In-place update the row
+      const cust = DataProvider.getCustomerById(currentCustomerId);
+      if (cust) {
+        const row = tbody?.querySelector(`tr[data-credit-row="${currentCustomerId}"]`);
+        if (row) {
+          const outstandingTd = row.querySelectorAll('td')[1];
+          if (outstandingTd) outstandingTd.textContent = '₹' + (cust.outstanding || 0).toLocaleString('en-IN');
         }
-        window.showToast(`Payment of ₹${amount.toLocaleString('en-IN')} recorded.`, 'success');
-      } catch (err) {
-        window.showToast(err.message, 'danger');
+        // Remove row if outstanding is now 0
+        if ((cust.outstanding || 0) <= 0) {
+          const rowToRemove = tbody?.querySelector(`tr[data-credit-row="${currentCustomerId}"]`);
+          if (rowToRemove) { rowToRemove.style.opacity = '0'; setTimeout(() => rowToRemove.remove(), 300); }
+        }
       }
-    });
-  }
+      NotificationService.success(`Payment of ₹${amount.toLocaleString('en-IN')} recorded.`);
+    } catch (err) {
+      NotificationService.error(err.message);
+    }
+  };
+  const saveBtn = rootElement.querySelector('#save-credit-payment-btn');
+  if (saveBtn) saveBtn.addEventListener('click', handleSavePayment);
 
   window.addEventListener('openCreditDrawer', openForm);
 
-  closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  const handleCloseClick = () => closeAll();
+  closeBtns.forEach(btn => btn.addEventListener('click', handleCloseClick));
+  overlay.addEventListener('click', handleCloseClick);
   
   if (window.lucide) {
     window.lucide.createIcons();
@@ -335,5 +346,11 @@ export function onMount(rootElement) {
   // Cleanup: prevent duplicate listeners on back-navigation
   return function cleanup() {
     window.removeEventListener('openCreditDrawer', openForm);
+    if (creditSearch) creditSearch.removeEventListener('input', handleSearchInput);
+    if (creditStatusFilter) creditStatusFilter.removeEventListener('change', applyFilter);
+    if (tbody) tbody.removeEventListener('click', handleRowClick);
+    if (saveBtn) saveBtn.removeEventListener('click', handleSavePayment);
+    closeBtns.forEach(btn => btn.removeEventListener('click', handleCloseClick));
+    overlay.removeEventListener('click', handleCloseClick);
   };
 }

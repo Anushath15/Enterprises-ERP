@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Purchase Return Management
  * FIXES: PR-001 removed hardcoded fake data, PR-002 real DataProvider.savePurchaseReturn,
@@ -7,6 +8,7 @@
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 const RETURN_REASONS = ['Defective', 'Damaged in Transit', 'Wrong Item Supplied', 'Excess Quantity', 'Quality Issue', 'Other'];
 
@@ -20,32 +22,32 @@ export async function render() {
     const statusColor = ret.status === 'Pending' ? 'warning' : (ret.status === 'Approved' ? 'success' : 'danger');
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${ret.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${ret.id}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.invoice || '-'}</td>
+    <tr class="row-hover cursor-pointer" data-id="${escapeHtml(ret.id)}" data-pret-row="${escapeHtml(ret.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(ret.id)}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(ret.invoice || '-')}</td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
           <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-            <span class="text-[10px] font-bold text-primary">${initials}</span>
+            <span class="text-[10px] font-bold text-primary">${escapeHtml(initials)}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">${dealer.companyName}</p>
-            <p class="text-[10px] text-gray-400">${dealer.type || ''}</p>
+            <p class="text-sm font-medium text-text">${escapeHtml(dealer.companyName)}</p>
+            <p class="text-[10px] text-gray-400">${escapeHtml(dealer.type || '')}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => i.name).join(', ') : (ret.product || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => escapeHtml(i.name)).join(', ') : escapeHtml(ret.product || '-')}</td>
       <td class="px-4 py-3.5 text-center text-sm text-gray-600">${ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : (ret.qty || 0)}</td>
       <td class="px-4 py-3.5">
-        <span class="status-badge status-danger">${ret.reason || 'Returned'}</span>
+        <span class="status-badge status-danger">${escapeHtml(ret.reason || 'Returned')}</span>
       </td>
       <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${Number(ret.amount || 0).toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5">
-        <span class="status-badge status-${statusColor}">${ret.status || 'Pending'}</span>
+        <span class="status-badge status-${statusColor}">${escapeHtml(ret.status || 'Pending')}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${ret.date ? ret.date.split('T')[0] : '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(ret.date ? ret.date.split('T')[0] : '-')}</td>
       <td class="px-4 py-3.5 text-right">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))">
+        <button class="pret-view-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(ret.id)}" title="View Debit Note">
           <i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -59,7 +61,7 @@ export async function render() {
           <h1 class="text-2xl font-bold text-text">Purchase Return (Debit Note)</h1>
           <p class="text-sm text-gray-400 mt-0.5">Manage goods returned to suppliers and debit note issuance.</p>
         </div>
-        <button onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+        <button id="btn-new-pret" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
           <i data-lucide="plus" class="w-4 h-4"></i> Create Debit Note
         </button>
       </div>
@@ -149,7 +151,7 @@ export async function render() {
             <label class="text-xs font-semibold text-gray-600 block mb-1.5">Supplier / Dealer *</label>
             <select id="pret-dealer" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
               <option value="">Select Supplier...</option>
-              ${dealers.map(d => `<option value="${d.id}">${d.companyName}</option>`).join('')}
+              ${dealers.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.companyName)}</option>`).join('')}
             </select>
           </div>
 
@@ -176,7 +178,7 @@ export async function render() {
             <div>
               <label class="text-xs font-semibold text-gray-600 block mb-1.5">Return Reason *</label>
               <select id="pret-reason" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-                ${RETURN_REASONS.map(r => `<option value="${r}">${r}</option>`).join('')}
+                ${RETURN_REASONS.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('')}
               </select>
             </div>
             <div>
@@ -232,17 +234,17 @@ export function onMount(rootElement) {
     const dealer = DataProvider.getDealerById(ret.dealerId) || { companyName: ret.dealerName || 'Unknown', type: '' };
     const initials = dealer.companyName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const sc = ret.status === 'Pending' ? 'warning' : (ret.status === 'Approved' ? 'success' : 'danger');
-    return `<tr class="row-hover cursor-pointer" data-id="${ret.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${ret.id}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.invoice || '-'}</td>
-      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-[10px] font-bold text-primary">${initials}</span></div><div><p class="text-sm font-medium text-text">${dealer.companyName}</p></div></div></td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => i.name).join(', ') : (ret.product || '-')}</td>
+    return `<tr class="row-hover cursor-pointer" data-id="${escapeHtml(ret.id)}" data-pret-row="${escapeHtml(ret.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(ret.id)}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(ret.invoice || '-')}</td>
+      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-[10px] font-bold text-primary">${escapeHtml(initials)}</span></div><div><p class="text-sm font-medium text-text">${escapeHtml(dealer.companyName)}</p></div></div></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${ret.items ? ret.items.map(i => escapeHtml(i.name)).join(', ') : escapeHtml(ret.product || '-')}</td>
       <td class="px-4 py-3.5 text-center text-sm text-gray-600">${ret.items ? ret.items.reduce((s, i) => s + Number(i.qty || 0), 0) : (ret.qty || 0)}</td>
-      <td class="px-4 py-3.5"><span class="status-badge status-danger">${ret.reason || '-'}</span></td>
+      <td class="px-4 py-3.5"><span class="status-badge status-danger">${escapeHtml(ret.reason || '-')}</span></td>
       <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${Number(ret.amount || 0).toLocaleString('en-IN')}</td>
-      <td class="px-4 py-3.5"><span class="status-badge status-${sc}">${ret.status || 'Pending'}</span></td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${ret.date ? ret.date.split('T')[0] : '-'}</td>
-      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseReturnDrawer', {detail: '${ret.id}'}))"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button></td>
+      <td class="px-4 py-3.5"><span class="status-badge status-${sc}">${escapeHtml(ret.status || 'Pending')}</span></td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(ret.date ? ret.date.split('T')[0] : '-')}</td>
+      <td class="px-4 py-3.5 text-right"><button class="pret-view-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(ret.id)}" title="View Debit Note"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
@@ -313,7 +315,7 @@ export function onMount(rootElement) {
           rootElement.querySelector('#pret-qty').value = inv.items[0].qty;
           rootElement.querySelector('#pret-amount').value = (inv.items[0].qty * (inv.items[0].price || inv.items[0].costPrice || 0)).toFixed(2);
         }
-        window.showToast('Purchase invoice details loaded', 'success');
+        NotificationService.success('Purchase invoice details loaded');
       }
     });
   }
@@ -321,6 +323,22 @@ export function onMount(rootElement) {
   window.addEventListener('openPurchaseReturnDrawer', openForm);
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
+
+  // Delegated table clicks (replaces inline onclick)
+  const handleTableClick = (e) => {
+    const viewBtn = e.target.closest('.pret-view-btn');
+    if (viewBtn) {
+      e.stopPropagation();
+      openForm({ detail: viewBtn.getAttribute('data-id') });
+      return;
+    }
+    const row = e.target.closest('[data-pret-row]');
+    if (row) openForm({ detail: row.getAttribute('data-pret-row') });
+  };
+  tbody.addEventListener('click', handleTableClick);
+
+  const newPretBtn = rootElement.querySelector('#btn-new-pret');
+  if (newPretBtn) newPretBtn.addEventListener('click', () => openForm({ detail: null }));
 
   // Initialize Draft Recovery
   const formEl = rootElement.querySelector('#pret-form');
@@ -359,9 +377,9 @@ export function onMount(rootElement) {
 
       closeAll();
       applyFilter();
-      window.showToast('Debit note saved successfully!', 'success');
+      NotificationService.success('Debit note saved successfully!');
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
   });
 

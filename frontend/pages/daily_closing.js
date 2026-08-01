@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Daily Closing (Accounting View)
  */
@@ -265,7 +266,7 @@ export function onMount(rootElement) {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
        if(!actualCashInput.value) {
-         window.showToast("Please enter the Actual Cash Counted before closing.", 'danger');
+         NotificationService.error("Please enter the Actual Cash Counted before closing.");
          actualCashInput.focus();
          return;
        }
@@ -284,7 +285,7 @@ export function onMount(rootElement) {
            }
 
            DraftManager.clearDraft('dailyClosing');
-           window.showToast("Day Closed Successfully. System is locked until tomorrow.", "success");
+           NotificationService.success("Day Closed Successfully. System is locked until tomorrow.");
           setTimeout(() => {
             window.location.hash = '#/';
           }, 1500);

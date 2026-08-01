@@ -1,8 +1,10 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Staff Management
  */
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const staff = DataProvider.getStaff() || [];
@@ -13,26 +15,26 @@ export async function render() {
     if (emp.status === 'Inactive') badge = 'danger';
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${emp.id}" onclick="window.dispatchEvent(new CustomEvent('openStaffDrawer', {detail: '${emp.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${emp.id || '-'}</td>
+    <tr class="row-hover cursor-pointer" data-staff-row="${escapeHtml(emp.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(emp.id || '-')}</td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span class="text-xs font-bold text-primary">${(emp.name || '-').charAt(0).toUpperCase()}</span>
+            <span class="text-xs font-bold text-primary">${escapeHtml((emp.name || '-').charAt(0).toUpperCase())}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">${emp.name || '-'}</p>
-            <p class="text-[10px] text-gray-400">${emp.phone || '-'}</p>
+            <p class="text-sm font-medium text-text">${escapeHtml(emp.name || '-')}</p>
+            <p class="text-[10px] text-gray-400">${escapeHtml(emp.phone || '-')}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${emp.role || '-'}</td>
-      <td class="px-4 py-3.5 text-right font-medium text-text">${emp.salary || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(emp.role || '-')}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-text">${escapeHtml(emp.salary || '-')}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${emp.status || 'Active'}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${escapeHtml(emp.status || 'Active')}</span>
       </td>
       <td class="px-4 py-3.5 text-right">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openStaffDrawer', {detail: '${emp.id}'}))">
+        <button class="edit-staff-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(emp.id)}">
           <i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -48,7 +50,7 @@ export async function render() {
           <p class="text-sm text-gray-400 mt-1">Manage shop employees, roles, salaries, and attendance records.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="window.dispatchEvent(new CustomEvent('openStaffDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <button data-staff-new class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i>
             Add Staff
           </button>
@@ -146,25 +148,27 @@ export function onMount(rootElement) {
     let badge = 'success';
     if (emp.status === 'On Leave') badge = 'warning';
     if (emp.status === 'Inactive') badge = 'danger';
-    return `<tr class="row-hover cursor-pointer" data-id="${emp.id}" onclick="window.dispatchEvent(new CustomEvent('openStaffDrawer', {detail: '${emp.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${emp.id || '-'}</td>
-      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-xs font-bold text-primary">${(emp.name || '-').charAt(0).toUpperCase()}</span></div><div><p class="text-sm font-medium text-text">${emp.name || '-'}</p><p class="text-[10px] text-gray-400">${emp.phone || '-'}</p></div></div></td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${emp.role || '-'}</td>
-      <td class="px-4 py-3.5 text-right font-medium text-text">${emp.salary || '-'}</td>
-      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${emp.status || 'Active'}</span></td>
-      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openStaffDrawer', {detail: '${emp.id}'}))"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
+    return `<tr class="row-hover cursor-pointer" data-staff-row="${escapeHtml(emp.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(emp.id || '-')}</td>
+      <td class="px-4 py-3.5"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-xs font-bold text-primary">${escapeHtml((emp.name || '-').charAt(0).toUpperCase())}</span></div><div><p class="text-sm font-medium text-text">${escapeHtml(emp.name || '-')}</p><p class="text-[10px] text-gray-400">${escapeHtml(emp.phone || '-')}</p></div></div></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(emp.role || '-')}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-text">${escapeHtml(emp.salary || '-')}</td>
+      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${escapeHtml(emp.status || 'Active')}</span></td>
+      <td class="px-4 py-3.5 text-right"><button class="edit-staff-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(emp.id)}"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
+  const handleSearch = () => {
+    const q = searchInput.value.toLowerCase();
+    const filtered = allStaff.filter(s => (s.name || '').toLowerCase().includes(q) || (s.role || '').toLowerCase().includes(q));
+    if (tbody) {
+      tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No staff match your search</td></tr>';
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+    }
+  };
+
   if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase();
-      const filtered = allStaff.filter(s => (s.name || '').toLowerCase().includes(q) || (s.role || '').toLowerCase().includes(q));
-      if (tbody) {
-        tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No staff match your search</td></tr>';
-        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-      }
-    });
+    searchInput.addEventListener('input', handleSearch);
   }
 
   const openForm = (e) => {
@@ -195,18 +199,28 @@ export function onMount(rootElement) {
   };
 
   window.addEventListener('openStaffDrawer', openForm);
+  const handleNewStaff = () => openForm({ detail: null });
+  rootElement.querySelector('[data-staff-new]')?.addEventListener('click', handleNewStaff);
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
+
+  const handleRowClick = (e) => {
+    const editBtn = e.target.closest('.edit-staff-btn');
+    const row = editBtn ? editBtn.closest('tr') : e.target.closest('[data-staff-row]');
+    if (!row) return;
+    const id = editBtn ? editBtn.getAttribute('data-id') : row.getAttribute('data-staff-row');
+    if (id) openForm({ detail: id });
+  };
+  if (tbody) tbody.addEventListener('click', handleRowClick);
 
   // Initialize Draft Recovery
   const formEl = rootElement.querySelector('#staff-form');
   if (formEl) DraftManager.init('staff', formEl);
 
   const saveBtn = rootElement.querySelector('#save-staff-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      const form = rootElement.querySelector('#staff-form');
-      if (!form.reportValidity()) return;
+  const handleSave = () => {
+    const form = rootElement.querySelector('#staff-form');
+    if (!form.reportValidity()) return;
 
       const emp = {
         id: rootElement.querySelector('#staff-id').value || null,
@@ -229,15 +243,23 @@ export function onMount(rootElement) {
           tbody.innerHTML = allStaff.map(renderRow).join('');
           if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
         }
-        window.showToast('Staff saved successfully!', 'success');
+        NotificationService.success('Staff saved successfully!');
       } catch (err) {
-        window.showToast(err.message, 'danger');
+        NotificationService.error(err.message);
       }
-    });
+  };
+  if (saveBtn) {
+    saveBtn.addEventListener('click', handleSave);
   }
 
   return function cleanup() {
     window.removeEventListener('openStaffDrawer', openForm);
+    if (searchInput) searchInput.removeEventListener('input', handleSearch);
+    if (tbody) tbody.removeEventListener('click', handleRowClick);
+    rootElement.querySelector('[data-staff-new]')?.removeEventListener('click', handleNewStaff);
+    closeBtns.forEach(btn => btn.removeEventListener('click', closeAll));
+    overlay.removeEventListener('click', closeAll);
+    if (saveBtn) saveBtn.removeEventListener('click', handleSave);
   };
 }
 

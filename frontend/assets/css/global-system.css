@@ -1,0 +1,287 @@
+/* 
+  RC3.2 Global Design System - Core CSS Rules
+  Enforces strict layout architecture, spacing, and certified responsiveness.
+*/
+
+/* 1. CSS Design Tokens (Stage 1) */
+:root {
+  /* Layout Dimensions */
+  --sidebar-desktop: 250px;
+  --sidebar-laptop: 220px;
+  --sidebar-tablet: 72px; /* Collapsed */
+  
+  --toolbar-height: 64px;
+  --header-height: 64px;
+  --max-page-width: 1440px;
+
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 0.5rem; /* 8px */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Sidebar Manager Styles */
+.sidebar-manager {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  background-color: #ffffff;
+  border-right: 1px solid #E5E7EB;
+  z-index: 50;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.main-wrapper {
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Breakpoints Configuration */
+/* Desktop (>1440px) */
+@media (min-width: 1441px) {
+  .sidebar-manager { width: var(--sidebar-desktop); transform: translateX(0); }
+  .main-wrapper { 
+    margin-left: var(--sidebar-desktop); 
+    width: calc(100% - var(--sidebar-desktop)); 
+  }
+}
+
+/* Laptop (1024px - 1440px) */
+@media (min-width: 1024px) and (max-width: 1440px) {
+  .sidebar-manager { width: var(--sidebar-laptop); transform: translateX(0); }
+  .main-wrapper { 
+    margin-left: var(--sidebar-laptop); 
+    width: calc(100% - var(--sidebar-laptop)); 
+  }
+}
+
+/* Tablet (768px - 1023px) - Collapsed */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar-manager { width: var(--sidebar-tablet); transform: translateX(0); }
+  .main-wrapper { 
+    margin-left: var(--sidebar-tablet); 
+    width: calc(100% - var(--sidebar-tablet)); 
+  }
+  .sidebar-manager .sidebar-label { display: none; }
+}
+
+/* Mobile (<768px) - Drawer */
+@media (max-width: 767px) {
+  .sidebar-manager { 
+    width: var(--sidebar-desktop); 
+    transform: translateX(-100%); 
+  }
+  .sidebar-manager.drawer-open {
+    transform: translateX(0);
+  }
+  .main-wrapper { margin-left: 0 !important; }
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 2. Responsive Page Container (To be replaced by semantic layout) */
+.responsive-page-container {
+  width: 100%;
+  max-width: var(--max-page-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--spacing-md);
+  /* Ensure it never causes horizontal scroll */
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .responsive-page-container {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* 3. Responsive Card */
+.responsive-card {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid #E5E7EB;
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-md);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 4. Responsive Grid */
+.responsive-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+@media (min-width: 768px) { .responsive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .responsive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1440px) { .responsive-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+}
+
+/* 5. Responsive Table */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid #E5E7EB;
+  background: #ffffff;
+}
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px; /* Forces scroll on small screens instead of clipping */
+}
+.responsive-table th {
+  position: sticky;
+  top: 0;
+  background-color: #F8FAFC;
+  z-index: 10;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+  white-space: nowrap;
+}
+.responsive-table td {
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: #1F2937;
+  border-bottom: 1px solid #F1F5F9;
+}
+.responsive-table tr:last-child td { border-bottom: none; }
+
+/* 6. Responsive Modal */
+.responsive-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+}
+.responsive-modal {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh; /* Critical rule to prevent overflowing the viewport */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.responsive-modal-header {
+  flex: 0 0 auto;
+  padding: 16px 24px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.responsive-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 24px;
+}
+.responsive-modal-footer {
+  flex: 0 0 auto;
+  padding: 16px 24px;
+  border-top: 1px solid #E5E7EB;
+  background: #F8FAFC;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+
+/* 7. Responsive Form */
+.responsive-form-group {
+  margin-bottom: var(--spacing-sm);
+}
+.responsive-form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.responsive-form-input {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid #D1D5DB;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.responsive-form-input:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* 8. Responsive Toolbar */
+.responsive-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  background: #ffffff;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid #E5E7EB;
+  margin-bottom: var(--spacing-md);
+}
+.responsive-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

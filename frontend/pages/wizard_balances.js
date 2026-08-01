@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Opening Balance Wizard
  * Rapid entry for initial Customer and Dealer balances.
@@ -124,7 +125,7 @@ export function onMount(rootElement) {
     });
     
     listTitle.textContent = tab === 'customers' ? 'Customers' : 'Dealers';
-    limitContainer.style.display = tab === 'customers' ? 'block' : 'none';
+    if (limitContainer) limitContainer.style.display = tab === 'customers' ? 'block' : 'none';
     
     // Reset form
     nameInp.value = '';
@@ -144,7 +145,7 @@ export function onMount(rootElement) {
   rootElement.querySelector('#btn-add-ob').addEventListener('click', () => {
     const name = nameInp.value.trim();
     if (!name) {
-      window.showToast('Name is required.', 'warning');
+      NotificationService.warning('Name is required.');
       return;
     }
     
@@ -167,7 +168,7 @@ export function onMount(rootElement) {
         DataProvider.saveDealer(obj);
       }
       
-      window.showToast(`${currentTab === 'customers' ? 'Customer' : 'Dealer'} added!`, 'success');
+      NotificationService.success(`${currentTab === 'customers' ? 'Customer' : 'Dealer'} added!`);
       DraftManager.clearDraft('wizardBalances');
       
       nameInp.value = '';
@@ -179,7 +180,7 @@ export function onMount(rootElement) {
       renderList();
       
     } catch (e) {
-      window.showToast(e.message, 'danger');
+      NotificationService.error(e.message);
     }
   });
   

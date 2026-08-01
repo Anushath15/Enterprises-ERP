@@ -1,16 +1,18 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - POS Billing Page Controller
  * Fixes: BUG-004 (no reload), BUG-005 (print receipt), BUG-010 (no alerts)
  */
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const productsData = DataProvider.getProducts().filter(p => p.isActive);
   const categories = ['All Products', ...new Set(productsData.map(p => p.category).filter(Boolean))];
   
   const categoryPills = categories.map((cat, i) => 
-    `<button class="category-pill ${i === 0 ? 'active text-white border-primary bg-primary' : 'bg-white text-gray-600 border-border'} px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors" data-category="${cat}">${cat}</button>`
+    `<button class="category-pill ${i === 0 ? 'active text-white border-primary bg-primary' : 'bg-white text-gray-600 border-border'} px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition-colors" data-category="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
   ).join('');
 
   return `
@@ -218,7 +220,7 @@ export function onMount(rootElement) {
     activeCategory = draft.activeCategory || 'All Products';
     searchQuery = draft.searchQuery || '';
     if ((cart.length > 0 || selectedCustomer) && window.showToast) {
-       setTimeout(() => window.showToast('POS draft restored automatically', 'info'), 500);
+       setTimeout(() => NotificationService.info(), 500);
     }
   }
 
@@ -229,18 +231,18 @@ export function onMount(rootElement) {
   const renderProductCard = (p) => {
     const inCart = cart.find(c => c.id === p.id);
     const stockClass = p.stock <= 0 ? 'border-danger/30 bg-red-50/30' : (p.stock <= p.minStock ? 'border-orange-300' : 'border-border');
-    const stockText = p.stock <= 0 ? '<span class="text-[9px] font-bold text-danger">OUT OF STOCK</span>' : `<span class="text-[9px] text-gray-400">${p.stock} ${p.unit || 'Nos'}</span>`;
-    const cartBadge = inCart ? `<span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center">${inCart.qty}</span>` : '';
+    const stockText = p.stock <= 0 ? '<span class="text-[9px] font-bold text-danger">OUT OF STOCK</span>' : `<span class="text-[9px] text-gray-400">${escapeHtml(p.stock)} ${escapeHtml(p.unit || 'Nos')}</span>`;
+    const cartBadge = inCart ? `<span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center">${escapeHtml(inCart.qty)}</span>` : '';
     return `
-      <div class="pos-product relative cursor-pointer bg-white border ${stockClass} rounded-xl p-3 hover:border-primary/50 hover:shadow-md transition-all group ${p.stock <= 0 ? 'opacity-60 cursor-not-allowed' : ''}" data-id="${p.id}">
+      <div class="pos-product relative cursor-pointer bg-white border ${stockClass} rounded-xl p-3 hover:border-primary/50 hover:shadow-md transition-all group ${p.stock <= 0 ? 'opacity-60 cursor-not-allowed' : ''}" data-id="${escapeHtml(p.id)}">
         ${cartBadge}
         <div class="w-full aspect-square bg-gray-50 rounded-lg flex items-center justify-center mb-2 overflow-hidden">
-          ${p.image ? `<img src="${p.image}" class="w-full h-full object-cover rounded-lg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          ${p.image ? `<img src="${escapeHtml(p.image)}" class="pos-product-img w-full h-full object-cover rounded-lg">
           <div style="display:none" class="w-full h-full flex items-center justify-center"><i data-lucide="package" class="w-8 h-8 text-gray-200"></i></div>` 
           : `<i data-lucide="package" class="w-8 h-8 text-gray-200 group-hover:text-primary/30 transition-colors"></i>`}
         </div>
-        <p class="text-xs font-semibold text-text leading-tight truncate" title="${p.name}">${p.name}</p>
-        <p class="text-[10px] text-gray-400 truncate">${p.brand || p.category || ''}</p>
+        <p class="text-xs font-semibold text-text leading-tight truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</p>
+        <p class="text-[10px] text-gray-400 truncate">${escapeHtml(p.brand || p.category || '')}</p>
         <div class="flex items-center justify-between mt-1">
           <p class="text-sm font-bold text-primary">₹${(p.price || 0).toLocaleString('en-IN')}</p>
           ${stockText}
@@ -284,22 +286,22 @@ export function onMount(rootElement) {
     container.innerHTML = `
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <span class="text-sm font-bold text-primary">${initials}</span>
+          <span class="text-sm font-bold text-primary">${escapeHtml(initials)}</span>
         </div>
         <div>
           <p class="text-[10px] text-gray-400">Customer</p>
-          <p class="text-sm font-semibold text-text">${selectedCustomer.name}</p>
+          <p class="text-sm font-semibold text-text">${escapeHtml(selectedCustomer.name)}</p>
         </div>
       </div>
       <div class="h-8 w-px bg-border hidden sm:block"></div>
       <div class="hidden sm:block">
         <p class="text-[10px] text-gray-400">Type</p>
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">${selectedCustomer.type || 'Retail'}</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">${escapeHtml(selectedCustomer.type || 'Retail')}</span>
       </div>
       <div class="h-8 w-px bg-border hidden sm:block"></div>
       <div class="hidden sm:block">
         <p class="text-[10px] text-gray-400">Phone</p>
-        <p class="text-sm font-medium">${selectedCustomer.phone || '-'}</p>
+        <p class="text-sm font-medium">${escapeHtml(selectedCustomer.phone || '-')}</p>
       </div>
       <div class="h-8 w-px bg-border hidden md:block"></div>
       <div class="hidden md:block">
@@ -375,10 +377,10 @@ export function onMount(rootElement) {
         const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
         const itemTotal = (lineBase - lineDisc).toFixed(2);
         return `
-          <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${item.id}">
+          <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${escapeHtml(item.id)}">
             <div class="flex items-center justify-between">
                <div class="flex-1 min-w-0">
-                 <p class="text-xs font-semibold text-text truncate">${item.name}</p>
+                 <p class="text-xs font-semibold text-text truncate">${escapeHtml(item.name)}</p>
                  <p class="text-[10px] text-gray-400">₹${item.price} @ ${item.taxRate || 0}% GST</p>
                </div>
                <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
@@ -389,11 +391,11 @@ export function onMount(rootElement) {
             <div class="flex items-center justify-between gap-2 mt-1">
               <div class="flex items-center gap-1 shrink-0">
                 <span class="text-[10px] text-gray-400">Qty:</span>
-                <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${item.qty}" min="1">
+                <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.qty)}" min="1">
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <span class="text-[10px] text-gray-400">Disc %:</span>
-                <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${item.discountPercent || 0}" min="0" max="100">
+                <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.discountPercent || 0)}" min="0" max="100">
               </div>
               <div class="text-right shrink-0">
                 <p class="text-sm font-bold text-text row-total">₹${itemTotal}</p>
@@ -437,13 +439,13 @@ export function onMount(rootElement) {
     const product = allProducts.find(p => p.id === productId);
     if (!product) return;
     if (product.stock <= 0) {
-      window.showToast(`${product.name} is out of stock`, 'danger');
+      NotificationService.error(`${product.name} is out of stock`);
       return;
     }
     const existing = cart.find(item => item.id === productId);
     if (existing) {
       if (existing.qty >= product.stock) {
-        window.showToast(`Only ${product.stock} ${product.unit || 'units'} available`, 'warning');
+        NotificationService.warning(`Only ${product.stock} ${product.unit || 'units'} available`);
         return;
       }
       existing.qty += 1;
@@ -467,7 +469,7 @@ export function onMount(rootElement) {
     if (delta > 0) {
       const product = allProducts.find(p => p.id === productId);
       if (product && item.qty >= product.stock) {
-        window.showToast(`Only ${product.stock} ${product.unit || 'units'} available`, 'warning');
+        NotificationService.warning(`Only ${product.stock} ${product.unit || 'units'} available`);
         return;
       }
     }
@@ -513,14 +515,14 @@ export function onMount(rootElement) {
     }
 
     list.innerHTML = filtered.map(c => `
-      <div class="p-3 border-b border-border hover:bg-primary/5 cursor-pointer flex justify-between items-center customer-select-row transition-colors" data-id="${c.id}">
+      <div class="p-3 border-b border-border hover:bg-primary/5 cursor-pointer flex justify-between items-center customer-select-row transition-colors" data-id="${escapeHtml(c.id)}">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <span class="text-[10px] font-bold text-primary">${c.name.substring(0,2).toUpperCase()}</span>
+            <span class="text-[10px] font-bold text-primary">${escapeHtml(c.name.substring(0,2).toUpperCase())}</span>
           </div>
           <div>
-            <p class="text-sm font-semibold text-text">${c.name}</p>
-            <p class="text-[10px] text-gray-400">${c.phone || ''} ${c.type ? `· ${c.type}` : ''}</p>
+            <p class="text-sm font-semibold text-text">${escapeHtml(c.name)}</p>
+            <p class="text-[10px] text-gray-400">${escapeHtml(c.phone || '')} ${c.type ? `· ${escapeHtml(c.type)}` : ''}</p>
           </div>
         </div>
         <span class="text-xs font-bold shrink-0 ${(c.outstanding || 0) > 0 ? 'text-danger' : 'text-gray-300'}">
@@ -544,15 +546,15 @@ export function onMount(rootElement) {
 
     const receiptArea = document.getElementById('print-receipt-area');
     receiptArea.innerHTML = `
-      <div class="receipt-title">${shopName}</div>
-      ${shopAddress ? `<div style="text-align:center;font-size:11px;">${shopAddress}</div>` : ''}
-      ${shopPhone ? `<div style="text-align:center;font-size:11px;">Ph: ${shopPhone}</div>` : ''}
-      ${gstin ? `<div style="text-align:center;font-size:11px;">GSTIN: ${gstin}</div>` : ''}
+      <div class="receipt-title">${escapeHtml(shopName)}</div>
+      ${shopAddress ? `<div style="text-align:center;font-size:11px;">${escapeHtml(shopAddress)}</div>` : ''}
+      ${shopPhone ? `<div style="text-align:center;font-size:11px;">Ph: ${escapeHtml(shopPhone)}</div>` : ''}
+      ${gstin ? `<div style="text-align:center;font-size:11px;">GSTIN: ${escapeHtml(gstin)}</div>` : ''}
       <div class="receipt-divider"></div>
-      <div style="font-size:11px;"><b>Invoice:</b> ${invoice.id}</div>
-      <div style="font-size:11px;"><b>Date:</b> ${date}</div>
-      <div style="font-size:11px;"><b>Customer:</b> ${invoice.customerName || 'Walk-in'}</div>
-      <div style="font-size:11px;"><b>Payment:</b> ${invoice.paymentMode}</div>
+      <div style="font-size:11px;"><b>Invoice:</b> ${escapeHtml(invoice.id)}</div>
+      <div style="font-size:11px;"><b>Date:</b> ${escapeHtml(date)}</div>
+      <div style="font-size:11px;"><b>Customer:</b> ${escapeHtml(invoice.customerName || 'Walk-in')}</div>
+      <div style="font-size:11px;"><b>Payment:</b> ${escapeHtml(invoice.paymentMode)}</div>
       <div class="receipt-divider"></div>
       <table style="width: 100%; font-size: 10px;">
         <tr><th style="text-align:left">Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr>
@@ -560,7 +562,7 @@ export function onMount(rootElement) {
            const disc = item.discountAmount > 0 ? `<br><small style="color:#666">(-₹${item.discountAmount.toFixed(2)})</small>` : '';
            return `
           <tr>
-            <td style="font-size:10px;">${item.name}${disc}</td>
+            <td style="font-size:10px;">${escapeHtml(item.name)}${disc}</td>
             <td style="text-align:center">${item.qty}</td>
             <td style="text-align:right">₹${item.price}</td>
             <td style="text-align:right">₹${item.total.toFixed(2)}</td>
@@ -588,11 +590,11 @@ export function onMount(rootElement) {
 
   const saveInvoice = () => {
     if (cart.length === 0) {
-      window.showToast('Cart is empty! Add products first.', 'warning');
+      NotificationService.warning('Cart is empty! Add products first.');
       return;
     }
     if (paymentMode === 'Credit' && !selectedCustomer) {
-      window.showToast('Please select a customer for Credit sale!', 'warning');
+      NotificationService.warning('Please select a customer for Credit sale!');
       return;
     }
 
@@ -655,10 +657,10 @@ export function onMount(rootElement) {
       renderCart();
       renderProducts();
       
-      window.showToast(`Invoice ${saved.id} saved successfully!`, 'success');
+      NotificationService.success(`Invoice ${saved.id} saved successfully!`);
       
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
   };
 
@@ -685,9 +687,9 @@ export function onMount(rootElement) {
       if (product) {
         addToCart(product.id);
         e.target.value = '';
-        window.showToast(`${product.name} added`, 'success');
+        NotificationService.success(`${product.name} added`);
       } else {
-        window.showToast('Product not found for this barcode', 'warning');
+        NotificationService.warning('Product not found for this barcode');
       }
     }
   });
@@ -707,7 +709,16 @@ export function onMount(rootElement) {
   });
 
   // Product clicks
-  rootElement.querySelector('#product-grid').addEventListener('click', (e) => {
+  const productGrid = rootElement.querySelector('#product-grid');
+  const handleImageError = (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains('pos-product-img')) {
+      e.target.style.display = 'none';
+      const next = e.target.nextElementSibling;
+      if (next) next.style.display = 'flex';
+    }
+  };
+  if (productGrid) productGrid.addEventListener('error', handleImageError, true);
+  productGrid.addEventListener('click', (e) => {
     const card = e.target.closest('.pos-product');
     if (card && !card.classList.contains('cursor-not-allowed')) {
       addToCart(card.getAttribute('data-id'));
@@ -805,7 +816,7 @@ export function onMount(rootElement) {
     if (lastSavedInvoice) {
       printReceipt(lastSavedInvoice);
     } else {
-      window.showToast('No invoice saved in this session.', 'warning');
+      NotificationService.warning('No invoice saved in this session.');
     }
   });
 
@@ -821,5 +832,6 @@ export function onMount(rootElement) {
   // Return cleanup
   return function cleanup() {
     window.removeEventListener('keydown', keyHandler);
+    if (productGrid) productGrid.removeEventListener('error', handleImageError, true);
   };
 }

@@ -9,6 +9,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="assets/css/tailwind-config.js"></script>
 
+  <!-- Debug Mode -->
+  <script src="scripts/debug_overlay.js"></script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,24 +27,12 @@
 
   <!-- Global Custom Styles -->
   <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="assets/css/global-system.css">
 </head>
 <body class="bg-bg text-text antialiased">
   
-  <!-- Sidebar Container -->
-  <div id="sidebar-root"></div>
-  
-  <!-- Main Application Wrapper -->
-  <div class="ml-64 transition-all duration-300" id="main-wrapper">
-    <!-- Navbar Container -->
-    <div id="navbar-root"></div>
-    
-    <!-- Page Content Container -->
-    <main class="pt-16 min-h-screen">
-      <div id="page-root" class="p-6 max-w-[1440px] mx-auto fade-in">
-        <!-- Route content dynamically injected here -->
-      </div>
-    </main>
-  </div>
+  <!-- Application Shell Root (Phase 4 Step 1: AppLayout) -->
+  <div id="app-root"></div>
 
   <!-- Modals, Toasts, and Overlays -->
   <div id="overlay-root"></div>

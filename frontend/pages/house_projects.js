@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - House Projects
  */
@@ -5,6 +6,7 @@ import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const projects = DataProvider.getProjects() || [];
@@ -36,15 +38,15 @@ export async function render() {
     const profit = Number(prj.budget || 0) - totalCost;
 
     return `
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openProjectDrawer', {detail: '${prj.id}'}))">
-      <td class="px-4 py-4 text-left" onclick="event.stopPropagation()">
+    <tr class="row-hover cursor-pointer" data-project-row="${escapeHtml(prj.id)}">
+      <td class="px-4 py-4 text-left">
         <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary">
       </td>
       <td class="px-4 py-4">
-        <p class="text-sm font-bold text-text">${prj.title || 'Unnamed Site'}</p>
-        <p class="text-xs text-gray-500 font-medium">${prj.phase || 'Phase 1 - Foundation'}</p>
+        <p class="text-sm font-bold text-text">${escapeHtml(prj.title || 'Unnamed Site')}</p>
+        <p class="text-xs text-gray-500 font-medium">${escapeHtml(prj.phase || 'Phase 1 - Foundation')}</p>
       </td>
-      <td class="px-4 py-4 text-sm text-gray-700">${prj.customer || '-'}</td>
+      <td class="px-4 py-4 text-sm text-gray-700">${escapeHtml(prj.customer || '-')}</td>
       <td class="px-4 py-4 text-right">
         <p class="text-sm font-bold text-text">₹${Number(prj.budget || 0).toLocaleString('en-IN')}</p>
         <p class="text-[10px] text-green-600 font-semibold uppercase">Adv: ₹${advance.toLocaleString('en-IN')}</p>
@@ -55,15 +57,15 @@ export async function render() {
       </td>
       <td class="px-4 py-4 text-center">
         <div class="flex flex-col items-center gap-1.5">
-           <span class="status-badge status-${statusColor}">${prj.status || 'Planned'}</span>
+           <span class="status-badge status-${statusColor}">${escapeHtml(prj.status || 'Planned')}</span>
            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-             <div class="bg-${statusColor} h-1.5 rounded-full" style="width: ${prj.completion || 0}%"></div>
+             <div class="bg-${statusColor} h-1.5 rounded-full" style="width: ${Number(prj.completion || 0)}%"></div>
            </div>
         </div>
       </td>
       <td class="px-4 py-4 text-center">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('deleteProject', {detail: '${prj.id}'}))">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <button class="project-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${escapeHtml(prj.id)}">
+          <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
     </tr>
@@ -169,7 +171,7 @@ export async function render() {
                       <div><label class="text-xs font-semibold text-gray-600 block mb-1">Customer (Owner) *</label>
                          <select id="prj-customer" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
                            <option value="">Select Customer...</option>
-                           ${DataProvider.getCustomers().map(c => `<option value="${c.id}">${c.name} (${c.id})</option>`).join('')}
+                           ${DataProvider.getCustomers().map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.id)})</option>`).join('')}
                          </select>
                       </div>
                       <div><label class="text-xs font-semibold text-gray-600 block mb-1">Site Address</label><textarea id="prj-address" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"></textarea></div>
@@ -287,22 +289,21 @@ export function onMount() {
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.p-tab-btn');
   const tabContents = document.querySelectorAll('.p-tab-content');
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const target = btn.getAttribute('data-target');
-      
-      tabBtns.forEach(b => {
-        b.classList.remove('active', 'border-primary', 'text-primary');
-        b.classList.add('border-transparent', 'text-gray-500');
-      });
-      btn.classList.add('active', 'border-primary', 'text-primary');
-      btn.classList.remove('border-transparent', 'text-gray-500');
-      
-      tabContents.forEach(c => c.classList.add('hidden'));
-      document.getElementById(target).classList.remove('hidden');
+  const handleTabClick = (e) => {
+    e.preventDefault();
+    const target = e.currentTarget.getAttribute('data-target');
+    
+    tabBtns.forEach(b => {
+      b.classList.remove('active', 'border-primary', 'text-primary');
+      b.classList.add('border-transparent', 'text-gray-500');
     });
-  });
+    e.currentTarget.classList.add('active', 'border-primary', 'text-primary');
+    e.currentTarget.classList.remove('border-transparent', 'text-gray-500');
+    
+    tabContents.forEach(c => c.classList.add('hidden'));
+    document.getElementById(target).classList.remove('hidden');
+  };
+  tabBtns.forEach(btn => btn.addEventListener('click', handleTabClick));
 
   const openForm = (id = null) => {
     const title = document.getElementById('drawer-title');
@@ -379,8 +380,8 @@ export function onMount() {
                 });
                 return `
                   <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-3 font-medium text-gray-700">${inv.date ? inv.date.split('T')[0] : '-'}</td>
-                    <td class="p-3 text-primary font-bold">#${inv.id}</td>
+                    <td class="p-3 font-medium text-gray-700">${escapeHtml(inv.date ? inv.date.split('T')[0] : '-')}</td>
+                    <td class="p-3 text-primary font-bold">#${escapeHtml(inv.id)}</td>
                     <td class="p-3 text-right font-bold text-gray-800">₹${Number(invCost).toLocaleString('en-IN')}</td>
                   </tr>
                 `;
@@ -401,111 +402,137 @@ export function onMount() {
     drawer.classList.add('drawer-enter-active');
   };
 
+  const handleNewProject = () => openForm();
   const addBtn = document.getElementById('btn-add-project');
-  if (addBtn) addBtn.addEventListener('click', () => openForm());
+  if (addBtn) addBtn.addEventListener('click', handleNewProject);
   
-  window.addEventListener('openProjectDrawer', (e) => openForm(e.detail));
-  
-  window.addEventListener('deleteProject', (e) => {
+  const handleOpenProjectDrawer = (e) => openForm(e.detail);
+  window.addEventListener('openProjectDrawer', handleOpenProjectDrawer);
+
+  const handleRowClick = (e) => {
+    const delBtn = e.target.closest('.project-delete-btn');
+    if (delBtn) {
+      const delId = delBtn.getAttribute('data-id');
+      if (delId) window.dispatchEvent(new CustomEvent('deleteProject', { detail: delId }));
+      return;
+    }
+    if (e.target.closest('input[type="checkbox"]')) return;
+    const row = e.target.closest('[data-project-row]');
+    if (!row) return;
+    const id = row.getAttribute('data-project-row');
+    if (id) window.dispatchEvent(new CustomEvent('openProjectDrawer', { detail: id }));
+  };
+  const projectsTbody = document.getElementById('projects-tbody');
+  if (projectsTbody) projectsTbody.addEventListener('click', handleRowClick);
+
+  const handleDeleteProject = (e) => {
     if (!window.confirm('Delete this project? This cannot be undone.')) return;
     try {
       DataProvider.deleteProject(e.detail);
-      const row = document.querySelector(`#projects-tbody tr[data-id="${e.detail}"]`);
+      const row = document.querySelector(`#projects-tbody tr[data-project-row="${e.detail}"]`);
       if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
-      window.showToast('Project deleted.', 'success');
+      NotificationService.success('Project deleted.');
     } catch(err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
-  });
+  };
+  window.addEventListener('deleteProject', handleDeleteProject);
 
   const closeBtns = document.querySelectorAll('.close-project-drawer');
-  closeBtns.forEach(b => b.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  const handleCloseClick = () => closeAll();
+  closeBtns.forEach(b => b.addEventListener('click', handleCloseClick));
+  overlay.addEventListener('click', handleCloseClick);
 
   // Initialize Draft Recovery
   const formEl = document.getElementById('project-form');
   if (formEl) DraftManager.init('project', formEl);
 
   const saveBtn = document.getElementById('save-prj-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      const form = document.getElementById('project-form');
-      if (!form.reportValidity()) return;
-      
-      try {
-        const prjSelect = document.getElementById('prj-customer');
-        const custName = prjSelect.options[prjSelect.selectedIndex]?.text.split(' (')[0] || '';
-        const project = {
-          id: document.getElementById('prj-id').value || null,
-          title: document.getElementById('prj-title').value,
-          phase: document.getElementById('prj-phase').value,
-          customer: custName,
-          address: document.getElementById('prj-address').value,
-          status: document.getElementById('prj-status').value,
-          completion: Number(document.getElementById('prj-completion').value || 0),
-          engineer: document.getElementById('prj-engineer').value,
-          contractor: document.getElementById('prj-contractor').value,
-          electrician: document.getElementById('prj-electrician').value,
-          plumber: document.getElementById('prj-plumber').value,
-          budget: Number(document.getElementById('prj-budget').value || 0),
-          advance: Number(document.getElementById('prj-advance').value || 0),
-          labour: Number(document.getElementById('prj-labour').value || 0),
-          expenses: Number(document.getElementById('prj-expenses').value || 0),
-          start: document.getElementById('prj-start').value,
-          end: document.getElementById('prj-end').value,
-          notes: document.getElementById('prj-notes').value
-        };
+  const handleSaveProject = () => {
+    const form = document.getElementById('project-form');
+    if (!form.reportValidity()) return;
+    
+    try {
+      const prjSelect = document.getElementById('prj-customer');
+      const custName = prjSelect.options[prjSelect.selectedIndex]?.text.split(' (')[0] || '';
+      const project = {
+        id: document.getElementById('prj-id').value || null,
+        title: document.getElementById('prj-title').value,
+        phase: document.getElementById('prj-phase').value,
+        customer: custName,
+        address: document.getElementById('prj-address').value,
+        status: document.getElementById('prj-status').value,
+        completion: Number(document.getElementById('prj-completion').value || 0),
+        engineer: document.getElementById('prj-engineer').value,
+        contractor: document.getElementById('prj-contractor').value,
+        electrician: document.getElementById('prj-electrician').value,
+        plumber: document.getElementById('prj-plumber').value,
+        budget: Number(document.getElementById('prj-budget').value || 0),
+        advance: Number(document.getElementById('prj-advance').value || 0),
+        labour: Number(document.getElementById('prj-labour').value || 0),
+        expenses: Number(document.getElementById('prj-expenses').value || 0),
+        start: document.getElementById('prj-start').value,
+        end: document.getElementById('prj-end').value,
+        notes: document.getElementById('prj-notes').value
+      };
 
-        // Preserve invoices array on edit
-        if (project.id) {
-          const existing = allProjects.find(p => p.id === project.id);
-          project.invoices = existing?.invoices || [];
-        } else {
-          project.invoices = [];
-        }
-
-        const saved = DataProvider.saveProject(project);
-        DraftManager.clearDraft('project');
-        closeAll();
-        window.showToast('Project saved!', 'success');
-
-        // In-place tbody refresh
-        const freshProjects = DataProvider.getProjects();
-        const tbody = document.getElementById('projects-tbody');
-        if (tbody) {
-          if (freshProjects.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-12 text-center text-gray-400 text-sm">No active sites found.</td></tr>';
-          } else {
-            tbody.innerHTML = freshProjects.map(prj => {
-              let sc = 'primary';
-              if (prj.status === 'Planned' || prj.status === 'On Hold') sc = 'warning';
-              if (prj.status === 'Completed') sc = 'success';
-              const materialCost = Array.isArray(prj.invoices)
-                ? prj.invoices.reduce((sum, invId) => {
-                    const inv = DataProvider.getSalesInvoices().find(i => i.id === invId);
-                    return sum + (inv ? Number(inv.totalAmount || 0) : 0);
-                  }, 0) : 0;
-              const totalCost = materialCost + Number(prj.labour || 0) + Number(prj.expenses || 0);
-              return `<tr class="row-hover cursor-pointer" data-id="${prj.id}" onclick="window.dispatchEvent(new CustomEvent('openProjectDrawer', {detail: '${prj.id}'}))">
-                <td class="px-4 py-4 text-left" onclick="event.stopPropagation()"><input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary"></td>
-                <td class="px-4 py-4"><p class="text-sm font-bold text-text">${prj.title || 'Unnamed Site'}</p><p class="text-xs text-gray-500">${prj.phase || ''}</p></td>
-                <td class="px-4 py-4 text-sm text-gray-700">${prj.customer || '-'}</td>
-                <td class="px-4 py-4 text-right"><p class="text-sm font-bold text-text">₹${Number(prj.budget || 0).toLocaleString('en-IN')}</p><p class="text-[10px] text-green-600 font-semibold uppercase">Adv: ₹${Number(prj.advance || 0).toLocaleString('en-IN')}</p></td>
-                <td class="px-4 py-4 text-right"><p class="text-sm font-bold text-danger">₹${totalCost.toLocaleString('en-IN')}</p><p class="text-[10px] text-gray-500 uppercase">Mat + Lab + Exp</p></td>
-                <td class="px-4 py-4 text-center"><span class="status-badge status-${sc}">${prj.status || 'Planned'}</span></td>
-                <td class="px-4 py-4 text-center"><button class="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('deleteProject', {detail: '${prj.id}'}))" ><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-              </tr>`;
-            }).join('');
-          }
-          if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-        }
-      } catch (err) {
-        window.showToast(err.message, 'danger');
+      // Preserve invoices array on edit
+      if (project.id) {
+        const existing = allProjects.find(p => p.id === project.id);
+        project.invoices = existing?.invoices || [];
+      } else {
+        project.invoices = [];
       }
-    });
-  }
+
+      const saved = DataProvider.saveProject(project);
+      DraftManager.clearDraft('project');
+      closeAll();
+      NotificationService.success('Project saved!');
+
+      // In-place tbody refresh
+      const freshProjects = DataProvider.getProjects();
+      const tbody = document.getElementById('projects-tbody');
+      if (tbody) {
+        if (freshProjects.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-12 text-center text-gray-400 text-sm">No active sites found.</td></tr>';
+        } else {
+          tbody.innerHTML = freshProjects.map(prj => {
+            let sc = 'primary';
+            if (prj.status === 'Planned' || prj.status === 'On Hold') sc = 'warning';
+            if (prj.status === 'Completed') sc = 'success';
+            const materialCost = Array.isArray(prj.invoices)
+              ? prj.invoices.reduce((sum, invId) => {
+                  const inv = DataProvider.getSalesInvoices().find(i => i.id === invId);
+                  return sum + (inv ? Number(inv.totalAmount || 0) : 0);
+                }, 0) : 0;
+            const totalCost = materialCost + Number(prj.labour || 0) + Number(prj.expenses || 0);
+            return `<tr class="row-hover cursor-pointer" data-project-row="${escapeHtml(prj.id)}">
+              <td class="px-4 py-4 text-left"><input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary"></td>
+              <td class="px-4 py-4"><p class="text-sm font-bold text-text">${escapeHtml(prj.title || 'Unnamed Site')}</p><p class="text-xs text-gray-500">${escapeHtml(prj.phase || '')}</p></td>
+              <td class="px-4 py-4 text-sm text-gray-700">${escapeHtml(prj.customer || '-')}</td>
+              <td class="px-4 py-4 text-right"><p class="text-sm font-bold text-text">₹${Number(prj.budget || 0).toLocaleString('en-IN')}</p><p class="text-[10px] text-green-600 font-semibold uppercase">Adv: ₹${Number(prj.advance || 0).toLocaleString('en-IN')}</p></td>
+              <td class="px-4 py-4 text-right"><p class="text-sm font-bold text-danger">₹${totalCost.toLocaleString('en-IN')}</p><p class="text-[10px] text-gray-500 uppercase">Mat + Lab + Exp</p></td>
+              <td class="px-4 py-4 text-center"><span class="status-badge status-${sc}">${escapeHtml(prj.status || 'Planned')}</span></td>
+              <td class="px-4 py-4 text-center"><button class="project-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10" data-id="${escapeHtml(prj.id)}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
+            </tr>`;
+          }).join('');
+        }
+        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+      }
+    } catch (err) {
+      NotificationService.error(err.message);
+    }
+  };
+  if (saveBtn) saveBtn.addEventListener('click', handleSaveProject);
 
   return function cleanup() {
-    window.removeEventListener('openProjectDrawer', openForm);
+    window.removeEventListener('openProjectDrawer', handleOpenProjectDrawer);
+    window.removeEventListener('deleteProject', handleDeleteProject);
+    tabBtns.forEach(btn => btn.removeEventListener('click', handleTabClick));
+    if (projectsTbody) projectsTbody.removeEventListener('click', handleRowClick);
+    if (addBtn) addBtn.removeEventListener('click', handleNewProject);
+    if (saveBtn) saveBtn.removeEventListener('click', handleSaveProject);
+    closeBtns.forEach(b => b.removeEventListener('click', handleCloseClick));
+    overlay.removeEventListener('click', handleCloseClick);
   };
 }

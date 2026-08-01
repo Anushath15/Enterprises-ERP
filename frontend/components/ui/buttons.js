@@ -75,8 +75,10 @@ export function GhostButton({ label, id = '', type = 'button', fullWidth = false
 
 /**
  * Creates a quick action square button with an icon on top
+ * @param {Object} props - { label, id, iconSvg, color, dataAttrs }
+ * dataAttrs: additional static attributes (e.g. data-route, data-action) for delegated click handling.
  */
-export function IconButton({ label, id = '', iconSvg, color = 'primary', onClick = '' }) {
+export function IconButton({ label, id = '', iconSvg, color = 'primary', dataAttrs = '' }) {
   // Mapping color to tailwind classes explicitly since dynamic concatenation in Tailwind sometimes fails in JIT without safelist.
   let colorClasses = {
     wrapper: 'hover:border-primary/30 hover:bg-primary/5',
@@ -93,7 +95,7 @@ export function IconButton({ label, id = '', iconSvg, color = 'primary', onClick
   }
 
   return `
-    <button id="${id}" onclick="${onClick}" class="flex flex-col items-center justify-center p-4 rounded-lg border border-border transition-all group ${colorClasses.wrapper} focus:outline-none">
+    <button id="${id}" ${dataAttrs} class="flex flex-col items-center justify-center p-4 rounded-lg border border-border transition-all group ${colorClasses.wrapper} focus:outline-none">
       <div class="w-9 h-9 rounded-lg flex items-center justify-center mb-2 transition-colors ${colorClasses.iconBg}">
         <div class="w-4 h-4 ${colorClasses.iconText}">${iconSvg}</div>
       </div>

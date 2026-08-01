@@ -4,7 +4,14 @@ All notable changes to the Senthil Enterprises ERP project will be documented in
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc3.1] - 2026-07-30
+### Added
+- **Local Development Workflow**: Strict `live-server` testing, custom debug overlay, and Puppeteer QA automation.
+- **Form Persistence**: Integrated DraftManager for session persistence across forms.
+- **Workflow Security**: Disabled automated Git and Firebase deployments; all releases require explicit manual text triggers.
+
 ## [1.0.0-rc3] - 2026-07-29
+
 
 ### Added
 - **Profit Analysis**: Added a 7-day Gross and Net Profit tracker to the Dashboard.

@@ -41,6 +41,17 @@ export const OfflineDataProvider = {
     
     return `${prefix}-${countStr}`;
   },
+
+  getNextSequence(type) {
+    const state = LocalStorageService.get('erp_system_state') || {};
+    let counterKey = `sequence_${type}`;
+    if (state[counterKey] === undefined) {
+      state[counterKey] = 0;
+    }
+    state[counterKey]++;
+    LocalStorageService.set('erp_system_state', state);
+    return state[counterKey];
+  },
   
   getBaseMetadata() {
     return {

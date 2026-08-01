@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Dealers (Suppliers) Module
  */
@@ -5,39 +6,40 @@ import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const dealers = DataProvider.getDealers() || [];
   
   const renderRow = (d) => {
     return `
-    <tr class="row-hover cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('openDealerDrawer', {detail: '${d.id}'}))">
-      <td class="px-4 py-3.5 text-left" onclick="event.stopPropagation()">
+    <tr class="row-hover cursor-pointer" data-dealer-row="${escapeHtml(d.id)}">
+      <td class="px-4 py-3.5 text-left">
         <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary">
       </td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
-            ${(d.companyName || d.name || 'D').substring(0, 2)}
+            ${escapeHtml((d.companyName || d.name || 'D').substring(0, 2))}
           </div>
           <div>
-            <p class="text-sm font-semibold text-text">${d.companyName || d.name}</p>
-            <p class="text-[10px] text-gray-500 font-medium">${d.contactPerson || d.name} ${d.gst ? `• GST: ${d.gst}` : ''}</p>
+            <p class="text-sm font-semibold text-text">${escapeHtml(d.companyName || d.name)}</p>
+            <p class="text-[10px] text-gray-500 font-medium">${escapeHtml(d.contactPerson || d.name)} ${d.gst ? `• GST: ${escapeHtml(d.gst)}` : ''}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${d.phone || '-'}</td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(d.phone || '-')}</td>
       <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
       <td class="px-4 py-3.5 text-right">
         <span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${d.latestPurchase || 'Never'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(d.latestPurchase || 'Never')}</td>
       <td class="px-4 py-3.5 text-center">
-        <span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-warning'}">${d.status || 'Active'}</span>
+        <span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-warning'}">${escapeHtml(d.status || 'Active')}</span>
       </td>
       <td class="px-4 py-3.5 text-center">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-danger transition-colors" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('deleteDealer', {detail: '${d.id}'}))">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <button class="dealer-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger transition-colors" data-dealer-id="${escapeHtml(d.id)}" title="Delete Dealer">
+          <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
     </tr>
@@ -270,15 +272,15 @@ export function onMount() {
         dealersTbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No dealers match your search</td></tr>';
       } else {
         dealersTbody.innerHTML = filtered.map(d => `
-          <tr class="row-hover cursor-pointer" data-id="${d.id}" onclick="window.dispatchEvent(new CustomEvent('openDealerDrawer', {detail: '${d.id}'}))">
-            <td class="px-4 py-3.5" onclick="event.stopPropagation()"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
-            <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${(d.companyName || d.name || 'D').substring(0, 2).toUpperCase()}</div><div><p class="text-sm font-semibold text-text">${d.companyName || d.name}</p><p class="text-[10px] text-gray-500">${d.contactPerson || d.name}${d.gst ? ` • ${d.gst}` : ''}</p></div></div></td>
-            <td class="px-4 py-3.5 text-sm font-medium text-text">${d.phone || '-'}</td>
+          <tr class="row-hover cursor-pointer" data-dealer-row="${escapeHtml(d.id)}">
+            <td class="px-4 py-3.5"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
+            <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${escapeHtml((d.companyName || d.name || 'D').substring(0, 2).toUpperCase())}</div><div><p class="text-sm font-semibold text-text">${escapeHtml(d.companyName || d.name)}</p><p class="text-[10px] text-gray-500">${escapeHtml(d.contactPerson || d.name)}${d.gst ? ` • ${escapeHtml(d.gst)}` : ''}</p></div></div></td>
+            <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(d.phone || '-')}</td>
             <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased || 0).toLocaleString('en-IN')}</td>
             <td class="px-4 py-3.5 text-right"><span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding || 0).toLocaleString('en-IN')}</span></td>
-            <td class="px-4 py-3.5 text-sm text-gray-500">${d.latestPurchase || 'Never'}</td>
-            <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${d.status || 'Active'}</span></td>
-            <td class="px-4 py-3.5 text-center" onclick="event.stopPropagation()"><button class="p-1.5 rounded-lg text-gray-400 hover:text-danger" onclick="window.dispatchEvent(new CustomEvent('deleteDealer', {detail: '${d.id}'}))"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+            <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(d.latestPurchase || 'Never')}</td>
+            <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${escapeHtml(d.status || 'Active')}</span></td>
+            <td class="px-4 py-3.5 text-center"><button class="dealer-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger" data-dealer-id="${escapeHtml(d.id)}" title="Delete Dealer"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
           </tr>`).join('');
         if (window.lucide) window.lucide.createIcons({ nodes: [dealersTbody] });
       }
@@ -361,9 +363,9 @@ export function onMount() {
           const tbody = document.getElementById('dealer-history-tbody');
           tbody.innerHTML = invoices.map(i => `
             <tr class="border-b border-gray-100 hover:bg-gray-50">
-              <td class="p-3 font-medium text-gray-700">${i.date.split('T')[0]}</td>
-              <td class="p-3 text-primary font-bold">#${i.id}</td>
-              <td class="p-3"><span class="status-badge ${i.status === 'Paid' ? 'status-success' : 'status-warning'}">${i.status || 'Pending'}</span></td>
+              <td class="p-3 font-medium text-gray-700">${escapeHtml(i.date.split('T')[0])}</td>
+              <td class="p-3 text-primary font-bold">#${escapeHtml(i.id)}</td>
+              <td class="p-3"><span class="status-badge ${i.status === 'Paid' ? 'status-success' : 'status-warning'}">${escapeHtml(i.status || 'Pending')}</span></td>
               <td class="p-3 text-right font-bold text-gray-800">₹${i.totalAmount.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
             </tr>
           `).join('') || '<tr><td colspan="4" class="p-6 text-center text-gray-400">No purchase history available.</td></tr>';
@@ -383,15 +385,30 @@ export function onMount() {
   const addBtn = document.getElementById('add-new-dealer');
   if (addBtn) addBtn.addEventListener('click', () => openForm());
   
-  window.addEventListener('openDealerDrawer', (e) => openForm(e.detail));
-  
-  window.addEventListener('deleteDealer', (e) => {
+  const handleOpenDealer = (e) => openForm(e.detail);
+  window.addEventListener('openDealerDrawer', handleOpenDealer);
+
+  const handleDeleteDealer = (e) => {
     if (!window.confirm('Delete this dealer? This cannot be undone.')) return;
     DataProvider.deleteDealer(e.detail);
-    const row = document.querySelector(`#dealers-tbody tr[data-id="${e.detail}"]`);
+    const row = document.querySelector(`#dealers-tbody tr[data-dealer-row="${e.detail}"]`);
     if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
-    window.showToast('Dealer deleted', 'success');
-  });
+    NotificationService.success('Dealer deleted');
+  };
+  window.addEventListener('deleteDealer', handleDeleteDealer);
+
+  // Delegated table clicks (replaces inline onclick)
+  const handleDealersTableClick = (e) => {
+    const delBtn = e.target.closest('.dealer-delete-btn');
+    if (delBtn) {
+      e.stopPropagation();
+      handleDeleteDealer({ detail: delBtn.getAttribute('data-dealer-id') });
+      return;
+    }
+    const row = e.target.closest('[data-dealer-row]');
+    if (row) openForm(row.getAttribute('data-dealer-row'));
+  };
+  dealersTbody.addEventListener('click', handleDealersTableClick);
 
   const closeBtns = document.querySelectorAll('.close-dealer-drawer');
   closeBtns.forEach(b => b.addEventListener('click', closeAll));
@@ -438,28 +455,29 @@ export function onMount() {
         if (tbody) {
           tbody.innerHTML = freshDealers.length > 0
             ? freshDealers.map(d => {
-                return `<tr class="row-hover cursor-pointer" data-id="${d.id}" onclick="window.dispatchEvent(new CustomEvent('openDealerDrawer', {detail: '${d.id}'}))">
-                  <td class="px-4 py-3.5" onclick="event.stopPropagation()"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
-                  <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${(d.companyName || d.name || 'D').substring(0,2).toUpperCase()}</div><div><p class="text-sm font-semibold text-text">${d.companyName || d.name}</p><p class="text-[10px] text-gray-500">${d.contactPerson || d.name}${d.gst ? ` • ${d.gst}` : ''}</p></div></div></td>
-                  <td class="px-4 py-3.5 text-sm font-medium text-text">${d.phone || '-'}</td>
+                return `<tr class="row-hover cursor-pointer" data-dealer-row="${escapeHtml(d.id)}">
+                  <td class="px-4 py-3.5"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
+                  <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${escapeHtml((d.companyName || d.name || 'D').substring(0,2).toUpperCase())}</div><div><p class="text-sm font-semibold text-text">${escapeHtml(d.companyName || d.name)}</p><p class="text-[10px] text-gray-500">${escapeHtml(d.contactPerson || d.name)}${d.gst ? ` • ${escapeHtml(d.gst)}` : ''}</p></div></div></td>
+                  <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(d.phone || '-')}</td>
                   <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased||0).toLocaleString('en-IN')}</td>
                   <td class="px-4 py-3.5 text-right"><span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding||0).toLocaleString('en-IN')}</span></td>
-                  <td class="px-4 py-3.5 text-sm text-gray-500">${d.latestPurchase || 'Never'}</td>
-                  <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${d.status || 'Active'}</span></td>
-                  <td class="px-4 py-3.5 text-center" onclick="event.stopPropagation()"><button class="p-1.5 rounded-lg text-gray-400 hover:text-danger" onclick="window.dispatchEvent(new CustomEvent('deleteDealer', {detail: '${d.id}'}))" ><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                  <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(d.latestPurchase || 'Never')}</td>
+                  <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${escapeHtml(d.status || 'Active')}</span></td>
+                  <td class="px-4 py-3.5 text-center"><button class="dealer-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger" data-dealer-id="${escapeHtml(d.id)}" title="Delete Dealer"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
                 </tr>`;
               }).join('')
             : '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400">No dealers</td></tr>';
           if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
         }
-        window.showToast('Dealer saved!', 'success');
+        NotificationService.success('Dealer saved!');
       } catch (err) {
-        window.showToast(err.message, 'danger');
+        NotificationService.error(err.message);
       }
     });
   }
 
   return function cleanup() {
-    window.removeEventListener('openDealerDrawer', openForm);
+    window.removeEventListener('openDealerDrawer', handleOpenDealer);
+    window.removeEventListener('deleteDealer', handleDeleteDealer);
   };
 }

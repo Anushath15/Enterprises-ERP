@@ -4,6 +4,7 @@
  * Add view invoice detail modal.
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const invoices = DataProvider.getSalesInvoices() || [];
@@ -27,15 +28,15 @@ export async function render() {
     const totalAmt = Number(row.totalAmount || row.total || 0);
     
     return `
-      <tr class="row-hover" data-invoice-id="${row.id}">
-        <td class="px-4 py-3 font-semibold text-primary text-sm cursor-pointer view-invoice-btn" data-id="${row.id}">${row.id}</td>
+      <tr class="row-hover" data-invoice-id="${escapeHtml(row.id)}">
+        <td class="px-4 py-3 font-semibold text-primary text-sm cursor-pointer view-invoice-btn" data-id="${escapeHtml(row.id)}">${escapeHtml(row.id)}</td>
         <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">${dateStr}</td>
         <td class="px-4 py-3">
           <div class="flex items-center gap-2">
             <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-              ${(row.customerName || 'WK').substring(0, 2).toUpperCase()}
+              ${escapeHtml((row.customerName || 'WK').substring(0, 2).toUpperCase())}
             </div>
-            <span class="text-sm font-medium text-text truncate max-w-[140px]">${row.customerName || 'Walk-in Customer'}</span>
+            <span class="text-sm font-medium text-text truncate max-w-[140px]">${escapeHtml(row.customerName || 'Walk-in Customer')}</span>
           </div>
         </td>
         <td class="px-4 py-3 text-sm text-gray-500 text-center">${(row.items || []).length}</td>
@@ -43,16 +44,16 @@ export async function render() {
           <span class="text-sm font-bold text-text">₹${totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
         </td>
         <td class="px-4 py-3 text-center">
-          <span class="text-xs text-gray-600 font-medium px-2 py-1 bg-gray-100 rounded-lg">${row.paymentMode || 'Cash'}</span>
+          <span class="text-xs text-gray-600 font-medium px-2 py-1 bg-gray-100 rounded-lg">${escapeHtml(row.paymentMode || 'Cash')}</span>
         </td>
         <td class="px-4 py-3 text-center">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${statusText}</span>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${escapeHtml(statusText)}</span>
         </td>
         <td class="px-4 py-3 text-right">
-          <button class="view-invoice-btn p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" data-id="${row.id}" title="View Invoice">
+          <button class="view-invoice-btn p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" data-id="${escapeHtml(row.id)}" title="View Invoice">
             <i data-lucide="eye" class="w-4 h-4"></i>
           </button>
-          <button class="print-invoice-btn p-1.5 text-gray-400 hover:text-success hover:bg-success/10 rounded-lg transition-colors" data-id="${row.id}" title="Print Invoice">
+          <button class="print-invoice-btn p-1.5 text-gray-400 hover:text-success hover:bg-success/10 rounded-lg transition-colors" data-id="${escapeHtml(row.id)}" title="Print Invoice">
             <i data-lucide="printer" class="w-4 h-4"></i>
           </button>
         </td>
@@ -66,7 +67,7 @@ export async function render() {
           <i data-lucide="receipt" class="w-10 h-10"></i>
           <p class="text-sm font-medium">No sales found</p>
           <p class="text-xs">Create your first invoice from POS</p>
-          <button onclick="window.location.hash='#/pos'" class="mt-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90">Go to POS</button>
+          <button data-sales-nav="#/pos" class="mt-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90">Go to POS</button>
         </div>
       </td></tr>`;
 
@@ -80,10 +81,10 @@ export async function render() {
           <p class="text-sm text-gray-500 mt-1">View and manage all sales invoices</p>
         </div>
         <div class="flex items-center gap-3">
-          <button class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2 transition-colors" onclick="window.location.hash='#/sales-returns'">
+          <button data-sales-nav="#/sales-returns" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2 transition-colors">
             <i data-lucide="corner-down-left" class="w-4 h-4"></i> Sales Returns
           </button>
-          <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors" onclick="window.location.hash='#/pos'">
+          <button data-sales-nav="#/pos" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i> New Invoice
           </button>
         </div>
@@ -244,30 +245,30 @@ export function onMount(rootElement) {
         const totalAmt = Number(row.totalAmount || row.total || 0);
         
         return `
-          <tr class="row-hover" data-invoice-id="${row.id}">
-            <td class="px-4 py-3 font-semibold text-primary text-sm cursor-pointer view-invoice-btn" data-id="${row.id}">${row.id}</td>
+          <tr class="row-hover" data-invoice-id="${escapeHtml(row.id)}">
+            <td class="px-4 py-3 font-semibold text-primary text-sm cursor-pointer view-invoice-btn" data-id="${escapeHtml(row.id)}">${escapeHtml(row.id)}</td>
             <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">${dateStr}</td>
             <td class="px-4 py-3">
               <div class="flex items-center gap-2">
                 <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-                  ${(row.customerName || 'WK').substring(0, 2).toUpperCase()}
+                  ${escapeHtml((row.customerName || 'WK').substring(0, 2).toUpperCase())}
                 </div>
-                <span class="text-sm font-medium text-text truncate max-w-[140px]">${row.customerName || 'Walk-in Customer'}</span>
+                <span class="text-sm font-medium text-text truncate max-w-[140px]">${escapeHtml(row.customerName || 'Walk-in Customer')}</span>
               </div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-500 text-center">${(row.items || []).length}</td>
             <td class="px-4 py-3 text-right font-bold text-text">₹${totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             <td class="px-4 py-3 text-center">
-              <span class="text-xs text-gray-600 font-medium px-2 py-1 bg-gray-100 rounded-lg">${row.paymentMode || 'Cash'}</span>
+              <span class="text-xs text-gray-600 font-medium px-2 py-1 bg-gray-100 rounded-lg">${escapeHtml(row.paymentMode || 'Cash')}</span>
             </td>
             <td class="px-4 py-3 text-center">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${statusText}</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}">${escapeHtml(statusText)}</span>
             </td>
             <td class="px-4 py-3 text-right">
-              <button class="view-invoice-btn p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" data-id="${row.id}" title="View">
+              <button class="view-invoice-btn p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" data-id="${escapeHtml(row.id)}" title="View">
                 <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
-              <button class="print-invoice-btn p-1.5 text-gray-400 hover:text-success hover:bg-success/10 rounded-lg transition-colors" data-id="${row.id}" title="Print">
+              <button class="print-invoice-btn p-1.5 text-gray-400 hover:text-success hover:bg-success/10 rounded-lg transition-colors" data-id="${escapeHtml(row.id)}" title="Print">
                 <i data-lucide="printer" class="w-4 h-4"></i>
               </button>
             </td>
@@ -301,7 +302,7 @@ export function onMount(rootElement) {
     modal.innerHTML = `
       <div class="p-6 border-b border-border flex items-center justify-between">
         <div>
-          <h3 class="text-xl font-bold text-text">Invoice ${inv.id}</h3>
+          <h3 class="text-xl font-bold text-text">Invoice ${escapeHtml(inv.id)}</h3>
           <p class="text-sm text-gray-400 mt-0.5">${dateStr}</p>
         </div>
         <div class="flex items-center gap-2">
@@ -322,11 +323,11 @@ export function onMount(rootElement) {
         <div class="grid grid-cols-2 gap-4">
           <div class="bg-gray-50 p-4 rounded-xl">
             <p class="text-xs text-gray-400 mb-1">Customer</p>
-            <p class="text-sm font-bold text-text">${inv.customerName || 'Walk-in Customer'}</p>
+            <p class="text-sm font-bold text-text">${escapeHtml(inv.customerName || 'Walk-in Customer')}</p>
           </div>
           <div class="bg-gray-50 p-4 rounded-xl">
             <p class="text-xs text-gray-400 mb-1">Payment</p>
-            <p class="text-sm font-bold text-text">${inv.paymentMode || 'Cash'}</p>
+            <p class="text-sm font-bold text-text">${escapeHtml(inv.paymentMode || 'Cash')}</p>
             <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${isPaid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${isPaid ? 'Paid' : 'Pending'}</span>
           </div>
         </div>
@@ -346,7 +347,7 @@ export function onMount(rootElement) {
             <tbody class="divide-y divide-border">
               ${(inv.items || []).map(item => `
                 <tr>
-                  <td class="px-4 py-3 text-sm font-medium text-text">${item.name}</td>
+                  <td class="px-4 py-3 text-sm font-medium text-text">${escapeHtml(item.name)}</td>
                   <td class="px-4 py-3 text-sm text-gray-500 text-center">${item.qty}</td>
                   <td class="px-4 py-3 text-sm text-gray-500 text-right">₹${(item.price || 0).toLocaleString('en-IN')}</td>
                   <td class="px-4 py-3 text-sm text-gray-500 text-right">${item.taxRate || 0}%</td>
@@ -415,18 +416,18 @@ export function onMount(rootElement) {
     const date = new Date(inv.date).toLocaleString('en-IN');
     const receiptArea = document.getElementById('print-receipt-area');
     receiptArea.innerHTML = `
-      <div class="receipt-title">${shopName}</div>
+      <div class="receipt-title">${escapeHtml(shopName)}</div>
       <div class="receipt-divider"></div>
-      <div style="font-size:11px;"><b>Invoice:</b> ${inv.id}</div>
+      <div style="font-size:11px;"><b>Invoice:</b> ${escapeHtml(inv.id)}</div>
       <div style="font-size:11px;"><b>Date:</b> ${date}</div>
-      <div style="font-size:11px;"><b>Customer:</b> ${inv.customerName || 'Walk-in'}</div>
-      <div style="font-size:11px;"><b>Payment:</b> ${inv.paymentMode}</div>
+      <div style="font-size:11px;"><b>Customer:</b> ${escapeHtml(inv.customerName || 'Walk-in')}</div>
+      <div style="font-size:11px;"><b>Payment:</b> ${escapeHtml(inv.paymentMode)}</div>
       <div class="receipt-divider"></div>
       <table>
         <tr><th style="text-align:left">Item</th><th>Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr>
         ${(inv.items || []).map(item => `
           <tr>
-            <td style="font-size:10px;">${item.name}</td>
+            <td style="font-size:10px;">${escapeHtml(item.name)}</td>
             <td style="text-align:center">${item.qty}</td>
             <td style="text-align:right">₹${item.price}</td>
             <td style="text-align:right">₹${(item.qty * item.price).toFixed(2)}</td>
@@ -459,7 +460,14 @@ export function onMount(rootElement) {
   };
 
   tbody.addEventListener('click', handleTableClick);
-  
+
+  // Header / empty-state navigation (delegated, no inline handlers)
+  const handleNavClick = (e) => {
+    const btn = e.target.closest('[data-sales-nav]');
+    if (btn) window.location.hash = btn.getAttribute('data-sales-nav');
+  };
+  rootElement.addEventListener('click', handleNavClick);
+
   // ESC to close modal
   const keyHandler = (e) => { if (e.key === 'Escape') closeInvoiceModal(); };
   window.addEventListener('keydown', keyHandler);

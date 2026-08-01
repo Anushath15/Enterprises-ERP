@@ -33,6 +33,13 @@ export const routes = [
     roles: ['admin', 'manager']
   },
   {
+    path: '/products',
+    name: 'Products',
+    componentPath: '../pages/products.js',
+    authRequired: true,
+    roles: ['admin', 'manager']
+  },
+  {
     path: '/categories',
     name: 'Categories',
     componentPath: '../pages/categories.js',
@@ -56,9 +63,23 @@ export const routes = [
   {
     path: '/purchases',
     name: 'Purchases',
-    componentPath: '../pages/purchases.js',
+    componentPath: '../pages/purchases/index.js',
     authRequired: true,
     roles: ['admin', 'manager']
+  },
+  {
+    path: '/purchases/new',
+    name: 'New Purchase Order',
+    componentPath: '../pages/purchases/new.js',
+    authRequired: true,
+    roles: ['admin', 'manager']
+  },
+  {
+    path: '/sales/new',
+    name: 'New Sales Invoice',
+    componentPath: '../pages/sales/new.js',
+    authRequired: true,
+    roles: ['admin', 'manager', 'user']
   },
   {
     path: '/dealers',

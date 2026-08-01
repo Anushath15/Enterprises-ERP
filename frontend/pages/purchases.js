@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Purchases Page Controller
  */
@@ -5,6 +6,7 @@ import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const purchases = DataProvider.getPurchaseInvoices();
@@ -18,28 +20,28 @@ export async function render() {
     const statusColor = po.status === 'Pending' ? 'warning' : (po.status === 'Received' ? 'success' : 'danger');
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${po.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer', {detail: '${po.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${po.invoiceNumber || po.id}</td>
+    <tr class="row-hover cursor-pointer" data-id="${escapeHtml(po.id)}" data-open-po="${escapeHtml(po.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(po.invoiceNumber || po.id)}</td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-2.5">
           <div class="w-7 h-7 rounded-full bg-${dealerColor}/10 flex items-center justify-center">
-            <span class="text-[10px] font-bold text-${dealerColor}">${initials}</span>
+            <span class="text-[10px] font-bold text-${dealerColor}">${escapeHtml(initials)}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-text">${dealerName}</p>
-            <p class="text-[10px] text-gray-400">${dealer.phone}</p>
+            <p class="text-sm font-medium text-text">${escapeHtml(dealerName)}</p>
+            <p class="text-[10px] text-gray-400">${escapeHtml(dealer.phone)}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm ${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">${po.date}</td>
+      <td class="px-4 py-3.5 text-sm ${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">${escapeHtml(po.date)}</td>
       <td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td>
       <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${(po.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
       <td class="px-4 py-3.5">
-        <span class="status-badge status-${statusColor}">${po.status}</span>
+        <span class="status-badge status-${statusColor}">${escapeHtml(po.status)}</span>
       </td>
       <td class="px-4 py-3.5 text-right">
         <div class="flex items-center justify-end gap-1">
-          <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))">
+          <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-open-po-new title="New Purchase Order">
             <i data-lucide="edit" class="w-4 h-4"></i>
           </button>
         </div>
@@ -56,7 +58,7 @@ export async function render() {
           <p class="text-sm text-gray-400 mt-1">Track purchase orders, manage suppliers, and monitor deliveries.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
+          <button id="btn-new-po" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors btn-primary">
             <i data-lucide="plus" class="w-4 h-4"></i>
             New Purchase Order
           </button>
@@ -147,7 +149,7 @@ export async function render() {
           <label class="text-xs font-medium text-gray-500 block mb-1.5">Dealer / Supplier *</label>
           <select id="po-dealer" class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
             <option value="">-- Select Dealer --</option>
-            ${dealers.map(d => `<option value="${d.id}">${d.companyName || d.name}</option>`).join('')}
+            ${dealers.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.companyName || d.name)}</option>`).join('')}
           </select>
         </div>
 
@@ -240,12 +242,11 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
-  document.getElementById('sidebar-root').style.display = 'flex';
-  document.getElementById('navbar-root').style.display = 'flex';
-
   const overlay = rootElement.querySelector('#purchase-drawer-overlay');
   const formDrawer = rootElement.querySelector('#purchase-form-drawer');
   const closeBtns = rootElement.querySelectorAll('.close-purchase-drawer');
+
+  let removeDocumentClick = () => {};
 
   // Set default date
   const today = new Date().toISOString().split('T')[0];
@@ -275,7 +276,7 @@ export function onMount(rootElement) {
     const dealer = DataProvider.getDealerById(po.dealerId) || { name: 'Unknown', companyName: 'Unknown', phone: '' };
     const dealerName = dealer.companyName || dealer.name || 'Unknown';
     const sc = po.status === 'Pending' ? 'warning' : (po.status === 'Received' ? 'success' : 'danger');
-    return `<tr class="row-hover cursor-pointer" data-id="${po.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer', {detail: '${po.id}'}))"><td class="px-4 py-3.5 font-semibold text-primary text-sm">${po.invoiceNumber || po.id}</td><td class="px-4 py-3.5 text-sm font-medium text-text">${dealerName}</td><td class="px-4 py-3.5 text-sm text-gray-500">${po.date}</td><td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td><td class="px-4 py-3.5 text-right font-semibold">₹${(po.totalAmount || 0).toLocaleString('en-IN')}</td><td class="px-4 py-3.5"><span class="status-badge status-${sc}">${po.status}</span></td><td class="px-4 py-3.5"></td></tr>`;
+    return `<tr class="row-hover cursor-pointer" data-id="${escapeHtml(po.id)}" data-open-po="${escapeHtml(po.id)}"><td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(po.invoiceNumber || po.id)}</td><td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(dealerName)}</td><td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(po.date)}</td><td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td><td class="px-4 py-3.5 text-right font-semibold">₹${(po.totalAmount || 0).toLocaleString('en-IN')}</td><td class="px-4 py-3.5"><span class="status-badge status-${sc}">${escapeHtml(po.status)}</span></td><td class="px-4 py-3.5"></td></tr>`;
   };
 
   const applyPoFilter = () => {
@@ -316,9 +317,9 @@ export function onMount(rootElement) {
       
       if (matches.length > 0) {
         searchResults.innerHTML = matches.map(p => `
-          <div class="p-2 border-b border-border hover:bg-gray-50 cursor-pointer po-search-item" data-id="${p.id}">
-            <div class="text-sm font-medium">${p.name}</div>
-            <div class="text-[10px] text-gray-500">${p.sku} | ₹${p.price}</div>
+          <div class="p-2 border-b border-border hover:bg-gray-50 cursor-pointer po-search-item" data-id="${escapeHtml(p.id)}">
+            <div class="text-sm font-medium">${escapeHtml(p.name)}</div>
+            <div class="text-[10px] text-gray-500">${escapeHtml(p.sku)} | ₹${p.price}</div>
           </div>
         `).join('');
         searchResults.classList.remove('hidden');
@@ -329,11 +330,13 @@ export function onMount(rootElement) {
     });
 
     // Close search results on click outside
-    document.addEventListener('click', (e) => {
+    const handleDocumentClick = (e) => {
       if (!e.target.closest('#po-product-search') && !e.target.closest('#po-product-results')) {
         searchResults.classList.add('hidden');
       }
-    });
+    };
+    document.addEventListener('click', handleDocumentClick);
+    removeDocumentClick = () => document.removeEventListener('click', handleDocumentClick);
 
     // Add product to cart
     searchResults.addEventListener('click', (e) => {
@@ -523,8 +526,8 @@ export function onMount(rootElement) {
     // Save PO
     rootElement.querySelector('#btn-save-po').addEventListener('click', () => {
       const dealerId = rootElement.querySelector('#po-dealer').value;
-      if (!dealerId) { window.showToast('Please select a dealer.', 'warning'); return; }
-      if (cart.length === 0) { window.showToast('Please add at least one product.', 'warning'); return; }
+      if (!dealerId) { NotificationService.warning('Please select a dealer.'); return; }
+      if (cart.length === 0) { NotificationService.warning('Please add at least one product.'); return; }
 
       let subtotal = 0;
       let totalGst = 0;
@@ -619,28 +622,28 @@ export function onMount(rootElement) {
                 const statusColor = po.status === 'Pending' ? 'warning' : (po.status === 'Received' ? 'success' : 'danger');
 
                 return `
-                <tr class="row-hover cursor-pointer" data-id="${po.id}" onclick="window.dispatchEvent(new CustomEvent('openPurchaseDrawer', {detail: '${po.id}'}))">
-                  <td class="px-4 py-3.5 font-semibold text-primary text-sm">${po.invoiceNumber || po.id}</td>
+                <tr class="row-hover cursor-pointer" data-id="${escapeHtml(po.id)}" data-open-po="${escapeHtml(po.id)}">
+                  <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(po.invoiceNumber || po.id)}</td>
                   <td class="px-4 py-3.5">
                     <div class="flex items-center gap-2.5">
                       <div class="w-7 h-7 rounded-full bg-${dealerColor}/10 flex items-center justify-center">
-                        <span class="text-[10px] font-bold text-${dealerColor}">${initials}</span>
+                        <span class="text-[10px] font-bold text-${dealerColor}">${escapeHtml(initials)}</span>
                       </div>
                       <div>
-                        <p class="text-sm font-medium text-text">${dealerName}</p>
-                        <p class="text-[10px] text-gray-400">${dealer.phone}</p>
+                        <p class="text-sm font-medium text-text">${escapeHtml(dealerName)}</p>
+                        <p class="text-[10px] text-gray-400">${escapeHtml(dealer.phone)}</p>
                       </div>
                     </div>
                   </td>
-                  <td class="px-4 py-3.5 text-sm ${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">${po.date}</td>
+                  <td class="px-4 py-3.5 text-sm ${statusColor === 'danger' ? 'text-danger font-medium' : 'text-gray-500'}">${escapeHtml(po.date)}</td>
                   <td class="px-4 py-3.5 text-sm text-gray-500">${po.items ? po.items.length : 0} items</td>
                   <td class="px-4 py-3.5 text-right text-sm font-semibold text-text">₹${(po.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                   <td class="px-4 py-3.5">
-                    <span class="status-badge status-${statusColor}">${po.status}</span>
+                    <span class="status-badge status-${statusColor}">${escapeHtml(po.status)}</span>
                   </td>
                   <td class="px-4 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-1">
-                      <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPurchaseDrawer'))">
+                      <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-open-po-new title="New Purchase Order">
                         <i data-lucide="edit" class="w-4 h-4"></i>
                       </button>
                     </div>
@@ -651,9 +654,9 @@ export function onMount(rootElement) {
             : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No purchases yet</td></tr>';
           if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
         }
-        window.showToast(`Purchase ${saved.id} saved!`, 'success');
+        NotificationService.success(`Purchase ${saved.id} saved!`);
       } catch (e) {
-        window.showToast(e.message, 'danger');
+        NotificationService.error(e.message);
       }
     });
 
@@ -700,7 +703,22 @@ export function onMount(rootElement) {
 
   window.addEventListener('openPurchaseDrawer', openForm);
 
-  
+  // Delegated row clicks (replaces inline onclick)
+  const handleTableClick = (e) => {
+    const row = e.target.closest('[data-open-po]');
+    const newBtn = e.target.closest('[data-open-po-new]');
+    if (newBtn) {
+      e.stopPropagation();
+      openForm();
+      return;
+    }
+    if (row) openForm({ detail: row.getAttribute('data-open-po') });
+  };
+  mainTbody.addEventListener('click', handleTableClick);
+
+  const newPoBtn = rootElement.querySelector('#btn-new-po');
+  if (newPoBtn) newPoBtn.addEventListener('click', () => openForm());
+
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
   
@@ -727,7 +745,7 @@ export function onMount(rootElement) {
           sellingPrice: p.price || 0
         }];
         if (window._renderCart) window._renderCart();
-        window.showToast(`${p.name} added to purchase`, 'success');
+        NotificationService.success(`${p.name} added to purchase`);
       }
     }
   }, 300);
@@ -739,6 +757,7 @@ export function onMount(rootElement) {
   // Cleanup: prevent duplicate listeners on back-navigation
   return function cleanup() {
     window.removeEventListener('openPurchaseDrawer', openForm);
+    removeDocumentClick();
   };
 }
 

@@ -1,3 +1,4 @@
+import { NotificationService } from './notificationService.js';
 /**
  * Senthil Enterprises ERP - Draft Manager
  * Implements Gmail-style auto-recovery for forms.
@@ -60,7 +61,7 @@ export class DraftManager {
           }
         }
         if (hasRestored && window.showToast) {
-          window.showToast('Draft restored automatically', 'info');
+          NotificationService.info();
         }
       }
     }

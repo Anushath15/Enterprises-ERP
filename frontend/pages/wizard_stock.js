@@ -1,8 +1,12 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Opening Stock Wizard
  * Allows rapid entry of opening quantities and purchase costs.
+ */
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+
+export async function render() {
   return `
     <div class="p-6 max-w-7xl mx-auto">
       <div class="bg-white rounded-xl border border-border shadow-sm flex flex-col h-[calc(100vh-120px)]">
@@ -122,7 +126,7 @@ export function onMount(rootElement) {
     });
     
     if (entries.length === 0) {
-      window.showToast('No stock entered.', 'warning');
+      NotificationService.warning('No stock entered.');
       return;
     }
     
@@ -157,7 +161,7 @@ export function onMount(rootElement) {
         }
       });
       
-      window.showToast(`Saved ${entries.length} items to Opening Stock!`, 'success');
+      NotificationService.success(`Saved ${entries.length} items to Opening Stock!`);
       DraftManager.clearDraft('wizardStock');
       
       // Refresh list
@@ -165,7 +169,7 @@ export function onMount(rootElement) {
       renderTable(searchInput.value);
       
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
   });
   

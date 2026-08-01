@@ -1,30 +1,33 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Stock Adjustments
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const adjustments = DataProvider.getStockAdjustments() || [];
 
   const renderRow = (adj) => {
-    const isAdd = adj.type === 'Add';
-    const typeColor = isAdd ? 'text-success bg-success/10' : 'text-danger bg-danger/10';
-    const typeIcon = isAdd ? 'trending-up' : 'trending-down';
+    const isAdd = ['Found', 'Manual Add'].includes(adj.type);
+    const isNeutral = adj.type === 'Manual Correction';
+    const typeColor = isAdd ? 'text-success bg-success/10' : (isNeutral ? 'text-blue-500 bg-blue-50' : 'text-danger bg-danger/10');
+    const typeIcon = isAdd ? 'trending-up' : (isNeutral ? 'edit' : 'trending-down');
     const date = new Date(adj.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     return `
     <tr class="row-hover">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${adj.id}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${date}</td>
-      <td class="px-4 py-3.5 font-medium text-text">${adj.productName}</td>
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(adj.id)}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(date)}</td>
+      <td class="px-4 py-3.5 font-medium text-text">${escapeHtml(adj.productName)}</td>
       <td class="px-4 py-3.5">
         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium ${typeColor} uppercase tracking-wider">
-          <i data-lucide="${typeIcon}" class="w-3 h-3"></i> ${adj.type}
+          <i data-lucide="${typeIcon}" class="w-3 h-3"></i> ${escapeHtml(adj.type)}
         </span>
       </td>
-      <td class="px-4 py-3.5 text-right font-bold ${isAdd ? 'text-success' : 'text-danger'}">${isAdd ? '+' : '-'}${adj.qty}</td>
-      <td class="px-4 py-3.5 text-gray-600 text-sm truncate max-w-xs" title="${adj.reason}">${adj.reason}</td>
-      <td class="px-4 py-3.5 text-gray-500 text-xs text-right">${adj.user || 'Admin'}</td>
+      <td class="px-4 py-3.5 text-right font-bold ${isAdd ? 'text-success' : (isNeutral ? 'text-blue-500' : 'text-danger')}">${isAdd ? '+' : (isNeutral ? '' : '-')}${escapeHtml(adj.qty)}</td>
+      <td class="px-4 py-3.5 text-gray-600 text-sm truncate max-w-xs" title="${escapeHtml(adj.reason)}">${escapeHtml(adj.reason)}</td>
+      <td class="px-4 py-3.5 text-gray-500 text-xs text-right">${escapeHtml(adj.user || 'Admin')}</td>
     </tr>
     `;
   };
@@ -37,7 +40,7 @@ export async function render() {
           <p class="text-sm text-gray-400 mt-1">Log manual stock corrections, damages, and audits.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="window.dispatchEvent(new CustomEvent('openAdjDrawer'))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <button data-open-adj class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i>
             New Adjustment
           </button>
@@ -95,8 +98,13 @@ export async function render() {
           <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Adjustment Type <span class="text-danger">*</span></label>
             <select id="adj-type" class="w-full px-3 py-2 bg-white border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
-              <option value="Remove">Remove (Damage/Loss)</option>
-              <option value="Add">Add (Found/Correction)</option>
+              <option value="Damaged">Damaged (Remove)</option>
+              <option value="Broken">Broken (Remove)</option>
+              <option value="Lost">Lost (Remove)</option>
+              <option value="Expired">Expired (Remove)</option>
+              <option value="Found">Found (Add)</option>
+              <option value="Manual Add">Manual Add</option>
+              <option value="Manual Correction">Manual Correction (Set Exact)</option>
             </select>
           </div>
           <div>
@@ -132,37 +140,38 @@ export function onMount(rootElement) {
   const countLabel = rootElement.querySelector('#adj-count-label');
 
   const renderTable = (data) => {
-    countLabel.textContent = \`Showing \${data.length} logs\`;
+    countLabel.textContent = `Showing ${data.length} logs`;
     if (data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">No adjustments found.</td></tr>';
     } else {
       tbody.innerHTML = data.map(adj => {
-        const isAdd = adj.type === 'Add';
-        const typeColor = isAdd ? 'text-success bg-success/10' : 'text-danger bg-danger/10';
-        const typeIcon = isAdd ? 'trending-up' : 'trending-down';
+        const isAdd = ['Found', 'Manual Add'].includes(adj.type);
+        const isNeutral = adj.type === 'Manual Correction';
+        const typeColor = isAdd ? 'text-success bg-success/10' : (isNeutral ? 'text-blue-500 bg-blue-50' : 'text-danger bg-danger/10');
+        const typeIcon = isAdd ? 'trending-up' : (isNeutral ? 'edit' : 'trending-down');
         const date = new Date(adj.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-        return \`
+        return `
         <tr class="row-hover">
-          <td class="px-4 py-3.5 font-semibold text-primary text-sm">\${adj.id}</td>
-          <td class="px-4 py-3.5 text-sm text-gray-500">\${date}</td>
-          <td class="px-4 py-3.5 font-medium text-text">\${adj.productName}</td>
+          <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(adj.id)}</td>
+          <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(date)}</td>
+          <td class="px-4 py-3.5 font-medium text-text">${escapeHtml(adj.productName)}</td>
           <td class="px-4 py-3.5">
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium \${typeColor} uppercase tracking-wider">
-              <i data-lucide="\${typeIcon}" class="w-3 h-3"></i> \${adj.type}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium ${typeColor} uppercase tracking-wider">
+              <i data-lucide="${typeIcon}" class="w-3 h-3"></i> ${escapeHtml(adj.type)}
             </span>
           </td>
-          <td class="px-4 py-3.5 text-right font-bold \${isAdd ? 'text-success' : 'text-danger'}">\${isAdd ? '+' : '-'}\${adj.qty}</td>
-          <td class="px-4 py-3.5 text-gray-600 text-sm truncate max-w-xs" title="\${adj.reason}">\${adj.reason}</td>
-          <td class="px-4 py-3.5 text-gray-500 text-xs text-right">\${adj.user || 'Admin'}</td>
+          <td class="px-4 py-3.5 text-right font-bold ${isAdd ? 'text-success' : (isNeutral ? 'text-blue-500' : 'text-danger')}">${isAdd ? '+' : (isNeutral ? '' : '-')}${escapeHtml(adj.qty)}</td>
+          <td class="px-4 py-3.5 text-gray-600 text-sm truncate max-w-xs" title="${escapeHtml(adj.reason)}">${escapeHtml(adj.reason)}</td>
+          <td class="px-4 py-3.5 text-gray-500 text-xs text-right">${escapeHtml(adj.user || 'Admin')}</td>
         </tr>
-        \`;
+        `;
       }).join('');
     }
     if (window.lucide) window.lucide.createIcons();
   };
 
-  searchInput.addEventListener('input', (e) => {
+  const handleSearch = (e) => {
     const q = e.target.value.toLowerCase().trim();
     const filtered = allAdjustments.filter(a => 
       a.productName.toLowerCase().includes(q) || 
@@ -170,7 +179,8 @@ export function onMount(rootElement) {
       a.id.toLowerCase().includes(q)
     );
     renderTable(filtered);
-  });
+  };
+  searchInput.addEventListener('input', handleSearch);
 
   // Drawer Logic
   const overlay = rootElement.querySelector('#adj-drawer-overlay');
@@ -184,17 +194,18 @@ export function onMount(rootElement) {
     drawer.classList.add('translate-x-full');
   };
 
-  rootElement.querySelectorAll('.close-adj-drawer').forEach(btn => btn.addEventListener('click', closeDrawer));
+  const closeBtns = rootElement.querySelectorAll('.close-adj-drawer');
+  closeBtns.forEach(btn => btn.addEventListener('click', closeDrawer));
   overlay.addEventListener('click', closeDrawer);
 
   const openDrawer = () => {
     // Populate products
     productSelect.innerHTML = '<option value="">Select a Product</option>' + 
-      allProducts.map(p => \`<option value="\${p.id}">\${p.name} (\${p.sku || p.barcode || p.id})</option>\`).join('');
+      allProducts.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.sku || p.barcode || p.id)})</option>`).join('');
     
     rootElement.querySelector('#adj-qty').value = '1';
     rootElement.querySelector('#adj-reason').value = '';
-    rootElement.querySelector('#adj-type').value = 'Remove';
+    rootElement.querySelector('#adj-type').value = 'Damaged';
     currentStockLabel.textContent = '';
     
     overlay.classList.remove('opacity-0', 'pointer-events-none');
@@ -202,34 +213,40 @@ export function onMount(rootElement) {
     drawer.classList.remove('translate-x-full');
   };
 
-  productSelect.addEventListener('change', (e) => {
+  rootElement.querySelector('[data-open-adj]')?.addEventListener('click', openDrawer);
+
+  const handleProductChange = (e) => {
     const p = allProducts.find(prod => prod.id === e.target.value);
     if (p) {
-      currentStockLabel.textContent = \`Current Stock: \${p.stock} \${p.unit || 'Nos'}\`;
+      currentStockLabel.textContent = `Current Stock: ${p.stock} ${p.unit || 'Nos'}`;
       // If we are removing, make sure max is stock
-      if (rootElement.querySelector('#adj-type').value === 'Remove') {
+      const type = rootElement.querySelector('#adj-type').value;
+      if (['Damaged', 'Broken', 'Lost', 'Expired'].includes(type)) {
         rootElement.querySelector('#adj-qty').max = p.stock;
+      } else {
+        rootElement.querySelector('#adj-qty').removeAttribute('max');
       }
     } else {
       currentStockLabel.textContent = '';
     }
-  });
+  };
+  productSelect.addEventListener('change', handleProductChange);
 
   window.addEventListener('openAdjDrawer', openDrawer);
 
-  rootElement.querySelector('#btn-save-adj').addEventListener('click', () => {
+  const handleSave = () => {
     const productId = productSelect.value;
     const type = rootElement.querySelector('#adj-type').value;
     const qty = Number(rootElement.querySelector('#adj-qty').value);
     const reason = rootElement.querySelector('#adj-reason').value.trim();
 
-    if (!productId) { window.showToast('Please select a product', 'warning'); return; }
-    if (!qty || qty <= 0) { window.showToast('Quantity must be greater than 0', 'warning'); return; }
-    if (!reason) { window.showToast('Please provide a reason', 'warning'); return; }
+    if (!productId) { NotificationService.warning('Please select a product'); return; }
+    if (!qty || qty <= 0) { NotificationService.warning('Quantity must be greater than 0'); return; }
+    if (!reason) { NotificationService.warning('Please provide a reason'); return; }
 
     const product = allProducts.find(p => p.id === productId);
-    if (type === 'Remove' && qty > product.stock) {
-      window.showToast(\`Cannot remove \${qty}. Current stock is only \${product.stock}.\`, 'danger');
+    if (['Damaged', 'Broken', 'Lost', 'Expired'].includes(type) && qty > product.stock) {
+      NotificationService.error(`Cannot remove ${qty}. Current stock is only ${product.stock}.`);
       return;
     }
 
@@ -244,17 +261,24 @@ export function onMount(rootElement) {
         user: 'Senthil Admin' // Placeholder
       });
       
-      window.showToast('Stock adjusted successfully!', 'success');
+      NotificationService.success('Stock adjusted successfully!');
       closeDrawer();
       allAdjustments = DataProvider.getStockAdjustments() || [];
       renderTable(allAdjustments);
       searchInput.value = '';
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
-  });
+  };
+  rootElement.querySelector('#btn-save-adj').addEventListener('click', handleSave);
 
   return function cleanup() {
     window.removeEventListener('openAdjDrawer', openDrawer);
+    searchInput.removeEventListener('input', handleSearch);
+    closeBtns.forEach(btn => btn.removeEventListener('click', closeDrawer));
+    overlay.removeEventListener('click', closeDrawer);
+    rootElement.querySelector('[data-open-adj]')?.removeEventListener('click', openDrawer);
+    productSelect.removeEventListener('change', handleProductChange);
+    rootElement.querySelector('#btn-save-adj').removeEventListener('click', handleSave);
   };
 }

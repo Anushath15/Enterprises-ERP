@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Global Settings
  */
@@ -114,38 +115,47 @@ export async function render() {
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
 
+  const handleSave = () => {
+    NotificationService.success('System preferences saved successfully!');
+  };
+
+  const handleBackup = () => {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('erp_')) {
+        data[key] = localStorage.getItem(key);
+      }
+    }
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `erp_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Update last backup date
+    localStorage.setItem('erp_last_backup', new Date().toISOString());
+    NotificationService.success('Backup generated successfully!');
+  };
+
   const saveBtn = rootElement.querySelector('#save-settings-btn');
   if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      window.showToast('System preferences saved successfully!', 'success');
-    });
+    saveBtn.addEventListener('click', handleSave);
   }
 
   const backupBtn = rootElement.querySelector('#backup-btn');
   if (backupBtn) {
-    backupBtn.addEventListener('click', () => {
-      const data = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('erp_')) {
-          data[key] = localStorage.getItem(key);
-        }
-      }
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `erp_backup_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      // Update last backup date
-      localStorage.setItem('erp_last_backup', new Date().toISOString());
-      window.showToast('Backup generated successfully!', 'success');
-    });
+    backupBtn.addEventListener('click', handleBackup);
   }
+
+  return () => {
+    if (saveBtn) saveBtn.removeEventListener('click', handleSave);
+    if (backupBtn) backupBtn.removeEventListener('click', handleBackup);
+  };
 }
 

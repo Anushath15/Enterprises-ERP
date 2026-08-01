@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Login Page
  */
@@ -65,19 +66,34 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
-  // Hide layout shell (Sidebar/Navbar) on Login page
-  document.getElementById('sidebar-root').style.display = 'none';
-  document.getElementById('navbar-root').style.display = 'none';
-  if (window.lucide) window.lucide.createIcons();
-  
+  // Hide layout shell safely
+  const sidebar = document.getElementById('sidebar-manager');
+  const navbar = document.getElementById('top-navbar');
+
   // Adjust root padding since navbar is hidden
-  const pageRoot = document.getElementById('page-root');
-  const originalClasses = pageRoot.className;
-  pageRoot.className = ''; // Remove default pt-16 ml-64 classes for full screen login
+  const mainWrapper = document.querySelector('main');
+  const originalPadding = mainWrapper ? mainWrapper.style.paddingTop : '';
+
+  const hideShell = () => {
+    if (sidebar) sidebar.style.display = 'none';
+    if (navbar) navbar.style.display = 'none';
+    if (mainWrapper) mainWrapper.style.paddingTop = '0';
+  };
+
+  const restoreShell = () => {
+    if (sidebar) sidebar.style.display = '';
+    if (navbar) navbar.style.display = '';
+    if (mainWrapper) mainWrapper.style.paddingTop = originalPadding;
+  };
+
+  hideShell();
+
+  if (window.lucide) window.lucide.createIcons();
 
   const form = document.getElementById('login-form');
+  let handleSubmit = null;
   if (form) {
-    form.addEventListener('submit', async (e) => {
+    handleSubmit = async (e) => {
       e.preventDefault();
       
       const btn = document.getElementById('login-btn');
@@ -99,10 +115,8 @@ export function onMount(rootElement) {
         LocalStorageService.set('auth_token', response.access_token);
         LocalStorageService.set('auth_user', response.user);
         
-        // Restore layout shell
-        document.getElementById('sidebar-root').style.display = 'flex';
-        document.getElementById('navbar-root').style.display = 'flex';
-        pageRoot.className = originalClasses; // Restore padding
+        // Restore layout shell safely
+        restoreShell();
         
         // Navigate to Dashboard
         window.location.hash = '#/';
@@ -110,9 +124,17 @@ export function onMount(rootElement) {
         btn.innerHTML = originalText;
         btn.disabled = false;
         // Simple error alert for now; could use Toast component
-        window.showToast(error.message || 'Login failed', 'danger');
+        NotificationService.error(error.message || 'Login failed');
       }
-    });
+    };
+    form.addEventListener('submit', handleSubmit);
   }
+
+  return () => {
+    restoreShell();
+    if (form && handleSubmit) {
+      form.removeEventListener('submit', handleSubmit);
+    }
+  };
 }
 
