@@ -3,12 +3,24 @@
  * Safely upgrades LocalStorage schema for RC3 features without data loss.
  */
 import { LocalStorageService } from './storage/localStorageService.js';
+import { DEFAULT_PASSWORD_SALT, DEFAULT_PASSWORD_HASH } from '../utils/password.js';
+
+const ROLE_NORMALIZE = {
+  'Administrator': 'admin',
+  'Administrator (Full Access)': 'admin',
+  'Admin': 'admin',
+  'Manager': 'manager',
+  'Manager (Can edit, cannot delete)': 'manager',
+  'Sales User': 'user',
+  'Sales User (Billing only)': 'user',
+  'User': 'user'
+};
 
 export const MigrationRC3 = {
   run() {
     const version = LocalStorageService.get('erp_db_version') || '1.0.0-rc2';
     
-    if (version === '1.0.0-rc3') {
+    if (version === '1.0.0-auth') {
       return; // Already migrated
     }
 
@@ -92,8 +104,26 @@ export const MigrationRC3 = {
     if (!LocalStorageService.get('erp_daily_closing_history')) LocalStorageService.set('erp_daily_closing_history', []);
     if (!LocalStorageService.get('erp_product_price_history')) LocalStorageService.set('erp_product_price_history', []);
 
+    // 4. Auth Migration: normalize system roles and seed default credentials
+    let users = LocalStorageService.get('erp_users') || [];
+    let usersModified = false;
+    users = users.map(u => {
+      const canonical = ROLE_NORMALIZE[u.role];
+      if (canonical && u.role !== canonical) {
+        u.role = canonical;
+        usersModified = true;
+      }
+      if (!u.passwordHash) {
+        u.passwordSalt = DEFAULT_PASSWORD_SALT;
+        u.passwordHash = DEFAULT_PASSWORD_HASH;
+        usersModified = true;
+      }
+      return u;
+    });
+    if (usersModified) LocalStorageService.set('erp_users', users);
+
     // Update Version
-    LocalStorageService.set('erp_db_version', '1.0.0-rc3');
+    LocalStorageService.set('erp_db_version', '1.0.0-auth');
     console.log('RC3 Schema Migration Complete.');
   }
 };

@@ -119,6 +119,9 @@ document.addEventListener('click', (e) => {
 });
 
 export function TopNavbar({ title, user }) {
+  const name = (user && user.name) || 'User';
+  const role = (user && user.roleLabel) || '';
+  const initials = (user && user.initials) || 'U';
   return `
     <header class="h-[var(--header-height)] bg-white border-b border-border fixed top-0 right-0 left-0 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-300" id="top-navbar">
       <div class="flex items-center gap-4">
@@ -127,9 +130,19 @@ export function TopNavbar({ title, user }) {
         </button>
         <h2 class="text-lg font-semibold text-text truncate max-w-[200px] sm:max-w-md" id="navbar-title">${title}</h2>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-          <span class="text-xs font-semibold text-primary">SK</span>
+      <div class="flex items-center gap-3" id="navbar-user-area">
+        <button data-logout-btn class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-danger hover:bg-danger/5 transition-colors" title="Log out">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Log out</span>
+        </button>
+        <div class="flex items-center gap-3 pl-3 border-l border-border">
+          <div class="text-right hidden md:block">
+            <p class="text-sm font-medium text-text leading-tight">${name}</p>
+            <p class="text-[11px] text-gray-400">${role}</p>
+          </div>
+          <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+            <span class="text-xs font-semibold text-primary">${initials}</span>
+          </div>
         </div>
       </div>
     </header>

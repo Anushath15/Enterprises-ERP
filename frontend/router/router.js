@@ -5,6 +5,7 @@
  */
 import { routes, defaultRoute, errorRoute, loginRoute } from '../config/routes.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { AuthService } from '../services/authService.js';
 
 export class Router {
   constructor(rootElementId) {
@@ -37,13 +38,21 @@ export class Router {
       window.history.replaceState(null, null, '#' + errorRoute);
     }
 
-    // Route Guard Strategy (Placeholder)
+    // Route Guard: enforce authentication and role-based access
     if (route.authRequired) {
-      const isAuthenticated = true; // Placeholder: await authService.isAuthenticated()
-      if (!isAuthenticated) {
-        this.navigate(loginRoute);
+      if (!AuthService.hasValidSession()) {
+        AuthService.clearSession();
+        AuthService.redirectToLogin();
         return;
       }
+      if (route.roles && route.roles.length > 0 && !AuthService.hasRole(route.roles)) {
+        this.navigate('/403');
+        return;
+      }
+    } else if (path === loginRoute && AuthService.hasValidSession()) {
+      // Already authenticated: skip the login screen
+      this.navigate(defaultRoute);
+      return;
     }
 
     this.currentRoute = route;

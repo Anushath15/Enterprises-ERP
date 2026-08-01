@@ -104,16 +104,11 @@ export function onMount(rootElement) {
       try {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+        const remember = document.getElementById('remember')?.checked !== false;
         
-        // Dynamically import DataProvider to avoid circular deps if any
-        const { DataProvider } = await import('../services/dataProvider.js');
-        const { LocalStorageService } = await import('../services/storage/localStorageService.js');
+        const { AuthService } = await import('../services/authService.js');
         
-        const response = await DataProvider.login(username, password);
-        
-        // Save token and user details
-        LocalStorageService.set('auth_token', response.access_token);
-        LocalStorageService.set('auth_user', response.user);
+        await AuthService.login(username, password, remember);
         
         // Restore layout shell safely
         restoreShell();

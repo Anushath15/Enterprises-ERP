@@ -153,6 +153,8 @@ export const ApiDataProvider = {
   async getStaff() { return []; },
   async getWarranties() { return []; },
   async getUsers() { return []; },
+  async saveUser(user) { return user; },
+  async resetUserPassword(userId, newPassword) { return true; },
   async updateCustomerBalance(id, amountChange) { return true; },
   async updateDealerBalance(id, amountChange) { return true; }
 };

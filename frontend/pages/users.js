@@ -3,6 +3,7 @@ import { NotificationService } from '../services/notificationService.js';
  * Senthil Enterprises ERP - User Management
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { AuthService } from '../services/authService.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
@@ -99,7 +100,9 @@ export async function render() {
           <div class="mb-4">
             <label class="text-xs font-medium text-gray-500 block mb-1.5">System Role *</label>
             <select id="usr-role" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-              <option>Administrator (Full Access)</option><option>Manager (Can edit, cannot delete)</option><option>Sales User (Billing only)</option>
+              <option value="admin">Administrator (Full Access)</option>
+              <option value="manager">Manager (Can edit, cannot delete)</option>
+              <option value="user">Sales User (Billing only)</option>
             </select>
           </div>
 
@@ -115,8 +118,8 @@ export async function render() {
           <label class="text-xs font-medium text-gray-500 block mb-1.5">Permissions (Placeholder)</label>
           <div class="p-4 bg-gray-50 border border-border rounded-lg text-sm text-gray-500 mb-4">Granular checkboxes for read/write access per module will render here.</div>
           
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Security (Placeholder)</label>
-          <button class="w-full py-2 bg-gray-100 border border-border text-text text-sm rounded-lg hover:bg-gray-200">Reset User Password</button>
+          <label class="text-xs font-medium text-gray-500 block mb-1.5">Security</label>
+          <button id="reset-password-btn" class="w-full py-2 bg-gray-100 border border-border text-text text-sm rounded-lg hover:bg-gray-200">Reset User Password</button>
         </div>
 
       </div>
@@ -182,7 +185,7 @@ export function onMount(rootElement) {
         rootElement.querySelector('#usr-id').value = usr.id;
         rootElement.querySelector('#usr-name').value = usr.name || '';
         rootElement.querySelector('#usr-username').value = usr.username || '';
-        rootElement.querySelector('#usr-role').value = usr.role || 'Sales User (Billing only)';
+        rootElement.querySelector('#usr-role').value = AuthService.normalizeRole(usr.role) || 'user';
         rootElement.querySelector('#usr-status').value = usr.status || 'Active';
       }
     } else {
@@ -244,6 +247,31 @@ export function onMount(rootElement) {
     saveBtn.addEventListener('click', handleSave);
   }
 
+  const resetBtn = rootElement.querySelector('#reset-password-btn');
+  const handleResetPassword = async () => {
+    const userId = rootElement.querySelector('#usr-id').value;
+    if (!userId) {
+      NotificationService.error('Select a user to reset their password.');
+      return;
+    }
+    const newPassword = window.prompt('Enter the new password for this user (min 6 characters):');
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      NotificationService.error('Password must be at least 6 characters.');
+      return;
+    }
+    try {
+      const ok = await AuthService.resetPassword(userId, newPassword);
+      if (ok) NotificationService.success('Password updated successfully.');
+      else NotificationService.error('Could not update password.');
+    } catch (err) {
+      NotificationService.error(err.message || 'Could not update password.');
+    }
+  };
+  if (resetBtn) {
+    resetBtn.addEventListener('click', handleResetPassword);
+  }
+
   return function cleanup() {
     window.removeEventListener('openUserDrawer', openForm);
     if (searchInput) searchInput.removeEventListener('input', handleSearch);
@@ -252,6 +280,7 @@ export function onMount(rootElement) {
     closeBtns.forEach(btn => btn.removeEventListener('click', closeAll));
     overlay.removeEventListener('click', closeAll);
     if (saveBtn) saveBtn.removeEventListener('click', handleSave);
+    if (resetBtn) resetBtn.removeEventListener('click', handleResetPassword);
   };
 }
 

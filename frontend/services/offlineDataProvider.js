@@ -4,6 +4,7 @@
  */
 import { LocalStorageService } from './storage/localStorageService.js';
 import { SeedData } from '../data/seedData.js';
+import { verifyPassword, hashForReset, DEFAULT_PASSWORD_SALT, DEFAULT_PASSWORD_HASH } from '../utils/password.js';
 
 export const OfflineDataProvider = {
   
@@ -73,16 +74,28 @@ export const OfflineDataProvider = {
   },
 
   // ==========================================
-  // AUTHENTICATION (Mock)
+  // AUTHENTICATION
   // ==========================================
   async login(username, password) {
+    const users = this._getAll('erp_users');
+    const user = users.find(u =>
+      String(u.username || '').toLowerCase() === String(username || '').toLowerCase() &&
+      u.status !== 'Suspended'
+    );
+    if (!user) {
+      throw new Error('Invalid username or password.');
+    }
+    const valid = await verifyPassword(password, user);
+    if (!valid) {
+      throw new Error('Invalid username or password.');
+    }
     return {
-      access_token: "mock-offline-token",
+      access_token: `offline-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
       user: {
-        id: 1,
-        username: username,
-        role: "Admin",
-        permissions: ["products.read", "products.write", "sales.create"]
+        id: user.id,
+        username: user.username,
+        name: user.name || user.username,
+        role: user.role
       }
     };
   },
@@ -90,7 +103,11 @@ export const OfflineDataProvider = {
     return true;
   },
   async getMe() {
-    return { id: 1, username: "admin", role: "Admin", permissions: [] };
+    return this.getCurrentUserData();
+  },
+  getCurrentUserData() {
+    const user = this._getAll('erp_users').find(u => u.username === 'admin');
+    return user ? { id: user.id, username: user.username, name: user.name, role: user.role } : null;
   },
 
   // ==========================================
@@ -588,6 +605,10 @@ export const OfflineDataProvider = {
     return this._getAll('erp_users');
   },
   saveUser(user) {
+    if (!user.id && !user.passwordHash) {
+      user.passwordSalt = DEFAULT_PASSWORD_SALT;
+      user.passwordHash = DEFAULT_PASSWORD_HASH;
+    }
     return this._save('erp_users', user, 'USR');
   },
   saveSalesReturn(ret) {
@@ -647,11 +668,14 @@ export const OfflineDataProvider = {
   submitDailyClosing(closingData) {
     return this._save('erp_daily_closings', closingData, 'CLS');
   },
-  resetUserPassword(userId, newPassword) {
-    const user = this._getAll('erp_users').find(u => u.id === userId);
+  async resetUserPassword(userId, newPassword) {
+    const users = this._getAll('erp_users');
+    const user = users.find(u => u.id === userId);
     if (user) {
-      user.password = newPassword; // Mock for now
-      this._save('erp_users', user, 'USR');
+      const hashed = await hashForReset(newPassword);
+      user.passwordSalt = hashed.passwordSalt;
+      user.passwordHash = hashed.passwordHash;
+      LocalStorageService.set('erp_users', users);
       return true;
     }
     return false;

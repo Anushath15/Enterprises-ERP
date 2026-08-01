@@ -215,6 +215,13 @@ export const routes = [
     roles: ['admin', 'manager', 'user']
   },
   {
+    path: '/403',
+    name: 'Access Denied',
+    componentPath: '../pages/403.js',
+    authRequired: true,
+    roles: []
+  },
+  {
     path: '/login',
     name: 'Login',
     componentPath: '../pages/login.js',
