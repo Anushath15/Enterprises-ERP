@@ -26,21 +26,21 @@ export const ApiDataProvider = {
     return await api.get('/products/');
   },
   async getProductById(id) {
-    return await api.get(`/products/${id}`);
+    return await api.get(`/products/${encodeURIComponent(id)}`);
   },
   async saveProduct(product) {
     if (product.id && !String(product.id).startsWith('PRD')) {
-      return await api.put(`/products/${product.id}`, product);
+      return await api.put(`/products/${encodeURIComponent(product.id)}`, product);
     }
     return await api.post('/products/', product);
   },
   async deleteProduct(id) {
-    return await api.delete(`/products/${id}`);
+    return await api.delete(`/products/${encodeURIComponent(id)}`);
   },
   async updateStock(id, qtyChange) {
     // API logic handles inventory through Sales/Purchases.
     // If manual adjustment is needed, it goes through an inventory adjustment API.
-    return await api.post(`/inventory/adjust`, { product_id: id, quantity: qtyChange, reason: "Manual Adjustment" });
+    return await api.post(`/inventory/adjust`, { product_id: encodeURIComponent(id), quantity: qtyChange, reason: "Manual Adjustment" });
   },
 
   // Customers
@@ -48,16 +48,16 @@ export const ApiDataProvider = {
     return await api.get('/contacts/customers/');
   },
   async getCustomerById(id) {
-    return await api.get(`/contacts/customers/${id}`);
+    return await api.get(`/contacts/customers/${encodeURIComponent(id)}`);
   },
   async saveCustomer(customer) {
     if (customer.id && !String(customer.id).startsWith('CUS')) {
-      return await api.put(`/contacts/customers/${customer.id}`, customer);
+      return await api.put(`/contacts/customers/${encodeURIComponent(customer.id)}`, customer);
     }
     return await api.post('/contacts/customers/', customer);
   },
   async deleteCustomer(id) {
-    return await api.delete(`/contacts/customers/${id}`);
+    return await api.delete(`/contacts/customers/${encodeURIComponent(id)}`);
   },
 
   // Dealers
@@ -65,16 +65,16 @@ export const ApiDataProvider = {
     return await api.get('/contacts/dealers/');
   },
   async getDealerById(id) {
-    return await api.get(`/contacts/dealers/${id}`);
+    return await api.get(`/contacts/dealers/${encodeURIComponent(id)}`);
   },
   async saveDealer(dealer) {
     if (dealer.id && !String(dealer.id).startsWith('DLR')) {
-      return await api.put(`/contacts/dealers/${dealer.id}`, dealer);
+      return await api.put(`/contacts/dealers/${encodeURIComponent(dealer.id)}`, dealer);
     }
     return await api.post('/contacts/dealers/', dealer);
   },
   async deleteDealer(id) {
-    return await api.delete(`/contacts/dealers/${id}`);
+    return await api.delete(`/contacts/dealers/${encodeURIComponent(id)}`);
   },
 
   // Sales
@@ -105,12 +105,12 @@ export const ApiDataProvider = {
   },
   async saveExpense(expense) {
     if (expense.id && !String(expense.id).startsWith('EXP')) {
-      return await api.put(`/expenses/${expense.id}`, expense);
+      return await api.put(`/expenses/${encodeURIComponent(expense.id)}`, expense);
     }
     return await api.post('/expenses/', expense);
   },
   async deleteExpense(id) {
-    return await api.delete(`/expenses/${id}`);
+    return await api.delete(`/expenses/${encodeURIComponent(id)}`);
   },
 
   // Closing

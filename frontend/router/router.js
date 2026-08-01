@@ -4,6 +4,7 @@
  * Includes active sidebar link update and page cleanup on navigation.
  */
 import { routes, defaultRoute, errorRoute, loginRoute } from '../config/routes.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export class Router {
   constructor(rootElementId) {
@@ -11,6 +12,8 @@ export class Router {
     this.currentRoute = null;
     // Track cleanup functions registered by pages
     this._pageCleanup = null;
+    // Monotonic token so a slow/stale async render cannot clobber a newer one
+    this._renderSeq = 0;
     this.init();
   }
 
@@ -85,6 +88,8 @@ export class Router {
   }
 
   async renderPage(route) {
+    const seq = ++this._renderSeq;
+
     try {
       // Run page cleanup before leaving current page
       if (this._pageCleanup && typeof this._pageCleanup === 'function') {
@@ -95,12 +100,14 @@ export class Router {
 
       // Lazy load the page module
       const module = await import(route.componentPath);
-      
+      if (seq !== this._renderSeq) return;
+
       // Clear root
       this.rootElement.innerHTML = '';
-      
+
       if (typeof module.render === 'function') {
         const content = await module.render();
+        if (seq !== this._renderSeq) return;
         this.rootElement.innerHTML = content;
       } else {
         throw new Error(`Page module for ${route.path} does not export a render() function.`);
@@ -108,7 +115,12 @@ export class Router {
 
       // Call onMount and capture cleanup if returned
       if (typeof module.onMount === 'function') {
-        const cleanup = module.onMount(this.rootElement);
+        const cleanup = await module.onMount(this.rootElement);
+        if (seq !== this._renderSeq) {
+          // Stale render finished mounting a page we have already left
+          if (typeof cleanup === 'function') cleanup();
+          return;
+        }
         if (typeof cleanup === 'function') {
           this._pageCleanup = cleanup;
         }
@@ -123,12 +135,13 @@ export class Router {
       window.scrollTo(0, 0);
 
     } catch (error) {
+      if (seq !== this._renderSeq) return;
       console.error(`Router Error rendering page ${route.path}:`, error);
       this.rootElement.innerHTML = `
         <div class="p-10 text-center">
           <div class="text-danger text-4xl font-bold mb-4">⚠</div>
           <h2 class="text-xl font-semibold text-text mb-2">Failed to load page</h2>
-          <p class="text-sm text-gray-500 mb-4">${error.message}</p>
+          <p class="text-sm text-gray-500 mb-4">${escapeHtml(error && error.message)}</p>
           <a href="#/" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg text-sm">Return to Dashboard</a>
         </div>
       `;
