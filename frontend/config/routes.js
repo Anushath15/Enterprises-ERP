@@ -234,6 +234,13 @@ export const routes = [
     componentPath: '../pages/404.js',
     authRequired: false,
     roles: []
+  },
+  {
+    path: '/export-center',
+    name: 'Export Center',
+    componentPath: '../pages/export_center.js',
+    authRequired: true,
+    roles: ['admin', 'manager']
   }
 ];
 

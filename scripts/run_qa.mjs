@@ -26,7 +26,8 @@ const pagesToTest = [
   { route: 'onboarding-balances', name: 'Opening_Balance' },
   { route: 'staff', name: 'Staff' },
   { route: 'users', name: 'Users' },
-  { route: 'settings', name: 'Settings' }
+  { route: 'settings', name: 'Settings' },
+  { route: 'export-center', name: 'Export_Center' },
 ];
 
 (async () => {
