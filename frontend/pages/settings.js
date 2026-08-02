@@ -1,4 +1,6 @@
 import { NotificationService } from '../services/notificationService.js';
+import { BackupService } from '../services/backupService.js';
+import { RestoreService } from '../services/restoreService.js';
 /**
  * Senthil Enterprises ERP - Global Settings
  */
@@ -86,7 +88,10 @@ export async function render() {
             <div class="col-span-2">
               <p class="text-sm text-gray-500 mb-4">Export all ERP data from LocalStorage to a secure JSON file. Keep this backup safe to prevent data loss.</p>
               <button id="backup-btn" class="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2">
-                <i data-lucide="download" class="w-4 h-4"></i> Download Backup
+                 <i data-lucide="download" class="w-4 h-4"></i> Download Backup
+              </button>
+              <button id="restore-btn" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
+                 <i data-lucide="upload" class="w-4 h-4"></i> Restore Backup
               </button>
             </div>
           </div>
@@ -120,27 +125,11 @@ export function onMount(rootElement) {
   };
 
   const handleBackup = () => {
-    const data = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith('erp_')) {
-        data[key] = localStorage.getItem(key);
-      }
-    }
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `erp_backup_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    BackupService.createManualBackup();
+  };
 
-    // Update last backup date
-    localStorage.setItem('erp_last_backup', new Date().toISOString());
-    NotificationService.success('Backup generated successfully!');
+  const handleRestore = () => {
+    RestoreService.initiateRestore();
   };
 
   const saveBtn = rootElement.querySelector('#save-settings-btn');
@@ -153,9 +142,16 @@ export function onMount(rootElement) {
     backupBtn.addEventListener('click', handleBackup);
   }
 
+  const restoreBtn = rootElement.querySelector('#restore-btn');
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', handleRestore);
+  }
+
   return () => {
     if (saveBtn) saveBtn.removeEventListener('click', handleSave);
     if (backupBtn) backupBtn.removeEventListener('click', handleBackup);
+    if (restoreBtn) restoreBtn.removeEventListener('click', handleRestore);
+    if (window.lucide) window.lucide.createIcons();
   };
 }
 

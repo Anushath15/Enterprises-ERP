@@ -9,6 +9,7 @@ import { Router } from './router/router.js';
 import { AppLayout, initNavbarResizeLogic } from './components/ui/designSystem.js';
 import { MigrationRC3 } from './services/migration_rc3.js';
 import { DataProvider } from './services/dataProvider.js';
+import { BackupService } from './services/backupService.js';
 import { AuthService } from './services/authService.js';
 
 const App = {
@@ -22,6 +23,9 @@ const App = {
 
     // Initialize Offline Data Layer
     DataProvider.init();
+    
+    // Daily automatic backup (once per day; boot + hourly + tab-return checks)
+    BackupService.init();
     
     // Mount the Application Shell (Phase 4 Step 1 & 2)
     this.renderShell();
