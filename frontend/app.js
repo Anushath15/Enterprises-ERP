@@ -61,7 +61,8 @@ const App = {
     { path: '#/users', label: 'Users', icon: '<i data-lucide="user-cog" class="w-5 h-5"></i>', roles: ['admin'] },
     { path: '#/staff', label: 'Staff', icon: '<i data-lucide="user-circle" class="w-5 h-5"></i>', roles: ['admin', 'manager'] },
     { path: '#/settings', label: 'Settings', icon: '<i data-lucide="settings" class="w-5 h-5"></i>', roles: ['admin'] },
-    { path: '#/export-center', label: 'Export Center', icon: '<i data-lucide="database" class="w-5 h-5"></i>', roles: ['admin', 'manager'] }
+    { path: '#/export-center', label: 'Export Center', icon: '<i data-lucide="database" class="w-5 h-5"></i>', roles: ['admin', 'manager'] },
+    { path: '#/database-maintenance', label: 'DB Maintenance', icon: '<i data-lucide="wrench" class="w-5 h-5"></i>', roles: ['admin'] }
   ],
 
   /**

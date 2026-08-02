@@ -241,6 +241,13 @@ export const routes = [
     componentPath: '../pages/export_center.js',
     authRequired: true,
     roles: ['admin', 'manager']
+  },
+  {
+    path: '/database-maintenance',
+    name: 'Database Maintenance',
+    componentPath: '../pages/database_maintenance.js',
+    authRequired: true,
+    roles: ['admin']
   }
 ];
 
