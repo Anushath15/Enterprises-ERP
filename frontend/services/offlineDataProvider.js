@@ -169,6 +169,10 @@ export const OfflineDataProvider = {
         entity.createdAt = prev.createdAt;
         entity.createdBy = prev.createdBy;
         list[index] = entity;
+      } else {
+        // Entity with caller-supplied id (e.g. InvoiceService.next) not in list yet — append
+        entity = { ...this.getBaseMetadata(), ...entity };
+        list.push(entity);
       }
     }
 

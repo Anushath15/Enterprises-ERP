@@ -9,6 +9,7 @@ import {
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { validateForm, rules } from '../utils/validate.js';
 
 const badgeClasses = {
   success: 'bg-success/10 text-success',
@@ -317,6 +318,23 @@ export function onMount() {
     saveBtn.addEventListener('click', () => {
       const form = document.getElementById('product-form');
       if (!form.reportValidity()) return;
+      
+      const field = (id) => document.getElementById(id);
+      const validationError = validateForm([
+        { el: field('p-name'), check: (v) => rules.required(v, 'Product name') || rules.maxLength(v, 100, 'Product name') },
+        { el: field('p-sku'), check: (v) => rules.maxLength(v, 50, 'SKU') },
+        { el: field('p-barcode'), check: (v) => rules.maxLength(v, 50, 'Barcode') },
+        { el: field('p-hsn'), check: (v) => rules.maxLength(v, 20, 'HSN code') },
+        { el: field('p-buying'), check: (v) => rules.number(v, 'Buying price') || rules.nonNegative(v, 'Buying price') },
+        { el: field('p-mrp'), check: (v) => rules.number(v, 'MRP') || rules.nonNegative(v, 'MRP') },
+        { el: field('p-gst'), check: (v) => rules.number(v, 'GST %') || rules.nonNegative(v, 'GST %') || rules.max(v, 100, 'GST %') },
+        { el: field('p-stock'), check: (v) => rules.required(v, 'Current stock') || rules.nonNegative(v, 'Current stock') },
+        { el: field('p-minstock'), check: (v) => rules.number(v, 'Min stock') || rules.nonNegative(v, 'Min stock') }
+      ]);
+      if (validationError) {
+        NotificationService.error(validationError);
+        return;
+      }
       
       const product = {
         id: document.getElementById('p-id').value || null,

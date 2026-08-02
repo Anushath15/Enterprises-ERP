@@ -528,6 +528,16 @@ export function onMount(rootElement) {
       const dealerId = rootElement.querySelector('#po-dealer').value;
       if (!dealerId) { NotificationService.warning('Please select a dealer.'); return; }
       if (cart.length === 0) { NotificationService.warning('Please add at least one product.'); return; }
+      if (!rootElement.querySelector('#po-date').value) { NotificationService.warning('Please select a purchase date.'); return; }
+      const badItem = cart.find(it =>
+        Number(it.qty) < 1 ||
+        Number(it.exGst) < 0 ||
+        Number(it.incGst) < 0 ||
+        Number(it.gst) < 0 || Number(it.gst) > 100 ||
+        Number(it.discount) < 0 || Number(it.discount) > 100 ||
+        Number(it.sellingPrice) < 0
+      );
+      if (badItem) { NotificationService.error(`Invalid quantity, price, GST or discount in row for ${badItem.name}.`); return; }
 
       let subtotal = 0;
       let totalGst = 0;

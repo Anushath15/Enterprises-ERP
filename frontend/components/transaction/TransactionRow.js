@@ -22,6 +22,25 @@ export const TransactionRow = (config) => {
       `;
     },
 
+    update(trElement, item, index) {
+      // Update editable input values in place to preserve focus and event listeners
+      const inputs = trElement.querySelectorAll('.po-input');
+      inputs.forEach(input => {
+        const field = input.getAttribute('data-field');
+        if (field && item[field] !== undefined) {
+          input.value = item[field];
+        }
+      });
+
+      // Re-render text/computed cells (no listeners inside them)
+      config.columns.forEach((col, ci) => {
+        const cell = trElement.children[ci];
+        if (!cell || typeof col.renderer !== 'function') return;
+        if (cell.querySelector('.po-input') || cell.querySelector('button')) return;
+        cell.innerHTML = col.renderer(item, index, col, config);
+      });
+    },
+
     bindEvents(trElement, itemId) {
       const inputs = trElement.querySelectorAll('.po-input');
       inputs.forEach(input => {
@@ -31,7 +50,7 @@ export const TransactionRow = (config) => {
           const val = Number(e.target.value) || 0;
           config.store.dispatch({
             type: TransactionActions.ITEM_UPDATE,
-            payload: { id: itemId, [field]: val }
+            payload: { id: itemId, field, value: val }
           });
         });
       });

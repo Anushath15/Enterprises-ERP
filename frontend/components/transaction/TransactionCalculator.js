@@ -46,5 +46,20 @@ export const TransactionCalculator = {
       roundOff: parseFloat(ro.toFixed(2)),
       grandTotal: parseFloat(grandTotal.toFixed(2))
     };
+  },
+
+  calculateLine(item, priceField = 'purchasePrice') {
+    const qty = parseFloat(item.qty) || 0;
+    const price = parseFloat(item[priceField]) || 0;
+    const itemDisc = parseFloat(item.discount) || 0;
+    const gstPercent = parseFloat(item.gst) || 0;
+
+    const gross = qty * price;
+    const discAmt = gross * (itemDisc / 100);
+    const taxable = gross - discAmt;
+    const gstAmt = taxable * (gstPercent / 100);
+    const lineTotal = taxable + gstAmt;
+
+    return { gstAmt, lineTotal, taxable };
   }
 };

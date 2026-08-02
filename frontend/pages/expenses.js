@@ -7,6 +7,7 @@ import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { validateForm, rules } from '../utils/validate.js';
 
 const DEFAULT_EXPENSE_CATEGORIES = ['Electricity', 'Water', 'Internet', 'Staff Salary', 'Labour', 'Transport', 'Loading & Unloading', 'Tea & Snacks', 'Office Expense', 'Cleaning', 'Maintenance', 'Stationery', 'Fuel', 'Packing', 'Miscellaneous'];
 export async function render() {
@@ -350,6 +351,16 @@ export function onMount(rootElement) {
   rootElement.querySelector('#btn-save-expense')?.addEventListener('click', () => {
     const form = rootElement.querySelector('#expense-form');
     if (!form.reportValidity()) return;
+
+    const validationError = validateForm([
+      { el: rootElement.querySelector('#exp-date'), check: (v) => rules.required(v, 'Date') },
+      { el: rootElement.querySelector('#exp-amount'), check: (v) => rules.required(v, 'Amount') || rules.positive(v, 'Amount') },
+      { el: rootElement.querySelector('#exp-desc'), check: (v) => rules.maxLength(v, 200, 'Description') }
+    ]);
+    if (validationError) {
+      NotificationService.error(validationError);
+      return;
+    }
 
     const methodRadio = rootElement.querySelector('input[name="exp-paymethod"]:checked');
     const expense = {

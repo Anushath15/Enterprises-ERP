@@ -1,6 +1,5 @@
 import { DataProvider } from '../dataProvider.js';
 import { InvoiceService } from './invoiceService.js';
-import { InventoryService } from './inventoryService.js';
 import { CustomerService } from './customerService.js';
 
 export const SalesService = {
@@ -19,13 +18,8 @@ export const SalesService = {
       createdAt: new Date().toISOString()
     };
     
-    // Save to data provider
+    // Save to data provider (commits stock reduction internally via net delta)
     DataProvider.saveSalesInvoice(invoice);
-    
-    // Commit the stock changes (permanently reducing stock and clearing reservations)
-    invoice.items.forEach(item => {
-      InventoryService.commit(item.productId, item.qty);
-    });
     
     return invoice;
   },

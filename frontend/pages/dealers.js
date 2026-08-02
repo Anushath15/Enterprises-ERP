@@ -7,6 +7,7 @@ import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { validateForm, rules } from '../utils/validate.js';
 
 export async function render() {
   const dealers = DataProvider.getDealers() || [];
@@ -422,6 +423,25 @@ export function onMount() {
     saveBtn.addEventListener('click', () => {
       const form = document.getElementById('dealer-form');
       if (!form.reportValidity()) return;
+      
+      const field = (id) => document.getElementById(id);
+      const validationError = validateForm([
+        { el: field('d-company'), check: (v) => rules.required(v, 'Company / shop name') || rules.maxLength(v, 100, 'Company / shop name') },
+        { el: field('d-name'), check: (v) => rules.required(v, 'Contact person') || rules.maxLength(v, 100, 'Contact person') },
+        { el: field('d-phone'), check: (v) => rules.required(v, 'Phone') || rules.phone(v, 'Phone') },
+        { el: field('d-email'), check: (v) => rules.maxLength(v, 120, 'Email') },
+        { el: field('d-gst'), check: (v) => rules.gstin(v) },
+        { el: field('d-pan'), check: (v) => rules.pan(v) },
+        { el: field('d-pin'), check: (v) => rules.pin(v) },
+        { el: field('d-credit-limit'), check: (v) => rules.number(v, 'Credit limit') || rules.nonNegative(v, 'Credit limit') },
+        { el: field('d-address'), check: (v) => rules.maxLength(v, 200, 'Billing address') },
+        { el: field('d-bank'), check: (v) => rules.maxLength(v, 300, 'Bank details') },
+        { el: field('d-notes'), check: (v) => rules.maxLength(v, 1000, 'Notes') }
+      ]);
+      if (validationError) {
+        NotificationService.error(validationError);
+        return;
+      }
       
       const dealer = {
         id: document.getElementById('d-id').value || null,

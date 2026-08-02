@@ -1,6 +1,5 @@
 import { DataProvider } from '../dataProvider.js';
 import { InvoiceService } from './invoiceService.js';
-import { InventoryService } from './inventoryService.js';
 import { SupplierService } from './supplierService.js';
 
 export const PurchaseService = {
@@ -19,14 +18,8 @@ export const PurchaseService = {
       createdAt: new Date().toISOString()
     };
     
-    // Save to data provider
-    DataProvider.savePurchaseInvoice(invoice); // assuming this exists or will exist
-    
-    // Increase stock based on purchase
-    invoice.items.forEach(item => {
-      // For purchase, we adjust stock positively
-      InventoryService.adjust(item.productId, item.qty);
-    });
+    // Save to data provider (adjusts stock internally via net delta)
+    DataProvider.savePurchaseInvoice(invoice);
     
     return invoice;
   }

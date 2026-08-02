@@ -8,6 +8,7 @@ import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { validateForm, rules } from '../utils/validate.js';
 
 export async function render() {
   const customers = DataProvider.getCustomers() || [];
@@ -560,6 +561,23 @@ export function onMount() {
   const handleSaveCustomer = () => {
     const form = document.getElementById('customer-form');
     if (!form.reportValidity()) return;
+
+    const field = (id) => document.getElementById(id);
+    const validationError = validateForm([
+      { el: field('c-name'), check: (v) => rules.required(v, 'Name') || rules.maxLength(v, 100, 'Name') },
+      { el: field('c-phone'), check: (v) => rules.required(v, 'Phone') || rules.phone(v, 'Phone') },
+      { el: field('c-whatsapp'), check: (v) => rules.phone(v, 'WhatsApp number') },
+      { el: field('c-gst'), check: (v) => rules.gstin(v) },
+      { el: field('c-pin'), check: (v) => rules.pin(v) },
+      { el: field('c-credit-limit'), check: (v) => rules.number(v, 'Credit limit') || rules.nonNegative(v, 'Credit limit') },
+      { el: field('c-address'), check: (v) => rules.maxLength(v, 200, 'Address') },
+      { el: field('c-area'), check: (v) => rules.maxLength(v, 100, 'Area') },
+      { el: field('c-notes'), check: (v) => rules.maxLength(v, 500, 'Notes') }
+    ]);
+    if (validationError) {
+      NotificationService.error(validationError);
+      return;
+    }
 
     const customer = {
       id: document.getElementById('c-id').value || null,

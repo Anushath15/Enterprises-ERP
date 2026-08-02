@@ -598,6 +598,12 @@ export function onMount(rootElement) {
       return;
     }
 
+    const invalidItem = cart.find(i => Number(i.qty) < 1 || Number(i.discountPercent) < 0 || Number(i.discountPercent) > 100);
+    if (invalidItem) {
+      NotificationService.error(`Invalid quantity or discount for ${invalidItem.name}.`);
+      return;
+    }
+
     const { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal } = getCartTotals();
 
     const invoice = {
