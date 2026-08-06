@@ -12,6 +12,7 @@ export async function render() {
 
 export function onMount(rootElement) {
   const cleanup = onMountLegacy(rootElement);
+  const __listeners = [];
 
   // Override the "New Purchase Order" button to redirect to our new full-page form
   const newBtns = rootElement.querySelectorAll('button');
@@ -20,13 +21,18 @@ export function onMount(rootElement) {
       // Remove legacy click handler
       const clone = btn.cloneNode(true);
       btn.parentNode.replaceChild(clone, btn);
-      clone.addEventListener('click', (e) => {
+      const handler = (e) => {
         e.preventDefault();
         e.stopPropagation();
         window.location.hash = '#/purchases/new';
-      });
+      };
+      clone.addEventListener('click', handler);
+      __listeners.push({ el: clone, evt: 'click', handler });
     }
   });
 
-  return cleanup;
+  return function() {
+    __listeners.forEach(l => l.el.removeEventListener(l.evt, l.handler));
+    if (cleanup) cleanup();
+  };
 }

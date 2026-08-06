@@ -3,9 +3,8 @@
  * Handles hash-based routing, route guards, and lazy loading.
  * Includes active sidebar link update and page cleanup on navigation.
  */
-import { routes, defaultRoute, errorRoute, loginRoute } from '../config/routes.js';
+import { routes, defaultRoute, errorRoute } from '../config/routes.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
-import { AuthService } from '../services/authService.js';
 
 export class Router {
   constructor(rootElementId) {
@@ -38,22 +37,8 @@ export class Router {
       window.history.replaceState(null, null, '#' + errorRoute);
     }
 
-    // Route Guard: enforce authentication and role-based access
-    if (route.authRequired) {
-      if (!AuthService.hasValidSession()) {
-        AuthService.clearSession();
-        AuthService.redirectToLogin();
-        return;
-      }
-      if (route.roles && route.roles.length > 0 && !AuthService.hasRole(route.roles)) {
-        this.navigate('/403');
-        return;
-      }
-    } else if (path === loginRoute && AuthService.hasValidSession()) {
-      // Already authenticated: skip the login screen
-      this.navigate(defaultRoute);
-      return;
-    }
+    // Route Guard: enforce authentication and role-based access has been completely removed.
+    // All routes are open by default.
 
     this.currentRoute = route;
 

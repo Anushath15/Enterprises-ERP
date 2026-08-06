@@ -130,6 +130,24 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const _origAddEventListener = rootElement.addEventListener;
+  rootElement.addEventListener = function(type, listener, options) {
+    __listeners.push({ target: rootElement, type, listener, options });
+    _origAddEventListener.call(rootElement, type, listener, options);
+  };
+  const _origWindowAdd = window.addEventListener;
+  const _origDocAdd = document.addEventListener;
+  const trackedWindowDoc = [];
+  window.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: window, type, listener, options });
+     _origWindowAdd.call(window, type, listener, options);
+  };
+  document.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: document, type, listener, options });
+     _origDocAdd.call(document, type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
   
   let allAdjustments = DataProvider.getStockAdjustments() || [];
@@ -273,6 +291,15 @@ export function onMount(rootElement) {
   rootElement.querySelector('#btn-save-adj').addEventListener('click', handleSave);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    window.addEventListener = _origWindowAdd;
+    document.addEventListener = _origDocAdd;
+
     window.removeEventListener('openAdjDrawer', openDrawer);
     searchInput.removeEventListener('input', handleSearch);
     closeBtns.forEach(btn => btn.removeEventListener('click', closeDrawer));

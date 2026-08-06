@@ -10,9 +10,7 @@ class ApiClient {
     this.baseURL = baseURL;
   }
 
-  _getToken() {
-    return LocalStorageService.get('auth_token');
-  }
+  // Token logic removed
 
   _handleError(status, data) {
     let message = 'An unexpected error occurred.';
@@ -24,11 +22,8 @@ class ApiClient {
     }
 
     if (status === 401) {
-      // Trigger global logout (could fire a custom event)
-      LocalStorageService.remove('auth_token');
-      LocalStorageService.remove('auth_user');
-      window.dispatchEvent(new CustomEvent('auth:logout'));
-      throw new Error('Session expired. Please log in again.');
+      // Auth removed. If we hit 401, just throw error.
+      throw new Error('Unauthorized request.');
     }
     
     if (status === 403) {
@@ -40,16 +35,10 @@ class ApiClient {
 
   async _request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const token = this._getToken();
-    
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers
     };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     try {
       const response = await fetch(url, { ...options, headers });

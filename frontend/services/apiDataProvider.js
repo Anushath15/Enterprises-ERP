@@ -7,18 +7,12 @@ import { api } from './network/apiClient.js';
 export const ApiDataProvider = {
   // Initialization
   init() {
-    console.log('ApiDataProvider initialized');
+    // ApiDataProvider initialized
   },
 
-  // Authentication
-  async login(username, password) {
-    return await api.post('/auth/login', { username, password });
-  },
-  async logout() {
-    return await api.post('/auth/logout');
-  },
+  // Authentication endpoints removed.
   async getMe() {
-    return await api.get('/auth/me');
+    return { name: 'Senthil Enterprises', role: 'admin' };
   },
 
   // Products
@@ -144,7 +138,7 @@ export const ApiDataProvider = {
     return [];
   },
   async createNotification(type, title, message) {
-    console.log(`Notification [${type}]: ${title} - ${message}`);
+    // Fallback for notifications
   },
 
   // Missing placeholders
@@ -156,6 +150,9 @@ export const ApiDataProvider = {
   async saveUser(user) { return user; },
   async resetUserPassword(userId, newPassword) { return true; },
   async updateCustomerBalance(id, amountChange) { return true; },
-  async updateDealerBalance(id, amountChange) { return true; }
-};
+  async updateDealerBalance(id, amountChange) { return true; },
 
+  // Credit Payments (AUDIT-H04) — online persistence requires a backend endpoint
+  async getCreditPayments() { return []; },
+  async saveCreditPayment(payment) { return payment; }
+};

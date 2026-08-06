@@ -13,7 +13,7 @@ export const OfflineDataProvider = {
   // ==========================================
   init() {
     if (!LocalStorageService.has('erp_system_state')) {
-      console.log('Initializing ERP Data for the first time...');
+      // Initializing ERP Data for the first time...
       Object.keys(SeedData).forEach(key => {
         LocalStorageService.set(key, SeedData[key]);
       });
@@ -76,38 +76,9 @@ export const OfflineDataProvider = {
   // ==========================================
   // AUTHENTICATION
   // ==========================================
-  async login(username, password) {
-    const users = this._getAll('erp_users');
-    const user = users.find(u =>
-      String(u.username || '').toLowerCase() === String(username || '').toLowerCase() &&
-      u.status !== 'Suspended'
-    );
-    if (!user) {
-      throw new Error('Invalid username or password.');
-    }
-    const valid = await verifyPassword(password, user);
-    if (!valid) {
-      throw new Error('Invalid username or password.');
-    }
-    return {
-      access_token: `offline-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name || user.username,
-        role: user.role
-      }
-    };
-  },
-  async logout() {
-    return true;
-  },
+  // Auth removed
   async getMe() {
-    return this.getCurrentUserData();
-  },
-  getCurrentUserData() {
-    const user = this._getAll('erp_users').find(u => u.username === 'admin');
-    return user ? { id: user.id, username: user.username, name: user.name, role: user.role } : null;
+    return { name: 'Senthil Enterprises', role: 'admin' };
   },
 
   // ==========================================
@@ -362,6 +333,29 @@ export const OfflineDataProvider = {
   },
 
   // ==========================================
+  // CREDIT PAYMENTS (AUDIT-H04)
+  // Collections recorded when cash is received
+  // against a customer's outstanding balance.
+  // ==========================================
+  getCreditPayments() {
+    return this._getAll('erp_credit_payments');
+  },
+  saveCreditPayment(payment) {
+    if (!payment.customerId) {
+      throw new Error('Customer is required for a credit payment.');
+    }
+    const amount = this._toFinite(payment.amount);
+    if (amount <= 0) {
+      throw new Error('Payment amount must be greater than zero.');
+    }
+    payment.amount = amount;
+    const saved = this._save('erp_credit_payments', payment, 'PAY');
+    // Synchronize the customer ledger immediately (net zero risk: updateCustomerBalance is idempotent on re-save).
+    this.updateCustomerBalance(saved.customerId, -amount);
+    return saved;
+  },
+
+  // ==========================================
   // DEALERS & PURCHASES
   // ==========================================
   getDealers() {
@@ -396,7 +390,12 @@ export const OfflineDataProvider = {
     const prev = invoice.id ? this._getAll('erp_purchases').find(i => i.id === invoice.id) : null;
     const prevItems = prev && Array.isArray(prev.items) ? prev.items : [];
     const prevByProduct = new Map(prevItems.map(it => [it.productId, this._toFinite(it.qty)]));
-    const newItems = invoice.items.map(it => ({ productId: it.productId, qty: this._toFinite(it.qty) }));
+    const newItems = invoice.items.map(it => ({ 
+      productId: it.productId, 
+      qty: this._toFinite(it.qty),
+      costPrice: this._toFinite(it.costPrice || it.price, 0),
+      price: this._toFinite(it.price, 0)
+    }));
 
     // Backup state for atomicity (mirrors saveSalesInvoice)
     const backupInvoices = this._serialize('erp_purchases');
@@ -754,4 +753,3 @@ export const OfflineDataProvider = {
     return this._save('erp_product_price_history', historyRecord, 'PPH');
   }
 };
-

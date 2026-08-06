@@ -89,6 +89,24 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const _origAddEventListener = rootElement.addEventListener;
+  rootElement.addEventListener = function(type, listener, options) {
+    __listeners.push({ target: rootElement, type, listener, options });
+    _origAddEventListener.call(rootElement, type, listener, options);
+  };
+  const _origWindowAdd = window.addEventListener;
+  const _origDocAdd = document.addEventListener;
+  const trackedWindowDoc = [];
+  window.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: window, type, listener, options });
+     _origWindowAdd.call(window, type, listener, options);
+  };
+  document.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: document, type, listener, options });
+     _origDocAdd.call(document, type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
   
   let currentTab = 'product'; // 'product' or 'expense'
@@ -134,19 +152,24 @@ export function onMount(rootElement) {
           </tr>
         `;
       }).join('');
-      
-      tbody.querySelectorAll('.edit-cat-btn').forEach(btn => btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDrawer(e.currentTarget.getAttribute('data-id'));
-      }));
-      
-      tbody.querySelectorAll('.delete-cat-btn').forEach(btn => btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handleDelete(e.currentTarget.getAttribute('data-id'));
-      }));
     }
     if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
   };
+
+  const handleTableClick = (e) => {
+    const editBtn = e.target.closest('.edit-cat-btn');
+    const deleteBtn = e.target.closest('.delete-cat-btn');
+    
+    if (editBtn) {
+      e.stopPropagation();
+      openDrawer(editBtn.getAttribute('data-id'));
+    } else if (deleteBtn) {
+      e.stopPropagation();
+      handleDelete(deleteBtn.getAttribute('data-id'));
+    }
+  };
+  
+  tbody.addEventListener('click', handleTableClick);
 
   const switchTab = (tab) => {
     currentTab = tab;
@@ -161,14 +184,17 @@ export function onMount(rootElement) {
     loadData();
   };
 
-  tabProduct.addEventListener('click', () => switchTab('product'));
-  tabExpense.addEventListener('click', () => switchTab('expense'));
+  const handleTabProduct = () => switchTab('product');
+  const handleTabExpense = () => switchTab('expense');
+  tabProduct.addEventListener('click', handleTabProduct);
+  tabExpense.addEventListener('click', handleTabExpense);
 
-  searchInput.addEventListener('input', (e) => {
+  const handleSearch = (e) => {
     const q = e.target.value.toLowerCase().trim();
     const filtered = currentData.filter(c => c.name.toLowerCase().includes(q) || (c.id && c.id.toLowerCase().includes(q)));
     renderTable(filtered);
-  });
+  };
+  searchInput.addEventListener('input', handleSearch);
 
   // Drawer Logic
   const overlay = rootElement.querySelector('#cat-drawer-overlay');
@@ -180,7 +206,8 @@ export function onMount(rootElement) {
     drawer.classList.add('translate-x-full');
   };
 
-  rootElement.querySelectorAll('.close-cat-drawer').forEach(btn => btn.addEventListener('click', closeDrawer));
+  const closeBtns = rootElement.querySelectorAll('.close-cat-drawer');
+  closeBtns.forEach(btn => btn.addEventListener('click', closeDrawer));
   overlay.addEventListener('click', closeDrawer);
 
   const openDrawer = (id = null) => {
@@ -207,9 +234,11 @@ export function onMount(rootElement) {
     drawer.classList.remove('translate-x-full');
   };
 
-  rootElement.querySelector('#btn-add-cat').addEventListener('click', () => openDrawer(null));
+  const handleAddCat = () => openDrawer(null);
+  const btnAddCat = rootElement.querySelector('#btn-add-cat');
+  btnAddCat.addEventListener('click', handleAddCat);
 
-  rootElement.querySelector('#btn-save-cat').addEventListener('click', () => {
+  const handleSaveCat = () => {
     const id = rootElement.querySelector('#cat-id').value;
     const type = rootElement.querySelector('#cat-type').value;
     const name = rootElement.querySelector('#cat-name').value.trim();
@@ -233,7 +262,9 @@ export function onMount(rootElement) {
     } catch (err) {
       NotificationService.error(err.message);
     }
-  });
+  };
+  const btnSaveCat = rootElement.querySelector('#btn-save-cat');
+  btnSaveCat.addEventListener('click', handleSaveCat);
 
   const handleDelete = (id) => {
     if (!id) return;
@@ -272,6 +303,22 @@ export function onMount(rootElement) {
   loadData();
 
   return function cleanup() {
-    // cleanup
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    window.addEventListener = _origWindowAdd;
+    document.addEventListener = _origDocAdd;
+
+    tbody.removeEventListener('click', handleTableClick);
+    tabProduct.removeEventListener('click', handleTabProduct);
+    tabExpense.removeEventListener('click', handleTabExpense);
+    searchInput.removeEventListener('input', handleSearch);
+    closeBtns.forEach(btn => btn.removeEventListener('click', closeDrawer));
+    overlay.removeEventListener('click', closeDrawer);
+    btnAddCat.removeEventListener('click', handleAddCat);
+    btnSaveCat.removeEventListener('click', handleSaveCat);
   };
 }

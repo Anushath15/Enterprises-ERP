@@ -211,6 +211,13 @@ export async function render() {
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
 
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
+
   const allReturns = DataProvider.getPurchaseReturns() || [];
   const overlay = rootElement.querySelector('#pret-drawer-overlay');
   const formDrawer = rootElement.querySelector('#pret-form-drawer');
@@ -267,8 +274,8 @@ export function onMount(rootElement) {
       if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
     }
   };
-  if (pretSearch) pretSearch.addEventListener('input', applyFilter);
-  if (pretStatusFilter) pretStatusFilter.addEventListener('change', applyFilter);
+  addListener(pretSearch, 'input', applyFilter);
+  addListener(pretStatusFilter, 'change', applyFilter);
 
   const openForm = (e) => {
     const id = e.detail;
@@ -302,27 +309,26 @@ export function onMount(rootElement) {
 
   // Fix PR-001: Invoice lookup
   const invoiceInput = rootElement.querySelector('#pret-invoice');
-  if (invoiceInput) {
-    invoiceInput.addEventListener('blur', () => {
-      const invId = invoiceInput.value.trim();
-      if (!invId) return;
-      const inv = DataProvider.getPurchaseInvoices().find(i => i.id === invId);
-      if (inv) {
-        if (inv.dealerId) rootElement.querySelector('#pret-dealer').value = inv.dealerId;
-        if (inv.items && inv.items.length === 1) {
-          rootElement.querySelector('#pret-product-id').value = inv.items[0].productId || '';
-          rootElement.querySelector('#pret-product').value = inv.items[0].name;
-          rootElement.querySelector('#pret-qty').value = inv.items[0].qty;
-          rootElement.querySelector('#pret-amount').value = (inv.items[0].qty * (inv.items[0].price || inv.items[0].costPrice || 0)).toFixed(2);
-        }
-        NotificationService.success('Purchase invoice details loaded');
+  const handleInvoiceBlur = () => {
+    const invId = invoiceInput.value.trim();
+    if (!invId) return;
+    const inv = DataProvider.getPurchaseInvoices().find(i => i.id === invId);
+    if (inv) {
+      if (inv.dealerId) rootElement.querySelector('#pret-dealer').value = inv.dealerId;
+      if (inv.items && inv.items.length === 1) {
+        rootElement.querySelector('#pret-product-id').value = inv.items[0].productId || '';
+        rootElement.querySelector('#pret-product').value = inv.items[0].name;
+        rootElement.querySelector('#pret-qty').value = inv.items[0].qty;
+        rootElement.querySelector('#pret-amount').value = (inv.items[0].qty * (inv.items[0].price || inv.items[0].costPrice || 0)).toFixed(2);
       }
-    });
-  }
+      NotificationService.success('Purchase invoice details loaded');
+    }
+  };
+  addListener(invoiceInput, 'blur', handleInvoiceBlur);
 
-  window.addEventListener('openPurchaseReturnDrawer', openForm);
-  closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  addListener(window, 'openPurchaseReturnDrawer', openForm);
+  closeBtns.forEach(btn => addListener(btn, 'click', closeAll));
+  addListener(overlay, 'click', closeAll);
 
   // Delegated table clicks (replaces inline onclick)
   const handleTableClick = (e) => {
@@ -335,17 +341,19 @@ export function onMount(rootElement) {
     const row = e.target.closest('[data-pret-row]');
     if (row) openForm({ detail: row.getAttribute('data-pret-row') });
   };
-  tbody.addEventListener('click', handleTableClick);
+  addListener(tbody, 'click', handleTableClick);
 
   const newPretBtn = rootElement.querySelector('#btn-new-pret');
-  if (newPretBtn) newPretBtn.addEventListener('click', () => openForm({ detail: null }));
+  const handleNewPret = () => openForm({ detail: null });
+  addListener(newPretBtn, 'click', handleNewPret);
 
   // Initialize Draft Recovery
   const formEl = rootElement.querySelector('#pret-form');
   if (formEl) DraftManager.init('purchaseReturn', formEl);
 
   // Save (PR-001, PR-002, PR-003)
-  rootElement.querySelector('#save-pret-btn')?.addEventListener('click', () => {
+  const savePretBtn = rootElement.querySelector('#save-pret-btn');
+  const handleSave = () => {
     const form = rootElement.querySelector('#pret-form');
     if (!form.reportValidity()) return;
 
@@ -381,9 +389,13 @@ export function onMount(rootElement) {
     } catch (err) {
       NotificationService.error(err.message);
     }
-  });
+  };
+  addListener(savePretBtn, 'click', handleSave);
 
   return function cleanup() {
-    window.removeEventListener('openPurchaseReturnDrawer', openForm);
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
   };
 }

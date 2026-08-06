@@ -97,7 +97,7 @@ export async function render() {
               </tr>
             </thead>
             <tbody id="dealers-tbody" class="divide-y divide-border">
-              ${dealers.length ? dealers.map(d => renderRow(d)).join('') : '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No dealers found.</td></tr>'}
+              ${dealers.length ? dealers.slice(0, 50).map(d => renderRow(d)).join('') : '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No dealers found.</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -107,7 +107,7 @@ export async function render() {
     <!-- Dealer Overlay / Drawer -->
     <div id="dealer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
     
-    <aside id="dealer-drawer" class="fixed top-0 right-0 h-screen w-full md:w-[850px] bg-gray-50 border-l border-border z-[60] drawer-exit flex flex-col shadow-2xl">
+    <aside id="dealer-drawer" class="fixed top-0 right-0 h-screen w-full md:w-[850px] bg-gray-50 border-l border-border z-[60] transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
       <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-border shadow-sm z-10">
         <div class="flex items-center gap-3">
           <div class="p-2 bg-primary/10 rounded-lg text-primary">
@@ -248,8 +248,15 @@ export async function render() {
   `;
 }
 
-export function onMount() {
+export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
+
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
 
   // --- SEARCH & FILTER WIRING (DL-001) ---
   const allDealers = DataProvider.getDealers() || [];
@@ -269,26 +276,48 @@ export function onMount() {
     });
     if (dealerCountLabel) dealerCountLabel.textContent = `Showing ${filtered.length} of ${allDealers.length} dealers`;
     if (dealersTbody) {
+      dealersTbody.innerHTML = '';
       if (filtered.length === 0) {
         dealersTbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No dealers match your search</td></tr>';
+        renderQueue = [];
+        isRendering = false;
       } else {
-        dealersTbody.innerHTML = filtered.map(d => `
-          <tr class="row-hover cursor-pointer" data-dealer-row="${escapeHtml(d.id)}">
-            <td class="px-4 py-3.5"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
-            <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${escapeHtml((d.companyName || d.name || 'D').substring(0, 2).toUpperCase())}</div><div><p class="text-sm font-semibold text-text">${escapeHtml(d.companyName || d.name)}</p><p class="text-[10px] text-gray-500">${escapeHtml(d.contactPerson || d.name)}${d.gst ? ` • ${escapeHtml(d.gst)}` : ''}</p></div></div></td>
-            <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(d.phone || '-')}</td>
-            <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased || 0).toLocaleString('en-IN')}</td>
-            <td class="px-4 py-3.5 text-right"><span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding || 0).toLocaleString('en-IN')}</span></td>
-            <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(d.latestPurchase || 'Never')}</td>
-            <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${escapeHtml(d.status || 'Active')}</span></td>
-            <td class="px-4 py-3.5 text-center"><button class="dealer-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger" data-dealer-id="${escapeHtml(d.id)}" title="Delete Dealer"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
-          </tr>`).join('');
-        if (window.lucide) window.lucide.createIcons({ nodes: [dealersTbody] });
+        renderQueue = [...filtered];
+        if (!isRendering) {
+          isRendering = true;
+          processRenderQueue();
+        }
       }
     }
   };
-  if (dealerSearch) dealerSearch.addEventListener('input', applyDealerFilter);
-  if (dealerStatusFilter) dealerStatusFilter.addEventListener('change', applyDealerFilter);
+
+  let renderQueue = [];
+  let isRendering = false;
+
+  const processRenderQueue = () => {
+    if (renderQueue.length === 0) {
+      isRendering = false;
+      if (window.lucide) window.lucide.createIcons({ nodes: [dealersTbody] });
+      return;
+    }
+    const chunk = renderQueue.splice(0, 50);
+    dealersTbody.insertAdjacentHTML('beforeend', chunk.map(d => `
+      <tr class="row-hover cursor-pointer" data-dealer-row="${escapeHtml(d.id)}">
+        <td class="px-4 py-3.5"><input type="checkbox" class="w-4 h-4 rounded border-gray-300"></td>
+        <td class="px-4 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${escapeHtml((d.companyName || d.name || 'D').substring(0, 2).toUpperCase())}</div><div><p class="text-sm font-semibold text-text">${escapeHtml(d.companyName || d.name)}</p><p class="text-[10px] text-gray-500">${escapeHtml(d.contactPerson || d.name)}${d.gst ? ` • ${escapeHtml(d.gst)}` : ''}</p></div></div></td>
+        <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(d.phone || '-')}</td>
+        <td class="px-4 py-3.5 text-right font-bold text-text">₹${(d.totalPurchased || 0).toLocaleString('en-IN')}</td>
+        <td class="px-4 py-3.5 text-right"><span class="font-bold ${d.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(d.outstanding || 0).toLocaleString('en-IN')}</span></td>
+        <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(d.latestPurchase || 'Never')}</td>
+        <td class="px-4 py-3.5 text-center"><span class="status-badge ${d.status === 'Active' ? 'status-success' : 'status-gray'}">${escapeHtml(d.status || 'Active')}</span></td>
+        <td class="px-4 py-3.5 text-center"><button class="dealer-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger" data-dealer-id="${escapeHtml(d.id)}" title="Delete Dealer"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
+      </tr>`).join(''));
+    
+    requestAnimationFrame(processRenderQueue);
+  };
+
+  if (dealerSearch) addListener(dealerSearch, 'input', applyDealerFilter);
+  if (dealerStatusFilter) addListener(dealerStatusFilter, 'change', applyDealerFilter);
 
   const overlay = document.getElementById('dealer-overlay');
   const drawer = document.getElementById('dealer-drawer');
@@ -296,15 +325,14 @@ export function onMount() {
   const closeAll = () => {
     overlay.classList.remove('opacity-100');
     overlay.classList.add('opacity-0', 'pointer-events-none');
-    drawer.classList.remove('drawer-enter-active');
-    drawer.classList.add('drawer-exit-active');
+    drawer.classList.add('translate-x-full');
   };
 
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.d-tab-btn');
   const tabContents = document.querySelectorAll('.d-tab-content');
   tabBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    addListener(btn, 'click', (e) => {
       e.preventDefault();
       const target = btn.getAttribute('data-target');
       
@@ -379,15 +407,14 @@ export function onMount() {
     
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
-    drawer.classList.remove('drawer-exit-active', 'drawer-exit');
-    drawer.classList.add('drawer-enter-active');
+    drawer.classList.remove('translate-x-full');
   };
 
   const addBtn = document.getElementById('add-new-dealer');
-  if (addBtn) addBtn.addEventListener('click', () => openForm());
+  if (addBtn) addListener(addBtn, 'click', () => openForm());
   
   const handleOpenDealer = (e) => openForm(e.detail);
-  window.addEventListener('openDealerDrawer', handleOpenDealer);
+  addListener(window, 'openDealerDrawer', handleOpenDealer);
 
   const handleDeleteDealer = (e) => {
     if (!window.confirm('Delete this dealer? This cannot be undone.')) return;
@@ -396,7 +423,7 @@ export function onMount() {
     if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
     NotificationService.success('Dealer deleted');
   };
-  window.addEventListener('deleteDealer', handleDeleteDealer);
+  addListener(window, 'deleteDealer', handleDeleteDealer);
 
   // Delegated table clicks (replaces inline onclick)
   const handleDealersTableClick = (e) => {
@@ -409,18 +436,18 @@ export function onMount() {
     const row = e.target.closest('[data-dealer-row]');
     if (row) openForm(row.getAttribute('data-dealer-row'));
   };
-  dealersTbody.addEventListener('click', handleDealersTableClick);
+  if (dealersTbody) addListener(dealersTbody, 'click', handleDealersTableClick);
 
   const closeBtns = document.querySelectorAll('.close-dealer-drawer');
-  closeBtns.forEach(b => b.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  closeBtns.forEach(b => addListener(b, 'click', closeAll));
+  if (overlay) addListener(overlay, 'click', closeAll);
 
   const saveBtn = document.getElementById('save-d-btn');
   if (saveBtn) {
     const formEl = document.getElementById('dealer-form');
     if (formEl) DraftManager.init('dealer', formEl);
 
-    saveBtn.addEventListener('click', () => {
+    addListener(saveBtn, 'click', () => {
       const form = document.getElementById('dealer-form');
       if (!form.reportValidity()) return;
       
@@ -497,7 +524,9 @@ export function onMount() {
   }
 
   return function cleanup() {
-    window.removeEventListener('openDealerDrawer', handleOpenDealer);
-    window.removeEventListener('deleteDealer', handleDeleteDealer);
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
   };
 }

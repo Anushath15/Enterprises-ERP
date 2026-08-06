@@ -76,11 +76,11 @@ export function SidebarManager({ links = [], currentRoute = '#/', user }) {
   return `
     <div class="flex flex-col h-full bg-white">
       <div class="h-[var(--header-height)] flex-none flex items-center px-6 border-b border-border">
-        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mr-3 flex-shrink-0">
-          <i data-lucide="box" class="w-5 h-5 text-white"></i>
+        <div class="w-10 h-10 flex items-center justify-center mr-3 flex-shrink-0">
+          <img src="assets/logo.png" alt="Senthil Enterprises" class="w-full h-full object-contain drop-shadow-sm" />
         </div>
         <div class="sidebar-label whitespace-nowrap overflow-hidden">
-          <h1 class="text-sm font-bold text-text leading-tight">Senthil ERP</h1>
+          <h1 class="text-sm font-bold text-text leading-tight">Senthil Enterprises</h1>
           <p class="text-[10px] text-gray-400 font-medium tracking-wide uppercase">System RC3.2</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function SidebarManager({ links = [], currentRoute = '#/', user }) {
       <div class="p-4 border-t border-border flex-none sidebar-label">
         <div class="flex items-center px-2">
           <div class="w-2 h-2 rounded-full bg-success mr-2"></div>
-          <span class="text-xs text-gray-400 font-medium">Online & Synced</span>
+          <span class="text-xs text-gray-400 font-medium">Local Setup</span>
         </div>
       </div>
     </div>
@@ -131,11 +131,7 @@ export function TopNavbar({ title, user }) {
         <h2 class="text-lg font-semibold text-text truncate max-w-[200px] sm:max-w-md" id="navbar-title">${title}</h2>
       </div>
       <div class="flex items-center gap-3" id="navbar-user-area">
-        <button data-logout-btn class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-danger hover:bg-danger/5 transition-colors" title="Log out">
-          <i data-lucide="log-out" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">Log out</span>
-        </button>
-        <div class="flex items-center gap-3 pl-3 border-l border-border">
+        <div class="flex items-center gap-3 pl-3">
           <div class="text-right hidden md:block">
             <p class="text-sm font-medium text-text leading-tight">${name}</p>
             <p class="text-[11px] text-gray-400">${role}</p>

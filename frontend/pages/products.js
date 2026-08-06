@@ -138,7 +138,7 @@ export async function render() {
         children: TableWrapper({
           headers: ['ID', 'SKU', 'Product Name', 'Category', 'Brand', 'Stock', 'Cost', 'Price', 'GST', 'Status', 'Actions'],
           tbodyId: 'products-tbody',
-          rowsHtml: products.length ? products.map(renderRow).join('') : `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products found', subtitle: 'Add a new product or adjust filters'})}</td></tr>`
+          rowsHtml: products.length ? products.slice(0, 50).map(renderRow).join('') : `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products found', subtitle: 'Add a new product or adjust filters'})}</td></tr>`
         })
       })}
 
@@ -178,9 +178,16 @@ export async function render() {
   });
 }
 
-export function onMount() {
+export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
   
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
+
   const allProducts = DataProvider.getProducts();
   const productModal = document.getElementById('product-modal');
   
@@ -192,25 +199,62 @@ export function onMount() {
   const renderRow = window._productsRenderRow;
 
   if (searchInput && tbody) {
-    const applyFilter = () => {
-      const q = searchInput.value.toLowerCase().trim();
-      const cat = categoryFilter?.value || '';
+    let renderQueue = [];
+    let isRendering = false;
 
-      const filtered = allProducts.filter(p => {
-        if (q && !p.name.toLowerCase().includes(q) && !(p.sku || '').toLowerCase().includes(q) && !(p.barcode || '').includes(q) && !(p.category || '').toLowerCase().includes(q) && !(p.brand || '').toLowerCase().includes(q)) return false;
-        if (cat && p.category !== cat) return false;
-        return true;
-      });
-
-      if (countLabel) countLabel.textContent = `Showing ${filtered.length} products`;
-      tbody.innerHTML = filtered.length > 0 
-        ? filtered.map(renderRow).join('') 
-        : `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products match your filters'})}</td></tr>`;
-      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+    const processRenderQueue = () => {
+      if (renderQueue.length === 0) {
+        isRendering = false;
+        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        return;
+      }
+      const chunk = renderQueue.splice(0, 50);
+      tbody.insertAdjacentHTML('beforeend', chunk.map(renderRow).join(''));
+      requestAnimationFrame(processRenderQueue);
     };
 
-    searchInput.addEventListener('input', applyFilter);
-    categoryFilter?.addEventListener('change', applyFilter);
+    let searchTimeout;
+    const applyFilter = () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const q = searchInput.value.toLowerCase().trim();
+        const cat = categoryFilter?.value || '';
+
+        const filtered = allProducts.filter(p => {
+          if (q) {
+            const match = 
+              p.name?.toLowerCase().includes(q) ||
+              p.sku?.toLowerCase().includes(q) ||
+              p.barcode?.toLowerCase().includes(q) ||
+              p.category?.toLowerCase().includes(q) ||
+              p.brand?.toLowerCase().includes(q) ||
+              p.hsn?.toLowerCase().includes(q) ||
+              p.dealer?.toLowerCase().includes(q);
+            if (!match) return false;
+          }
+          if (cat && p.category !== cat) return false;
+          return true;
+        });
+
+        if (countLabel) countLabel.textContent = `Showing ${filtered.length} products`;
+        
+        tbody.innerHTML = ''; // clear existing
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products match your filters'})}</td></tr>`;
+          renderQueue = [];
+          isRendering = false;
+        } else {
+          renderQueue = [...filtered];
+          if (!isRendering) {
+            isRendering = true;
+            processRenderQueue();
+          }
+        }
+      }, 100);
+    };
+
+    addListener(searchInput, 'input', applyFilter);
+    if (categoryFilter) addListener(categoryFilter, 'change', applyFilter);
   }
 
   const handleDelete = (btn) => {
@@ -262,7 +306,7 @@ export function onMount() {
     }
   };
 
-  if (tbody) tbody.addEventListener('click', handleRowClick);
+  if (tbody) addListener(tbody, 'click', handleRowClick);
 
   const openForm = (id = null) => {
     const form = document.getElementById('product-form');
@@ -270,7 +314,6 @@ export function onMount() {
     form.reset();
     document.getElementById('p-id').value = '';
     
-    import('../services/dataProvider.js').then(({ DataProvider }) => {
       const categories = DataProvider.getCategories() || [];
       const catSelect = document.getElementById('p-category');
       catSelect.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
@@ -301,21 +344,20 @@ export function onMount() {
         title.textContent = 'New Product';
       }
       productModal.classList.remove('hidden');
-    });
   };
 
   const addBtn = document.getElementById('btn-add-product');
-  if (addBtn) addBtn.addEventListener('click', () => openForm());
+  if (addBtn) addListener(addBtn, 'click', () => openForm());
   
   const handleOpenProductModal = (e) => openForm(e.detail);
-  window.addEventListener('openProductModal', handleOpenProductModal);
+  addListener(window, 'openProductModal', handleOpenProductModal);
 
   const saveBtn = document.getElementById('save-p-btn');
   if (saveBtn) {
     const formEl = document.getElementById('product-form');
     if (formEl) DraftManager.init('product', formEl);
 
-    saveBtn.addEventListener('click', () => {
+    addListener(saveBtn, 'click', () => {
       const form = document.getElementById('product-form');
       if (!form.reportValidity()) return;
       
@@ -384,14 +426,14 @@ export function onMount() {
   const fileNameLabel = document.getElementById('file-name-label');
   
   if (btnImportExcel) {
-    btnImportExcel.addEventListener('click', () => {
+    addListener(btnImportExcel, 'click', () => {
       importModal.classList.remove('hidden');
     });
   }
   
   let workbookData = null;
   if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
+    addListener(fileInput, 'change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       fileNameLabel.textContent = file.name;
@@ -411,7 +453,7 @@ export function onMount() {
   }
   
   if (processBtn) {
-    processBtn.addEventListener('click', () => {
+    addListener(processBtn, 'click', () => {
       if (!workbookData || !workbookData.length) return;
       import('../services/dataProvider.js').then(({ DataProvider }) => {
           let imported = 0, updated = 0;
@@ -468,11 +510,12 @@ export function onMount() {
     const modal = document.getElementById(e.currentTarget.getAttribute('data-close-modal'));
     if (modal) modal.classList.add('hidden');
   };
-  closeButtons.forEach(btn => btn.addEventListener('click', handleCloseModal));
+  closeButtons.forEach(btn => addListener(btn, 'click', handleCloseModal));
 
   return function cleanup() {
-    window.removeEventListener('openProductModal', handleOpenProductModal);
-    if (tbody) tbody.removeEventListener('click', handleRowClick);
-    closeButtons.forEach(btn => btn.removeEventListener('click', handleCloseModal));
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
   };
 }

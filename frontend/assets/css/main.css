@@ -7,6 +7,36 @@
 * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
 
 /* ======================================
+   THEMING AND SIZING
+====================================== */
+:root, .theme-light {
+  --color-primary: #2563EB;
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+  --color-bg: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-text: #1F2937;
+  --color-border: #E5E7EB;
+}
+
+.theme-dark {
+  --color-primary: #3B82F6;
+  --color-success: #22C55E;
+  --color-warning: #FBBF24;
+  --color-danger: #EF4444;
+  --color-bg: #0F172A;
+  --color-card: #1E293B;
+  --color-text: #F8FAFC;
+  --color-border: #334155;
+}
+
+html.font-small { font-size: 14px; }
+html.font-normal { font-size: 16px; }
+html.font-large { font-size: 18px; }
+
+
+/* ======================================
    SIDEBAR
 ====================================== */
 .sidebar-link { transition: all 0.15s ease; border-radius: 0.5rem; }
@@ -23,9 +53,9 @@
 .stat-card { transition: all 0.2s ease; }
 .stat-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 .erp-card {
-  background: white;
+  background: var(--color-card);
   border-radius: 0.75rem;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border);
   box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -147,14 +177,15 @@ button:active { transform: scale(0.98); }
 ====================================== */
 @media print {
   body > * { display: none !important; }
-  #print-receipt-area, #print-barcode-area { display: block !important; }
+  #print-receipt-area, #print-barcode-area, #print-a4-area { display: block !important; }
   
+  /* Thermal 80mm Print */
   #print-receipt-area {
-    font-family: 'Courier New', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 12px;
     width: 80mm;
     margin: 0 auto;
-    padding: 10px;
+    padding: 0;
     color: #000;
   }
   #print-receipt-area .receipt-title { font-size: 16px; font-weight: bold; text-align: center; }
@@ -163,11 +194,65 @@ button:active { transform: scale(0.98); }
   #print-receipt-area td, #print-receipt-area th { padding: 2px 4px; font-size: 11px; }
   #print-receipt-area .receipt-total { font-size: 14px; font-weight: bold; }
   
+  /* Barcode Print */
   #print-barcode-area {
     width: 50mm;
     text-align: center;
     margin: 0;
     padding: 0;
+  }
+
+  /* A4 Print */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  
+  #print-a4-area {
+    font-family: var(--font-primary), sans-serif;
+    font-size: 12pt;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    color: #000;
+    background: #fff;
+  }
+  
+  #print-a4-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #print-a4-area .a4-header {
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  
+  #print-a4-area .a4-title { font-size: 24pt; font-weight: bold; margin-bottom: 4px; }
+  #print-a4-area .a4-subtitle { font-size: 12pt; color: #444; }
+  #print-a4-area .a4-info-box { border: 1px solid #ccc; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+  
+  #print-a4-area table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+  #print-a4-area th { background-color: #f3f4f6 !important; border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; }
+  #print-a4-area td { border: 1px solid #000; padding: 8px; }
+  
+  #print-a4-area .a4-totals { width: 50%; float: right; margin-bottom: 30px; }
+  #print-a4-area .a4-totals table { width: 100%; border: none; }
+  #print-a4-area .a4-totals td { border: none; padding: 4px 8px; }
+  #print-a4-area .a4-totals tr.a4-grand-total td { font-weight: bold; font-size: 14pt; border-top: 2px solid #000; }
+  
+  #print-a4-area .a4-footer {
+    clear: both;
+    margin-top: 40px;
+    padding-top: 10px;
+    border-top: 1px solid #ccc;
+    font-size: 10pt;
+    text-align: center;
+    color: #666;
   }
 }
 

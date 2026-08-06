@@ -123,18 +123,34 @@ export async function render() {
             <div class="mb-4">
               <p class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Payment Mode</p>
               <div class="grid grid-cols-3 gap-2" id="payment-modes">
-                <button data-mode="Cash" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border-2 border-primary bg-primary/5 active">
+                <button data-mode="Cash" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border-2 border-primary bg-primary/5 active transition-all">
                   <i data-lucide="banknote" class="w-5 h-5 text-primary mb-1"></i>
                   <span class="text-[10px] font-bold text-primary">Cash</span>
                 </button>
-                <button data-mode="UPI" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-colors">
+                <button data-mode="UPI" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-all">
                   <i data-lucide="smartphone" class="w-5 h-5 mb-1"></i>
                   <span class="text-[10px] font-medium">UPI</span>
                 </button>
-                <button data-mode="Credit" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-colors">
+                <button data-mode="Credit" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-all">
                   <i data-lucide="credit-card" class="w-5 h-5 mb-1"></i>
                   <span class="text-[10px] font-medium">Credit</span>
                 </button>
+              </div>
+              <div id="split-payment-container" class="mt-3 bg-gray-50 rounded-lg p-3 border border-border transition-all">
+                <label class="flex items-center gap-2 cursor-pointer mb-1">
+                  <input type="checkbox" id="enable-split-payment" class="w-4 h-4 rounded border-gray-300 text-primary">
+                  <span class="text-xs font-semibold text-gray-700">Partial Payment (Split with Credit)</span>
+                </label>
+                <div id="split-amount-wrapper" class="hidden flex items-center gap-3 mt-2 pt-2 border-t border-gray-200">
+                   <div class="flex-1">
+                     <label class="text-[10px] text-gray-500 font-semibold uppercase block mb-1">Amount Received (₹)</label>
+                     <input type="number" id="split-amount-input" class="w-full px-2 py-1.5 border border-border rounded text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="0">
+                   </div>
+                   <div class="flex-1 text-right">
+                     <p class="text-[10px] text-gray-500 font-semibold uppercase mb-1">Balance to Credit</p>
+                     <p class="text-sm font-bold text-danger" id="split-credit-amount">₹0.00</p>
+                   </div>
+                </div>
               </div>
             </div>
 
@@ -186,6 +202,13 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const addListener = (el, evt, handler, options = false) => {
+    if (!el) return;
+    el.addEventListener(evt, handler, options);
+    __listeners.push({el, evt, handler, options});
+  };
+
   // --- STATE ---
   let cart = [];
   let selectedCustomer = null;
@@ -201,6 +224,8 @@ export function onMount(rootElement) {
   // Load data
   allProducts = DataProvider.getProducts().filter(p => p.isActive);
   allCustomers = DataProvider.getCustomers().filter(c => c.isActive !== false);
+  // AUDIT-H01: precompute product lookup for fast stock checks in cart qty edits
+  const productById = new Map(allProducts.map(p => [p.id, p]));
 
   const savePosDraft = () => {
     DraftManager.saveDraft('pos', {
@@ -220,7 +245,7 @@ export function onMount(rootElement) {
     activeCategory = draft.activeCategory || 'All Products';
     searchQuery = draft.searchQuery || '';
     if ((cart.length > 0 || selectedCustomer) && window.showToast) {
-       setTimeout(() => NotificationService.info(), 500);
+       setTimeout(() => NotificationService.info('Draft restored — previous bill loaded.'), 500);
     }
   }
 
@@ -334,7 +359,15 @@ export function onMount(rootElement) {
     });
     
     const grandTotal = taxableAmount + taxTotal;
-    return { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal };
+    return { 
+      subtotal: Number(subtotal.toFixed(2)), 
+      totalDiscount: Number(totalDiscount.toFixed(2)), 
+      taxableAmount: Number(taxableAmount.toFixed(2)), 
+      taxTotal: Number(taxTotal.toFixed(2)), 
+      cgstTotal: Number(cgstTotal.toFixed(2)), 
+      sgstTotal: Number(sgstTotal.toFixed(2)), 
+      grandTotal: Math.round(grandTotal) // Grand Total rounded to nearest Rupee
+    };
   };
 
   const updateCartTotalsUI = () => {
@@ -360,56 +393,119 @@ export function onMount(rootElement) {
     if (taxEl) taxEl.textContent = `+ ₹${taxTotal.toFixed(2)}`;
     
     rootElement.querySelector('#summary-total').textContent = `₹${grandTotal.toFixed(2)}`;
+    
+    const splitInput = rootElement.querySelector('#split-amount-input');
+    const splitCredit = rootElement.querySelector('#split-credit-amount');
+    if (splitInput && splitCredit) {
+      const received = Number(splitInput.value) || 0;
+      const balance = Math.max(0, grandTotal - received);
+      splitCredit.textContent = `₹${balance.toFixed(2)}`;
+    }
+
     savePosDraft();
+  };
+
+  const renderCartItemHTML = (item) => {
+    const lineBase = item.price * item.qty;
+    const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
+    const itemTotal = (lineBase - lineDisc).toFixed(2);
+    return `
+      <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${escapeHtml(item.id)}">
+        <div class="flex items-center justify-between">
+           <div class="flex-1 min-w-0">
+             <p class="text-xs font-semibold text-text truncate">${escapeHtml(item.name)}</p>
+             <p class="text-[10px] text-gray-400">₹${item.price} @ ${item.taxRate || 0}% GST</p>
+           </div>
+           <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
+             <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+           </button>
+        </div>
+        
+        <div class="flex items-center justify-between gap-2 mt-1">
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[10px] text-gray-400">Qty:</span>
+            <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.qty)}" min="1" max="${productById.get(item.id) ? productById.get(item.id).stock : ''}">
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[10px] text-gray-400">Disc %:</span>
+            <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.discountPercent || 0)}" min="0" max="100">
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-bold text-text row-total">₹${itemTotal}</p>
+          </div>
+        </div>
+      </div>`;
   };
 
   const renderCart = () => {
     const container = rootElement.querySelector('#cart-container');
     if (cart.length === 0) {
       container.innerHTML = `
-        <div class="p-8 text-center text-gray-400 text-sm flex flex-col items-center gap-2">
-          <i data-lucide="shopping-cart" class="w-8 h-8 text-gray-200"></i>
-          <span>Cart is empty. Click a product to add.</span>
+        <div class="p-8 text-center text-gray-400 text-sm flex flex-col items-center gap-3" id="empty-cart-msg">
+          <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-1">
+             <i data-lucide="shopping-cart" class="w-8 h-8 text-gray-300"></i>
+          </div>
+          <span class="font-medium text-gray-500">Cart is empty</span>
+          <span class="text-xs text-gray-400">Scan barcode or click a product to add.</span>
         </div>`;
     } else {
-      container.innerHTML = cart.map(item => {
-        const lineBase = item.price * item.qty;
-        const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
-        const itemTotal = (lineBase - lineDisc).toFixed(2);
-        return `
-          <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${escapeHtml(item.id)}">
-            <div class="flex items-center justify-between">
-               <div class="flex-1 min-w-0">
-                 <p class="text-xs font-semibold text-text truncate">${escapeHtml(item.name)}</p>
-                 <p class="text-[10px] text-gray-400">₹${item.price} @ ${item.taxRate || 0}% GST</p>
-               </div>
-               <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
-                 <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
-               </button>
-            </div>
-            
-            <div class="flex items-center justify-between gap-2 mt-1">
-              <div class="flex items-center gap-1 shrink-0">
-                <span class="text-[10px] text-gray-400">Qty:</span>
-                <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.qty)}" min="1">
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <span class="text-[10px] text-gray-400">Disc %:</span>
-                <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.discountPercent || 0)}" min="0" max="100">
-              </div>
-              <div class="text-right shrink-0">
-                <p class="text-sm font-bold text-text row-total">₹${itemTotal}</p>
-              </div>
-            </div>
-          </div>`;
-      }).join('');
+      container.innerHTML = cart.map(renderCartItemHTML).join('');
     }
     if (window.lucide) window.lucide.createIcons({ nodes: [container] });
     updateCartTotalsUI();
   };
 
+  const updateProductBadgeDOM = (productId, qty) => {
+    const productCard = rootElement.querySelector(`.pos-product[data-id="${productId}"]`);
+    if (!productCard) return;
+    let badge = productCard.querySelector('.cart-badge');
+    if (qty > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'cart-badge absolute top-1 right-1 w-5 h-5 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center';
+        productCard.appendChild(badge);
+      }
+      badge.textContent = qty;
+    } else if (badge) {
+      badge.remove();
+    }
+  };
+
+  const addCartItemDOM = (item) => {
+    const container = rootElement.querySelector('#cart-container');
+    const emptyMsg = container.querySelector('#empty-cart-msg');
+    if (emptyMsg) emptyMsg.remove();
+    container.insertAdjacentHTML('afterbegin', renderCartItemHTML(item));
+    if (window.lucide) window.lucide.createIcons({ nodes: [container.firstElementChild] });
+    updateCartTotalsUI();
+    updateProductBadgeDOM(item.id, item.qty);
+  };
+
+  const updateCartItemDOM = (item) => {
+    const container = rootElement.querySelector('#cart-container');
+    const row = container.querySelector(`.cart-item[data-id="${item.id}"]`);
+    if (row) {
+      const qtyInput = row.querySelector('.pos-qty-input');
+      if (qtyInput) qtyInput.value = item.qty;
+      const lineBase = item.price * item.qty;
+      const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
+      row.querySelector('.row-total').textContent = `₹${(lineBase - lineDisc).toFixed(2)}`;
+    }
+    updateCartTotalsUI();
+    updateProductBadgeDOM(item.id, item.qty);
+  };
+
+  const removeCartItemDOM = (productId) => {
+    const container = rootElement.querySelector('#cart-container');
+    const row = container.querySelector(`.cart-item[data-id="${productId}"]`);
+    if (row) row.remove();
+    if (cart.length === 0) renderCart(); // show empty state
+    else updateCartTotalsUI();
+    updateProductBadgeDOM(productId, 0);
+  };
+
   // Delegate input events without re-rendering to prevent cursor jump
-  rootElement.querySelector('#cart-container').addEventListener('input', (e) => {
+  addListener(rootElement.querySelector('#cart-container'), 'input', (e) => {
      const cartItemEl = e.target.closest('.cart-item');
      if (!cartItemEl) return;
      const id = cartItemEl.getAttribute('data-id');
@@ -417,7 +513,20 @@ export function onMount(rootElement) {
      if (!item) return;
 
      if (e.target.classList.contains('pos-qty-input')) {
-        item.qty = Number(e.target.value) || 1;
+        // AUDIT-H01: manual qty must never exceed available stock
+        const product = productById.get(id);
+        const maxQty = product ? Number(product.stock) : Infinity;
+        let qty = Number(e.target.value) || 1;
+        if (qty > maxQty) {
+          qty = maxQty;
+          e.target.value = maxQty;
+          if (maxQty <= 0) {
+            NotificationService.error(`${product?.name || 'Product'} is out of stock`);
+          } else {
+            NotificationService.warning(`Only ${maxQty} ${product?.unit || 'units'} available`);
+          }
+        }
+        item.qty = qty;
      } else if (e.target.classList.contains('pos-disc-input')) {
         item.discountPercent = Number(e.target.value) || 0;
      }
@@ -429,6 +538,7 @@ export function onMount(rootElement) {
      cartItemEl.querySelector('.row-total').textContent = `₹${itemTotal}`;
 
      updateCartTotalsUI();
+     updateProductBadgeDOM(item.id, item.qty);
   });
 
   // =====================
@@ -449,17 +559,19 @@ export function onMount(rootElement) {
         return;
       }
       existing.qty += 1;
+      updateCartItemDOM(existing);
     } else {
-      cart.push({
+      const newItem = {
         id: product.id,
         name: product.name,
         price: product.price,
         taxRate: product.gst || product.taxRate || 0,
-        qty: 1
-      });
+        qty: 1,
+        discountPercent: 0
+      };
+      cart.unshift(newItem); // use unshift to add to top so user sees it
+      addCartItemDOM(newItem);
     }
-    renderCart();
-    renderProducts(); // refresh cart badges
   };
 
   const updateCartQty = (productId, delta) => {
@@ -475,10 +587,34 @@ export function onMount(rootElement) {
     }
     
     item.qty += delta;
-    if (item.qty <= 0) cart = cart.filter(i => i.id !== productId);
-    renderCart();
-    renderProducts();
+    if (item.qty <= 0) {
+      cart = cart.filter(i => i.id !== productId);
+      removeCartItemDOM(productId);
+    } else {
+      updateCartItemDOM(item);
+    }
   };
+
+  // Delegate cart delete
+  addListener(rootElement.querySelector('#cart-container'), 'click', (e) => {
+    const delBtn = e.target.closest('.cart-del-btn');
+    if (delBtn) {
+      const row = delBtn.closest('.cart-item');
+      if (row) {
+        const id = row.getAttribute('data-id');
+        cart = cart.filter(i => i.id !== id);
+        removeCartItemDOM(id);
+      }
+    }
+  });
+
+  // Delegate add to cart click
+  addListener(rootElement.querySelector('#product-grid'), 'click', (e) => {
+    const card = e.target.closest('.pos-product');
+    if (card && !card.classList.contains('cursor-not-allowed')) {
+      addToCart(card.getAttribute('data-id'));
+    }
+  });
 
   // =====================
   // CUSTOMER MODAL
@@ -537,12 +673,21 @@ export function onMount(rootElement) {
 
   const printReceipt = (invoice) => {
     if (!invoice) return;
+    // AUDIT-H02: legacy invoices may lack subtotal/taxableAmount/cgstTotal/sgstTotal.
+    // Normalize every numeric read so a reprint never throws on undefined.
+    const num = (v) => Number(v || 0);
     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
     const shopName = settings.shopName || 'Senthil Enterprises';
     const shopAddress = settings.address || '';
     const shopPhone = settings.phone || '';
     const gstin = settings.gstin || '';
     const date = new Date(invoice.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const subtotal = num(invoice.subtotal);
+    const discount = num(invoice.discount);
+    const taxableAmount = num(invoice.taxableAmount);
+    const cgstTotal = num(invoice.cgstTotal);
+    const sgstTotal = num(invoice.sgstTotal);
+    const totalAmount = num(invoice.totalAmount || invoice.total);
 
     const receiptArea = document.getElementById('print-receipt-area');
     receiptArea.innerHTML = `
@@ -559,24 +704,24 @@ export function onMount(rootElement) {
       <table style="width: 100%; font-size: 10px;">
         <tr><th style="text-align:left">Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr>
         ${(invoice.items || []).map(item => {
-           const disc = item.discountAmount > 0 ? `<br><small style="color:#666">(-₹${item.discountAmount.toFixed(2)})</small>` : '';
+           const disc = num(item.discountAmount) > 0 ? `<br><small style="color:#666">(-₹${num(item.discountAmount).toFixed(2)})</small>` : '';
            return `
           <tr>
             <td style="font-size:10px;">${escapeHtml(item.name)}${disc}</td>
             <td style="text-align:center">${item.qty}</td>
-            <td style="text-align:right">₹${item.price}</td>
-            <td style="text-align:right">₹${item.total.toFixed(2)}</td>
+            <td style="text-align:right">₹${num(item.price).toLocaleString('en-IN')}</td>
+            <td style="text-align:right">₹${(num(item.total) || (num(item.qty) * num(item.price))).toFixed(2)}</td>
           </tr>`;
         }).join('')}
       </table>
       <div class="receipt-divider"></div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Subtotal</span><span>₹${invoice.subtotal.toFixed(2)}</span></div>
-      ${invoice.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${invoice.discount.toFixed(2)}</span></div>` : ''}
-      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${invoice.taxableAmount.toFixed(2)}</span></div>
-      ${invoice.cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${invoice.cgstTotal.toFixed(2)}</span></div>` : ''}
-      ${invoice.sgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>SGST</span><span>+ ₹${invoice.sgstTotal.toFixed(2)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Subtotal</span><span>₹${subtotal.toFixed(2)}</span></div>
+      ${discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${discount.toFixed(2)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${taxableAmount.toFixed(2)}</span></div>
+      ${cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${cgstTotal.toFixed(2)}</span></div>` : ''}
+      ${sgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>SGST</span><span>+ ₹${sgstTotal.toFixed(2)}</span></div>` : ''}
       <div class="receipt-divider"></div>
-      <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>GRAND TOTAL</span><span>₹${invoice.totalAmount.toFixed(2)}</span></div>
+      <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>GRAND TOTAL</span><span>₹${totalAmount.toFixed(2)}</span></div>
       <div class="receipt-divider"></div>
       <div style="text-align:center;font-size:10px;margin-top:8px;">Thank you for shopping with us!</div>
       <div style="text-align:center;font-size:10px;">Please visit again.</div>`;
@@ -604,7 +749,30 @@ export function onMount(rootElement) {
       return;
     }
 
+    // AUDIT-H01: final guard so a stale/forged qty can never sell more than stock
+    const overStockItem = cart.find(i => {
+      const product = productById.get(i.id);
+      return product && Number(i.qty) > Number(product.stock);
+    });
+    if (overStockItem) {
+      const available = productById.get(overStockItem.id)?.stock || 0;
+      NotificationService.error(`Insufficient stock for ${overStockItem.name}. Available: ${available}.`);
+      return;
+    }
+
     const { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal } = getCartTotals();
+
+    let parsedAmountPaid = grandTotal;
+    if (paymentMode !== 'Credit') {
+      const isSplit = rootElement.querySelector('#enable-split-payment')?.checked;
+      if (isSplit) {
+        parsedAmountPaid = Number(rootElement.querySelector('#split-amount-input')?.value || 0);
+        if (parsedAmountPaid < grandTotal && !selectedCustomer) {
+           NotificationService.warning('Please select a customer for Partial Payments!');
+           return;
+        }
+      }
+    }
 
     const invoice = {
       date: new Date().toISOString(),
@@ -632,9 +800,9 @@ export function onMount(rootElement) {
       sgstTotal,
       totalAmount: grandTotal,
       paymentMode,
-      paymentStatus: paymentMode === 'Credit' ? 'Pending' : 'Paid Full',
-      amountPaid: paymentMode === 'Credit' ? 0 : grandTotal,
-      status: paymentMode === 'Credit' ? 'Pending' : 'Paid'
+      paymentStatus: paymentMode === 'Credit' ? 'Pending' : (parsedAmountPaid < grandTotal ? 'Partial' : 'Paid Full'),
+      amountPaid: paymentMode === 'Credit' ? 0 : parsedAmountPaid,
+      status: paymentMode === 'Credit' ? 'Pending' : (parsedAmountPaid < grandTotal ? 'Partial' : 'Paid')
     };
 
     try {
@@ -645,19 +813,28 @@ export function onMount(rootElement) {
       cart = [];    // Reset state in-place — NO page reload
       paymentMode = 'Cash';
       
+      const splitCheckbox = rootElement.querySelector('#enable-split-payment');
+      if (splitCheckbox) {
+         splitCheckbox.checked = false;
+         rootElement.querySelector('#split-amount-wrapper')?.classList.add('hidden');
+         rootElement.querySelector('#split-amount-input').value = '';
+      }
+      
       // Reset payment mode UI
       rootElement.querySelectorAll('.payment-btn').forEach(btn => {
         btn.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
         btn.classList.add('border', 'border-border', 'bg-white', 'text-gray-500');
-        btn.querySelector('i')?.classList.remove('text-primary');
         btn.querySelector('span')?.classList.remove('text-primary', 'font-bold');
+        const icon = btn.querySelector('i, svg');
+        if (icon) icon.classList.remove('text-primary');
       });
       const cashBtn = rootElement.querySelector('.payment-btn[data-mode="Cash"]');
       if (cashBtn) {
         cashBtn.classList.remove('border', 'border-border', 'bg-white', 'text-gray-500');
         cashBtn.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
-        cashBtn.querySelector('i')?.classList.add('text-primary');
         cashBtn.querySelector('span')?.classList.add('text-primary', 'font-bold');
+        const cIcon = cashBtn.querySelector('i, svg');
+        if (cIcon) cIcon.classList.add('text-primary');
       }
       
       renderCart();
@@ -679,13 +856,13 @@ export function onMount(rootElement) {
   renderCart();
 
   // Search & Category
-  rootElement.querySelector('#pos-search-input').addEventListener('input', (e) => {
+  addListener(rootElement.querySelector('#pos-search-input'), 'input', (e) => {
     searchQuery = e.target.value.trim();
     savePosDraft();
     renderProducts();
   });
 
-  rootElement.querySelector('#pos-barcode-input').addEventListener('keydown', (e) => {
+  addListener(rootElement.querySelector('#pos-barcode-input'), 'keydown', (e) => {
     if (e.key === 'Enter') {
       const barcode = e.target.value.trim();
       if (!barcode) return;
@@ -701,7 +878,7 @@ export function onMount(rootElement) {
   });
 
   rootElement.querySelectorAll('.category-pill').forEach(pill => {
-    pill.addEventListener('click', (e) => {
+    addListener(pill, 'click', (e) => {
       rootElement.querySelectorAll('.category-pill').forEach(p => {
         p.classList.remove('active', 'text-white', 'border-primary', 'bg-primary');
         p.classList.add('bg-white', 'text-gray-600', 'border-border');
@@ -714,44 +891,8 @@ export function onMount(rootElement) {
     });
   });
 
-  // Product clicks
-  const productGrid = rootElement.querySelector('#product-grid');
-  const handleImageError = (e) => {
-    if (e.target && e.target.classList && e.target.classList.contains('pos-product-img')) {
-      e.target.style.display = 'none';
-      const next = e.target.nextElementSibling;
-      if (next) next.style.display = 'flex';
-    }
-  };
-  if (productGrid) productGrid.addEventListener('error', handleImageError, true);
-  productGrid.addEventListener('click', (e) => {
-    const card = e.target.closest('.pos-product');
-    if (card && !card.classList.contains('cursor-not-allowed')) {
-      addToCart(card.getAttribute('data-id'));
-    }
-  });
 
-  // Cart actions
-  rootElement.querySelector('#cart-container').addEventListener('click', (e) => {
-    const itemEl = e.target.closest('.cart-item');
-    if (!itemEl) return;
-    const id = itemEl.getAttribute('data-id');
-
-    const deltaBtn = e.target.closest('.qty-btn');
-    if (deltaBtn) {
-      const delta = parseInt(deltaBtn.getAttribute('data-delta'));
-      updateCartQty(id, delta);
-      return;
-    }
-    if (e.target.closest('.cart-del-btn')) {
-      cart = cart.filter(i => i.id !== id);
-      savePosDraft();
-      renderCart();
-      renderProducts();
-    }
-  });
-
-  rootElement.querySelector('#clear-cart-btn').addEventListener('click', () => {
+  addListener(rootElement.querySelector('#clear-cart-btn'), 'click', () => {
     if (cart.length === 0) return;
     cart = [];
     savePosDraft();
@@ -771,35 +912,58 @@ export function onMount(rootElement) {
   });
 
   rootElement.querySelectorAll('.payment-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    addListener(btn, 'click', (e) => {
       const b = e.target.closest('.payment-btn');
       rootElement.querySelectorAll('.payment-btn').forEach(x => {
         x.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
         x.classList.add('border-border', 'bg-white', 'text-gray-500');
         x.querySelector('span').classList.remove('text-primary');
         x.querySelector('span').classList.add('text-gray-500');
-        x.querySelector('i').classList.remove('text-primary');
+        const icon = x.querySelector('i, svg');
+        if (icon) icon.classList.remove('text-primary');
       });
       b.classList.remove('border-border', 'bg-white', 'text-gray-500');
       b.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
       b.querySelector('span').classList.remove('text-gray-500');
       b.querySelector('span').classList.add('text-primary');
-      b.querySelector('i').classList.add('text-primary');
+      const bIcon = b.querySelector('i, svg');
+      if (bIcon) bIcon.classList.add('text-primary');
       paymentMode = b.getAttribute('data-mode');
+      
+      const splitContainer = rootElement.querySelector('#split-payment-container');
+      if (splitContainer) {
+         if (paymentMode === 'Credit') splitContainer.classList.add('hidden', 'opacity-0');
+         else splitContainer.classList.remove('hidden', 'opacity-0');
+      }
       savePosDraft();
     });
   });
 
-  // Customer modal
-  rootElement.querySelector('#btn-change-customer').addEventListener('click', openCustomerModal);
-  rootElement.querySelector('#close-customer-modal').addEventListener('click', closeCustomerModal);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCustomerModal(); });
+  addListener(rootElement.querySelector('#enable-split-payment'), 'change', (e) => {
+     const wrapper = rootElement.querySelector('#split-amount-wrapper');
+     if (e.target.checked) {
+       wrapper.classList.remove('hidden');
+       rootElement.querySelector('#split-amount-input')?.focus();
+     } else {
+       wrapper.classList.add('hidden');
+     }
+     updateCartTotalsUI();
+  });
+  
+  addListener(rootElement.querySelector('#split-amount-input'), 'input', () => {
+     updateCartTotalsUI();
+  });
 
-  rootElement.querySelector('#customer-search').addEventListener('input', (e) => {
+  // Customer modal
+  addListener(rootElement.querySelector('#btn-change-customer'), 'click', openCustomerModal);
+  addListener(rootElement.querySelector('#close-customer-modal'), 'click', closeCustomerModal);
+  if (overlay) addListener(overlay, 'click', (e) => { if (e.target === overlay) closeCustomerModal(); });
+
+  addListener(rootElement.querySelector('#customer-search'), 'input', (e) => {
     renderCustomerList(e.target.value);
   });
 
-  rootElement.querySelector('#customer-list').addEventListener('click', (e) => {
+  addListener(rootElement.querySelector('#customer-list'), 'click', (e) => {
     const row = e.target.closest('.customer-select-row');
     if (row) {
       selectedCustomer = allCustomers.find(c => c.id === row.getAttribute('data-id'));
@@ -808,17 +972,17 @@ export function onMount(rootElement) {
     }
   });
 
-  rootElement.querySelector('#btn-walkin-customer').addEventListener('click', () => {
+  addListener(rootElement.querySelector('#btn-walkin-customer'), 'click', () => {
     selectedCustomer = null;
     renderCustomerBar();
     closeCustomerModal();
   });
 
   // Save invoice
-  rootElement.querySelector('#btn-save-invoice').addEventListener('click', saveInvoice);
+  addListener(rootElement.querySelector('#btn-save-invoice'), 'click', saveInvoice);
 
   // Print Last Invoice
-  rootElement.querySelector('#btn-print-last').addEventListener('click', () => {
+  addListener(rootElement.querySelector('#btn-print-last'), 'click', () => {
     if (lastSavedInvoice) {
       printReceipt(lastSavedInvoice);
     } else {
@@ -831,13 +995,15 @@ export function onMount(rootElement) {
     if (e.key === 'F2') { e.preventDefault(); saveInvoice(); }
     if (e.key === 'Escape') closeCustomerModal();
   };
-  window.addEventListener('keydown', keyHandler);
+  addListener(window, 'keydown', keyHandler);
 
   if (window.lucide) window.lucide.createIcons();
 
   // Return cleanup
   return function cleanup() {
-    window.removeEventListener('keydown', keyHandler);
-    if (productGrid) productGrid.removeEventListener('error', handleImageError, true);
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler, l.options);
+    });
+    __listeners.length = 0;
   };
 }

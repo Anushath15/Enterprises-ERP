@@ -44,7 +44,7 @@ export const TransactionCalculator = {
       discountAmount: parseFloat(docDiscountAmt.toFixed(2)),
       taxAmount: parseFloat(adjustedTax.toFixed(2)),
       roundOff: parseFloat(ro.toFixed(2)),
-      grandTotal: parseFloat(grandTotal.toFixed(2))
+      grandTotal: Math.round(grandTotal)
     };
   },
 

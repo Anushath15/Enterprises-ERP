@@ -206,8 +206,14 @@ export async function render() {
   `;
 }
 
-export function onMount() {
+export function onMount(rootElement) {
   let state = 'stats';
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
 
   async function loadSection(id, box) {
     const set = (html) => { box.innerHTML = html; };
@@ -218,10 +224,10 @@ export function onMount() {
       } else if (id === 'health') {
         set(renderHealth({ findings: [], summary: { errors: 0, warnings: 0, ok: 0, total: 0 } }));
         const scan = () => set(renderHealth(MaintenanceService.healthCheck()));
-        document.getElementById('health-scan').addEventListener('click', scan);
+        addListener(document.getElementById('health-scan'), 'click', scan);
       } else if (id === 'repair') {
         set(renderRepair());
-        document.getElementById('repair-run').addEventListener('click', async () => {
+        addListener(document.getElementById('repair-run'), 'click', async () => {
           const ops = {};
           document.querySelectorAll('input[name="repair-op"]:checked').forEach(cb => { ops[cb.value] = true; });
           const confirmed = await window.confirm('Apply the selected repair operations? This modifies the database atomically.');
@@ -233,11 +239,11 @@ export function onMount() {
         });
       } else if (id === 'storage') {
         set(renderStorage(MaintenanceService.storageUsage()));
-        document.getElementById('storage-refresh').addEventListener('click', () => set(renderStorage(MaintenanceService.storageUsage())));
+        addListener(document.getElementById('storage-refresh'), 'click', () => set(renderStorage(MaintenanceService.storageUsage())));
       } else if (id === 'cleanup') {
         const refresh = () => { set(renderCleanup(MaintenanceService.cleanupPreview())); wireCleanup(); };
         function wireCleanup() {
-          document.getElementById('cleanup-run').addEventListener('click', async () => {
+          addListener(document.getElementById('cleanup-run'), 'click', async () => {
             const removeOrphans = document.getElementById('cleanup-orphans').checked;
             const confirmed = await window.confirm('Remove the listed temporary/expired items and/or orphans? This cannot be undone (use a backup to reverse).');
             const out = document.getElementById('cleanup-result');
@@ -256,10 +262,10 @@ export function onMount() {
         const input = document.getElementById('reset-confirmation');
         const out = document.getElementById('reset-result');
         const updateBtn = () => { btn.disabled = !(chk.checked && input.value === 'ERASE'); };
-        chk.addEventListener('change', updateBtn);
-        input.addEventListener('input', updateBtn);
+        addListener(chk, 'change', updateBtn);
+        addListener(input, 'input', updateBtn);
         updateBtn();
-        btn.addEventListener('click', async () => {
+        addListener(btn, 'click', async () => {
           if (!chk.checked || input.value !== 'ERASE') { out.textContent = 'Confirm via checkbox and typing ERASE.'; return; }
           const c1 = await window.confirm('FINAL WARNING: you are about to destroy ALL ERP data and reload.');
           if (!c1) { out.textContent = 'Reset cancelled.'; return; }
@@ -279,17 +285,29 @@ export function onMount() {
     state = id;
     document.querySelectorAll('.tab-section').forEach(s => s.classList.add('hidden'));
     document.getElementById('section-' + id).classList.remove('hidden');
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      const isActive = b.dataset.tab === id;
+      b.classList.toggle('active', isActive);
+      b.classList.toggle('border-primary', isActive);
+      b.classList.toggle('text-primary', isActive);
+      b.classList.toggle('border-transparent', !isActive);
+      b.classList.toggle('text-gray-600', !isActive);
+    });
     const box = document.getElementById('content-' + id);
     if (box && box.dataset.loaded !== 'true') { box.dataset.loaded = 'true'; loadSection(id, box); }
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 0);
   };
 
-  document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
-  // mark first tab active, show stats.
-  const first = document.querySelector('[data-tab]');
-  if (first) { first.classList.add('active', 'border-primary', 'text-primary'); first.classList.remove('border-transparent'); }
+  document.querySelectorAll('[data-tab]').forEach(b => {
+    addListener(b, 'click', () => showTab(b.dataset.tab));
+  });
   showTab('stats');
   setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 0);
 
-  return function cleanup() {};
+  return function cleanup() {
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
+  };
 }

@@ -24,8 +24,6 @@ export const MigrationRC3 = {
       return; // Already migrated
     }
 
-    console.log('Running RC3 Schema Migration...');
-
     // 1. Migrate Products (Units & Barcodes)
     let products = LocalStorageService.get('erp_products') || [];
     let productsModified = false;
@@ -124,6 +122,6 @@ export const MigrationRC3 = {
 
     // Update Version
     LocalStorageService.set('erp_db_version', '1.0.0-auth');
-    console.log('RC3 Schema Migration Complete.');
+    // RC3 Schema Migration Complete.
   }
 };

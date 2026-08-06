@@ -127,7 +127,7 @@ export async function render() {
               </tr>
             </thead>
             <tbody id="customers-tbody" class="divide-y divide-border">
-              ${customers.length ? customers.map(c => renderRow(c)).join('') : '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers found.</p></div></td></tr>'}
+              ${customers.length ? customers.slice(0, 50).map(c => renderRow(c)).join('') : '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers found.</p></div></td></tr>'}
             </tbody>
           </table>
         </div>
@@ -305,7 +305,25 @@ export async function render() {
   `;
 }
 
-export function onMount() {
+export function onMount(rootElement) {
+  const __listeners = [];
+  const _origAddEventListener = rootElement.addEventListener;
+  rootElement.addEventListener = function(type, listener, options) {
+    __listeners.push({ target: rootElement, type, listener, options });
+    _origAddEventListener.call(rootElement, type, listener, options);
+  };
+  const _origWindowAdd = window.addEventListener;
+  const _origDocAdd = document.addEventListener;
+  const trackedWindowDoc = [];
+  window.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: window, type, listener, options });
+     _origWindowAdd.call(window, type, listener, options);
+  };
+  document.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: document, type, listener, options });
+     _origDocAdd.call(document, type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
 
   const allCustomers = DataProvider.getCustomers() || [];
@@ -397,6 +415,23 @@ export function onMount() {
   const tbody = document.getElementById('customers-tbody');
   const countLabel = document.getElementById('cust-count-label');
 
+  // Chunked Rendering Engine
+  let renderQueue = [];
+  let isRendering = false;
+  
+  const processRenderQueue = () => {
+    if (renderQueue.length === 0) {
+      isRendering = false;
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+      return;
+    }
+    
+    const chunk = renderQueue.splice(0, 50);
+    tbody.insertAdjacentHTML('beforeend', chunk.map(renderRow).join(''));
+    
+    requestAnimationFrame(processRenderQueue);
+  };
+
   const applyFilter = () => {
     const q = (searchInput?.value || '').toLowerCase().trim();
     const type = typeFilter?.value || '';
@@ -412,12 +447,21 @@ export function onMount() {
     });
 
     if (countLabel) countLabel.textContent = `Showing ${filtered.length} of ${allCustomers.length} customers`;
+    
     if (tbody) {
-      tbody.innerHTML = filtered.length > 0
-        ? filtered.map(renderRow).join('')
-        : '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers match your search</p></div></td></tr>';
-      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-      attachDeleteListeners();
+      tbody.innerHTML = ''; // clear existing
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers match your search</p></div></td></tr>';
+        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        renderQueue = [];
+        isRendering = false;
+      } else {
+        renderQueue = [...filtered];
+        if (!isRendering) {
+          isRendering = true;
+          processRenderQueue();
+        }
+      }
     }
   };
 
@@ -619,6 +663,15 @@ export function onMount() {
   document.getElementById('save-c-btn')?.addEventListener('click', handleSaveCustomer);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    window.addEventListener = _origWindowAdd;
+    document.addEventListener = _origDocAdd;
+
     window.removeEventListener('openCustomerDrawer', handleOpenCustomerDrawer);
     document.removeEventListener('keydown', handleKeydown);
     document.querySelectorAll('.cust-tab-btn').forEach(b => b.removeEventListener('click', handleTabClick));

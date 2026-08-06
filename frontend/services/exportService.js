@@ -188,12 +188,12 @@ export const ExportService = {
       if (typeof window === 'undefined') return reject(new Error('jsPDF not available (ssr)'));
       if (window.jspdf && window.jspdf.jsPDF) return resolve(window.jspdf);
       const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.src = 'vendor/jspdf.umd.min.js';
       script.onload = () => {
         if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf);
         else reject(new Error('jsPDF failed to load'));
       };
-      script.onerror = () => reject(new Error('jsPDF CDN unreachable'));
+      script.onerror = () => reject(new Error('jsPDF could not be loaded from vendor directory'));
       document.head.appendChild(script);
     });
   }

@@ -1,24 +1,52 @@
 {
-  "name": "bs-software",
-  "version": "1.0.0-rc1",
-  "description": "![Version](https://img.shields.io/badge/version-1.0.0--rc1-blue.svg) ![Python](https://img.shields.io/badge/python-3.11+-blue.svg) ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "name": "senthil-erp",
+  "productName": "Senthil Enterprises ERP",
+  "version": "1.0.0",
+  "description": "Offline Retail ERP for Hardware Stores",
+  "main": "desktop/main.js",
   "scripts": {
-    "dev": "live-server frontend --port=5173",
-    "qa": "node scripts/run_qa.mjs"
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "pack:win": "electron-builder --dir"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Senthil Enterprises",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "puppeteer": "^25.4.0",
-    "xlsx": "^0.18.5"
+    "electron-window-state": "^5.0.3"
   },
   "devDependencies": {
-    "live-server": "^1.2.2"
+    "@playwright/test": "^1.62.1",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "puppeteer": "^25.5.0"
+  },
+  "build": {
+    "appId": "com.senthil.erp",
+    "productName": "Senthil Enterprises ERP",
+    "copyright": "Copyright © 2026 Senthil Enterprises",
+    "directories": {
+      "output": "dist",
+      "buildResources": "desktop/assets"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "desktop/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Senthil Enterprises ERP"
+    },
+    "files": [
+      "desktop/**/*",
+      "frontend/**/*",
+      "node_modules/**/*"
+    ]
   }
 }

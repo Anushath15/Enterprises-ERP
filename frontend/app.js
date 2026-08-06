@@ -1,3 +1,4 @@
+console.log('--- APP.JS EVALUATION STARTED ---');
 import { NotificationService } from './services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Application Entry Point
@@ -10,7 +11,6 @@ import { AppLayout, initNavbarResizeLogic } from './components/ui/designSystem.j
 import { MigrationRC3 } from './services/migration_rc3.js';
 import { DataProvider } from './services/dataProvider.js';
 import { BackupService } from './services/backupService.js';
-import { AuthService } from './services/authService.js';
 
 const App = {
   /**
@@ -30,12 +30,85 @@ const App = {
     // Mount the Application Shell (Phase 4 Step 1 & 2)
     this.renderShell();
 
-    // Listen for session lifecycle changes
-    window.addEventListener('auth:changed', () => this.applyAuthToShell());
-    window.addEventListener('auth:logout', () => AuthService.logout());
+    // (Auth tokens intentionally not managed; V1 is purely local)
+
+    // Initialize global keyboard shortcuts for Zero-Mouse Workflow
+    this.initKeyboardShortcuts();
 
     // Initialize Router after shell is mounted so #page-root exists
     const appRouter = new Router('page-root');
+  },
+
+  initKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      // Allow F5 and standard refresh if Ctrl/Cmd is held
+      if (e.key === 'F5' && !e.ctrlKey) { e.preventDefault(); window.dispatchEvent(new CustomEvent('app:refresh')); return; }
+      
+      // F-Keys
+      if (e.key === 'F2') { e.preventDefault(); window.location.hash = '#/products'; return; }
+      if (e.key === 'F3') { e.preventDefault(); window.location.hash = '#/customers'; return; }
+      if (e.key === 'F4') { e.preventDefault(); window.location.hash = '#/dealers'; return; }
+      if (e.key === 'F6') { e.preventDefault(); window.location.hash = '#/pos'; return; }
+      if (e.key === 'F7') { e.preventDefault(); window.dispatchEvent(new CustomEvent('pos:hold-bill')); return; }
+      if (e.key === 'F8') { e.preventDefault(); window.dispatchEvent(new CustomEvent('pos:recall-bill')); return; }
+      if (e.key === 'F9') { e.preventDefault(); window.dispatchEvent(new CustomEvent('pos:payment')); return; }
+      if (e.key === 'F10') { e.preventDefault(); window.dispatchEvent(new CustomEvent('app:print')); return; }
+      
+      // Action Keys
+      if (e.ctrlKey && e.key.toLowerCase() === 's') { 
+        e.preventDefault(); 
+        window.dispatchEvent(new CustomEvent('app:save')); 
+        const saveBtn = document.querySelector('button[id^="save-"], button[id*="-save-"], button[id$="-save"], button[id="btn-save-po"]');
+        if (saveBtn) saveBtn.click();
+        else NotificationService.info('No save action available here.');
+        return; 
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') { 
+        const printBtn = document.querySelector('button[id^="print-"], button[id*="-print"], .print-btn');
+        if (printBtn) {
+          e.preventDefault(); 
+          window.dispatchEvent(new CustomEvent('app:print')); 
+          printBtn.click();
+        }
+        return; 
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); window.dispatchEvent(new CustomEvent('app:new')); return; }
+      if (e.ctrlKey && e.key === 'Enter') { 
+        e.preventDefault(); 
+        window.dispatchEvent(new CustomEvent('app:save')); 
+        const saveBtn = document.querySelector('button[id^="save-"], button[id*="-save-"], button[id$="-save"], button[id="btn-save-po"]');
+        if (saveBtn) saveBtn.click();
+        return; 
+      }
+      
+      if (e.key === 'Escape') {
+        // Dispatch global escape for modals/drawers
+        window.dispatchEvent(new CustomEvent('app:escape'));
+      }
+
+      // Enter -> Next Field, Shift+Enter -> Prev Field
+      if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+          // If it's the POS search bar, don't jump, let the POS engine handle it
+          if (e.target.id === 'pos-search' || e.target.id === 'inv-search' || e.target.id === 'prod-search') return;
+          
+          e.preventDefault();
+          const focusable = Array.from(document.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'))
+                                 .filter(el => el.tabIndex !== -1 && el.offsetParent !== null);
+          const idx = focusable.indexOf(e.target);
+          if (idx > -1 && idx < focusable.length - 1) focusable[idx + 1].focus();
+        }
+      }
+      if (e.key === 'Enter' && e.shiftKey) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+          e.preventDefault();
+          const focusable = Array.from(document.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'))
+                                 .filter(el => el.tabIndex !== -1 && el.offsetParent !== null);
+          const idx = focusable.indexOf(e.target);
+          if (idx > 0) focusable[idx - 1].focus();
+        }
+      }
+    });
   },
 
   sidebarLinks: [
@@ -71,7 +144,7 @@ const App = {
   renderShell() {
     const appRoot = document.getElementById('app-root');
     const user = this.shellUser();
-    const allowedLinks = this.sidebarLinks.filter(l => AuthService.hasRole(l.roles));
+    const allowedLinks = this.sidebarLinks;
 
     appRoot.innerHTML = AppLayout({
       sidebarLinks: allowedLinks,
@@ -88,69 +161,16 @@ const App = {
   },
 
   shellUser() {
-    const user = AuthService.getCurrentUser();
-    if (!user) {
-      return { name: 'User', roleLabel: '', initials: 'U' };
-    }
-    const name = user.name || user.username || 'User';
-    const initials = name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
-    return { name, roleLabel: AuthService.roleLabel(user.role), initials };
+    return { name: 'Senthil Enterprises', roleLabel: 'Local ERP', initials: 'SE' };
   },
 
-  applyAuthToShell() {
-    const user = this.shellUser();
-    const allowedLinks = this.sidebarLinks.filter(l => AuthService.hasRole(l.roles));
-
-    const nav = document.querySelector('#sidebar-manager nav');
-    if (nav) {
-      nav.innerHTML = allowedLinks.map(link => {
-        const isActive = link.path === (window.location.hash || '#/');
-        const activeClass = isActive ? 'active text-primary bg-blue-50' : 'text-gray-500 hover:text-text hover:bg-gray-50';
-        const iconClass = isActive ? 'text-primary' : 'text-gray-400';
-        return `
-          <a href="${link.path}" data-route="${link.path}" class="sidebar-link ${activeClass} flex items-center px-3 py-2.5 mb-1 rounded-lg text-sm font-medium transition-colors">
-            <div class="w-5 h-5 mr-3 ${iconClass} flex-shrink-0">${link.icon}</div>
-            <span class="sidebar-label whitespace-nowrap overflow-hidden text-ellipsis">${link.label}</span>
-          </a>
-        `;
-      }).join('');
-    }
-
-    const userArea = document.getElementById('navbar-user-area');
-    if (userArea) {
-      userArea.innerHTML = `
-        <button data-logout-btn class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-danger hover:bg-danger/5 transition-colors" title="Log out">
-          <i data-lucide="log-out" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">Log out</span>
-        </button>
-        <div class="flex items-center gap-3 pl-3 border-l border-border">
-          <div class="text-right hidden md:block">
-            <p class="text-sm font-medium text-text leading-tight">${user.name}</p>
-            <p class="text-[11px] text-gray-400">${user.roleLabel}</p>
-          </div>
-          <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-            <span class="text-xs font-semibold text-primary">${user.initials}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    if (window.lucide) {
-      window.lucide.createIcons({ nodes: [document.getElementById('top-navbar')] });
-    }
-  }
 };
 
-// Boot the application when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Boot the application
+const bootApp = () => {
   App.init();
 
-  // Global Logout (delegated so it survives shell re-renders)
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-logout-btn]')) {
-      AuthService.logout();
-    }
-  });
+  // Global Logout has been removed.
 
   // Setup Global Toast Notification System
   window.showToast = (message, type = 'info') => {
@@ -171,7 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     toast.className = `px-4 py-3 rounded-lg border shadow-lg flex items-center gap-3 transition-all duration-300 transform translate-y-4 opacity-0 ${colors[type] || colors.info}`;
-    toast.innerHTML = `<span class="text-sm font-medium">${message}</span>`;
+    toast.innerHTML = `<span class="text-sm font-medium"></span>`;
+    toast.querySelector('span').textContent = message;
     
     container.appendChild(toast);
     
@@ -189,26 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3000);
   };
 
-  // Global Keyboard Shortcuts
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'F4') { e.preventDefault(); window.location.hash = '#/purchases'; }
-    if (e.key === 'F6') { e.preventDefault(); window.location.hash = '#/settings'; }
-    
-    if (e.ctrlKey && e.key === 's') {
-      e.preventDefault();
-      // Find a button that looks like a save button and click it
-      const saveBtn = document.querySelector('button[id^="save-"], button[id*="-save-"], button[id$="-save"], button[id="btn-save-po"]');
-      if (saveBtn) saveBtn.click();
-      else NotificationService.info();
-    }
-    
-    if (e.ctrlKey && e.key === 'p') {
-      // Browsers handle Ctrl+P natively, but we can override it if a specific print button exists
-      const printBtn = document.querySelector('button[id^="print-"], button[id*="-print"], .print-btn');
-      if (printBtn) {
-        e.preventDefault();
-        printBtn.click();
-      }
-    }
-  });
-});
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+  bootApp();
+}

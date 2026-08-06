@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-app-region: drag; /* allows moving the window via drag */
+      border-radius: 8px; /* For rounded splash on windows 11 */
+    }
+    .logo {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -1px;
+    }
+    .sub {
+      font-size: 18px;
+      opacity: 0.8;
+      margin-bottom: 40px;
+    }
+    .loader {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .version {
+      position: absolute;
+      bottom: 20px;
+      font-size: 14px;
+      opacity: 0.6;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">Senthil Enterprises</div>
+  <div class="sub">ERP System</div>
+  <div class="loader"></div>
+  <div class="version">Version 1.0</div>
+</body>
+</html>

@@ -1,30 +1,22 @@
 import { NotificationService } from '../services/notificationService.js';
-/**
- * Senthil Enterprises ERP - User Management
- */
 import { DataProvider } from '../services/dataProvider.js';
-import { AuthService } from '../services/authService.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const users = DataProvider.getUsers() || [];
 
-
   const renderRow = (usr) => {
-    let badge = 'success';
-    if (usr.status === 'Suspended') badge = 'danger';
-
     return `
     <tr class="row-hover cursor-pointer" data-user-row="${escapeHtml(usr.id)}">
       <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(usr.id || '-')}</td>
       <td class="px-4 py-3.5">
         <p class="text-sm font-medium text-text">${escapeHtml(usr.name || '-')}</p>
-        <p class="text-[10px] text-gray-400">@${escapeHtml(usr.username || '-')}</p>
+        <p class="text-[10px] text-gray-400">${escapeHtml(usr.phone || '-')}</p>
       </td>
       <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(usr.role || '-')}</td>
-      <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${escapeHtml(usr.status || 'Active')}</span>
-      </td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(usr.department || '-')}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-text">${escapeHtml(usr.salary || '-')}</td>
+      <td class="px-4 py-3.5 text-right text-sm text-gray-500">${escapeHtml(usr.joiningDate || '-')}</td>
       <td class="px-4 py-3.5 text-right">
         <button class="edit-user-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(usr.id)}">
           <i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i>
@@ -38,13 +30,13 @@ export async function render() {
     <div class="p-6 max-w-[1200px] mx-auto fade-in">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-text">User Management</h1>
-          <p class="text-sm text-gray-400 mt-1">Manage system access, user roles, and login credentials.</p>
+          <h1 class="text-2xl font-bold text-text">Staff Management</h1>
+          <p class="text-sm text-gray-400 mt-1">Manage employee records (Name, Phone, Dept, Salary, etc).</p>
         </div>
         <div class="flex items-center gap-2">
           <button data-user-new class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i>
-            Add System User
+            Add Employee
           </button>
         </div>
       </div>
@@ -52,25 +44,27 @@ export async function render() {
       <div class="bg-white rounded-xl border border-border p-4 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
         <div class="relative flex-1 min-w-[200px] max-w-md">
           <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-          <input type="text" id="user-search" placeholder="Search by name, username..."
+          <input type="text" id="user-search" placeholder="Search by name, phone..."
             class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
         </div>
       </div>
 
       <div class="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[800px]">
+          <table class="w-full text-sm min-w-[900px]">
             <thead>
               <tr class="border-b border-border bg-gray-50/60 text-left">
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">User ID</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Name / Username</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">System Role</th>
-                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Account Status</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">ID</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Employee Name</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Role</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Department</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Salary</th>
+                <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Joining Date</th>
                 <th class="px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="user-tbody" class="divide-y divide-border">
-              ${users.length > 0 ? users.map(renderRow).join('') : '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No users found.</td></tr>'}
+              ${users.length > 0 ? users.map(renderRow).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No records found.</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -83,7 +77,7 @@ export async function render() {
     <!-- Drawer -->
     <aside id="user-form-drawer" class="drawer translate-x-full fixed top-0 right-0 h-screen w-[500px] bg-white border-l border-border z-[70] overflow-y-auto shadow-2xl transition-transform duration-250 flex flex-col">
       <div class="flex items-center justify-between px-6 h-16 border-b border-border sticky top-0 bg-white z-10">
-        <h3 class="text-base font-semibold text-text" id="user-drawer-title">System User Account</h3>
+        <h3 class="text-base font-semibold text-text" id="user-drawer-title">Employee Record</h3>
         <button class="close-user-drawer p-1.5 rounded-md hover:bg-gray-100">
           <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
         </button>
@@ -93,45 +87,58 @@ export async function render() {
           <input type="hidden" id="usr-id">
           
           <div class="grid grid-cols-2 gap-4 mb-4">
-            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Full Name *</label><input type="text" id="usr-name" required placeholder="Display name" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
-            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Username (Login ID) *</label><input type="text" id="usr-username" required placeholder="e.g. jdoe" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
+            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Employee Name *</label><input type="text" id="usr-name" required placeholder="Full name" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
+            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Phone Number</label><input type="text" id="usr-phone" placeholder="+91 " class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Role *</label><input type="text" id="usr-role" required placeholder="e.g. Sales Executive" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
+            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Department</label><input type="text" id="usr-department" placeholder="e.g. Sales" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Salary (₹)</label><input type="number" id="usr-salary" placeholder="15000" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
+            <div><label class="text-xs font-medium text-gray-500 block mb-1.5">Joining Date</label><input type="date" id="usr-joining" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></div>
           </div>
 
           <div class="mb-4">
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">System Role *</label>
-            <select id="usr-role" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-              <option value="admin">Administrator (Full Access)</option>
-              <option value="manager">Manager (Can edit, cannot delete)</option>
-              <option value="user">Sales User (Billing only)</option>
-            </select>
+            <label class="text-xs font-medium text-gray-500 block mb-1.5">Address</label>
+            <textarea id="usr-address" rows="2" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></textarea>
           </div>
 
           <div class="mb-4">
-            <label class="text-xs font-medium text-gray-500 block mb-1.5">Account Status *</label>
-            <select id="usr-status" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary">
-              <option>Active</option><option>Suspended</option>
-            </select>
+            <label class="text-xs font-medium text-gray-500 block mb-1.5">Notes</label>
+            <textarea id="usr-notes" rows="2" class="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-text focus:outline-none focus:border-primary"></textarea>
           </div>
         </form>
-        
-        <div class="pt-4 border-t border-border">
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Permissions (Placeholder)</label>
-          <div class="p-4 bg-gray-50 border border-border rounded-lg text-sm text-gray-500 mb-4">Granular checkboxes for read/write access per module will render here.</div>
-          
-          <label class="text-xs font-medium text-gray-500 block mb-1.5">Security</label>
-          <button id="reset-password-btn" class="w-full py-2 bg-gray-100 border border-border text-text text-sm rounded-lg hover:bg-gray-200">Reset User Password</button>
-        </div>
-
       </div>
       <div class="p-4 border-t border-border bg-gray-50 flex items-center justify-end gap-3 sticky bottom-0">
         <button class="close-user-drawer px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-border rounded-lg hover:bg-gray-50">Cancel</button>
-        <button id="save-users-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90">Save Account</button>
+        <button id="save-users-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90">Save Record</button>
       </div>
     </aside>
   `;
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const _origAddEventListener = rootElement.addEventListener;
+  rootElement.addEventListener = function(type, listener, options) {
+    __listeners.push({ target: rootElement, type, listener, options });
+    _origAddEventListener.call(rootElement, type, listener, options);
+  };
+  const _origWindowAdd = window.addEventListener;
+  const _origDocAdd = document.addEventListener;
+  const trackedWindowDoc = [];
+  window.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: window, type, listener, options });
+     _origWindowAdd.call(window, type, listener, options);
+  };
+  document.addEventListener = function(type, listener, options) {
+     trackedWindowDoc.push({ target: document, type, listener, options });
+     _origDocAdd.call(document, type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
   
   let allUsers = DataProvider.getUsers() || [];
@@ -142,22 +149,22 @@ export function onMount(rootElement) {
   const searchInput = rootElement.querySelector('#user-search');
 
   const renderRow = (usr) => {
-    let badge = 'success';
-    if (usr.status === 'Suspended') badge = 'danger';
     return `<tr class="row-hover cursor-pointer" data-user-row="${escapeHtml(usr.id)}">
       <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(usr.id || '-')}</td>
-      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${escapeHtml(usr.name || '-')}</p><p class="text-[10px] text-gray-400">@${escapeHtml(usr.username || '-')}</p></td>
+      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${escapeHtml(usr.name || '-')}</p><p class="text-[10px] text-gray-400">${escapeHtml(usr.phone || '-')}</p></td>
       <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(usr.role || '-')}</td>
-      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${escapeHtml(usr.status || 'Active')}</span></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(usr.department || '-')}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-text">${escapeHtml(usr.salary || '-')}</td>
+      <td class="px-4 py-3.5 text-right text-sm text-gray-500">${escapeHtml(usr.joiningDate || '-')}</td>
       <td class="px-4 py-3.5 text-right"><button class="edit-user-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(usr.id)}"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
   const handleSearch = () => {
     const q = searchInput.value.toLowerCase();
-    const filtered = allUsers.filter(u => (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q));
+    const filtered = allUsers.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').toLowerCase().includes(q));
     if (tbody) {
-      tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No users match your search</td></tr>';
+      tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No records match your search</td></tr>';
       if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
     }
   };
@@ -181,15 +188,19 @@ export function onMount(rootElement) {
     if (id) {
       const usr = allUsers.find(u => u.id === id);
       if (usr) {
-        if (title) title.textContent = 'Edit System User';
+        if (title) title.textContent = 'Edit Employee Record';
         rootElement.querySelector('#usr-id').value = usr.id;
         rootElement.querySelector('#usr-name').value = usr.name || '';
-        rootElement.querySelector('#usr-username').value = usr.username || '';
-        rootElement.querySelector('#usr-role').value = AuthService.normalizeRole(usr.role) || 'user';
-        rootElement.querySelector('#usr-status').value = usr.status || 'Active';
+        rootElement.querySelector('#usr-phone').value = usr.phone || '';
+        rootElement.querySelector('#usr-role').value = usr.role || '';
+        rootElement.querySelector('#usr-department').value = usr.department || '';
+        rootElement.querySelector('#usr-salary').value = usr.salary || '';
+        rootElement.querySelector('#usr-joining').value = usr.joiningDate || '';
+        rootElement.querySelector('#usr-address').value = usr.address || '';
+        rootElement.querySelector('#usr-notes').value = usr.notes || '';
       }
     } else {
-      if (title) title.textContent = 'Add System User';
+      if (title) title.textContent = 'Add Employee';
     }
 
     closeAll();
@@ -222,9 +233,13 @@ export function onMount(rootElement) {
       const usr = {
         id: rootElement.querySelector('#usr-id').value || null,
         name: rootElement.querySelector('#usr-name').value.trim(),
-        username: rootElement.querySelector('#usr-username').value.trim(),
+        phone: rootElement.querySelector('#usr-phone').value.trim(),
         role: rootElement.querySelector('#usr-role').value,
-        status: rootElement.querySelector('#usr-status').value
+        department: rootElement.querySelector('#usr-department').value,
+        salary: rootElement.querySelector('#usr-salary').value,
+        joiningDate: rootElement.querySelector('#usr-joining').value,
+        address: rootElement.querySelector('#usr-address').value,
+        notes: rootElement.querySelector('#usr-notes').value
       };
 
       try {
@@ -238,7 +253,7 @@ export function onMount(rootElement) {
           tbody.innerHTML = allUsers.map(renderRow).join('');
           if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
         }
-        NotificationService.success('User saved successfully!');
+        NotificationService.success('Employee record saved successfully!');
       } catch (err) {
         NotificationService.error(err.message);
       }
@@ -247,32 +262,16 @@ export function onMount(rootElement) {
     saveBtn.addEventListener('click', handleSave);
   }
 
-  const resetBtn = rootElement.querySelector('#reset-password-btn');
-  const handleResetPassword = async () => {
-    const userId = rootElement.querySelector('#usr-id').value;
-    if (!userId) {
-      NotificationService.error('Select a user to reset their password.');
-      return;
-    }
-    const newPassword = window.prompt('Enter the new password for this user (min 6 characters):');
-    if (!newPassword) return;
-    if (newPassword.length < 6) {
-      NotificationService.error('Password must be at least 6 characters.');
-      return;
-    }
-    try {
-      const ok = await AuthService.resetPassword(userId, newPassword);
-      if (ok) NotificationService.success('Password updated successfully.');
-      else NotificationService.error('Could not update password.');
-    } catch (err) {
-      NotificationService.error(err.message || 'Could not update password.');
-    }
-  };
-  if (resetBtn) {
-    resetBtn.addEventListener('click', handleResetPassword);
-  }
-
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    window.addEventListener = _origWindowAdd;
+    document.addEventListener = _origDocAdd;
+
     window.removeEventListener('openUserDrawer', openForm);
     if (searchInput) searchInput.removeEventListener('input', handleSearch);
     if (tbody) tbody.removeEventListener('click', handleRowClick);
@@ -280,7 +279,5 @@ export function onMount(rootElement) {
     closeBtns.forEach(btn => btn.removeEventListener('click', closeAll));
     overlay.removeEventListener('click', closeAll);
     if (saveBtn) saveBtn.removeEventListener('click', handleSave);
-    if (resetBtn) resetBtn.removeEventListener('click', handleResetPassword);
   };
 }
-

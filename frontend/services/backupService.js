@@ -222,8 +222,29 @@ export const BackupService = {
    * do not produce useless daily files).
    */
   checkAutoBackup() {
-    const last = localStorage.getItem(AUTO_BACKUP_TAG);
-    if (last === todayKey()) return false;
+    let settings = {};
+    try {
+      settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+    } catch (e) {
+      console.warn('[Backup] Could not parse erp_settings, using defaults');
+    }
+
+    if (settings.autoBackupEnabled === false) return false;
+
+    const freq = settings.backupFrequency || 'daily';
+    const lastStr = localStorage.getItem(AUTO_BACKUP_TAG);
+    
+    if (lastStr) {
+      if (lastStr === todayKey()) return false; // Already did it today
+
+      const lastDate = new Date(lastStr);
+      const today = new Date(todayKey());
+      const diffTime = Math.abs(today - lastDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (freq === 'weekly' && diffDays < 7) return false;
+      if (freq === 'monthly' && diffDays < 30) return false;
+    }
 
     const result = this.createBackup({ auto: true });
     return !!result.ok;

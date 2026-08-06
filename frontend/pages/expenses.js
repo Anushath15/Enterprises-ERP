@@ -8,6 +8,7 @@ import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { validateForm, rules } from '../utils/validate.js';
+import { todayISO, toLocalDateString } from '../utils/dateUtils.js';
 
 const DEFAULT_EXPENSE_CATEGORIES = ['Electricity', 'Water', 'Internet', 'Staff Salary', 'Labour', 'Transport', 'Loading & Unloading', 'Tea & Snacks', 'Office Expense', 'Cleaning', 'Maintenance', 'Stationery', 'Fuel', 'Packing', 'Miscellaneous'];
 export async function render() {
@@ -20,7 +21,7 @@ export async function render() {
   expenses.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + Number(e.amount || 0); });
   const largestCat = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   const todayTotal = expenses.filter(e => e.date === today).reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const renderRow = (exp) => {
@@ -48,12 +49,12 @@ export async function render() {
 
   return `
     <div class="p-6 max-w-[1600px] mx-auto fade-in">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 class="text-2xl font-bold text-text">Expense Management</h1>
           <p class="text-sm text-gray-400 mt-0.5">Record, categorize, and track all business expenses.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <button id="btn-manage-categories" class="flex items-center gap-1.5 px-4 py-2 bg-white border border-border text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
             <i data-lucide="settings-2" class="w-4 h-4"></i> Manage Categories
           </button>
@@ -213,8 +214,15 @@ export async function render() {
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
 
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
+
   const allExpenses = DataProvider.getExpenses() || [];
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
 
   const overlay = rootElement.querySelector('#expense-drawer-overlay');
   const formDrawer = rootElement.querySelector('#expense-form-drawer');
@@ -251,13 +259,16 @@ export function onMount(rootElement) {
     catDrawer.classList.remove('translate-x-full');
   };
 
-  rootElement.querySelector('#btn-open-expense-drawer')?.addEventListener('click', openForm);
-  rootElement.querySelector('#btn-manage-categories')?.addEventListener('click', openCatDrawer);
-  window.addEventListener('openExpenseDrawer', openForm);
-  rootElement.querySelectorAll('.close-expense-drawer').forEach(b => b.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  const btnOpenExp = rootElement.querySelector('#btn-open-expense-drawer');
+  if (btnOpenExp) addListener(btnOpenExp, 'click', openForm);
+  const btnManageCats = rootElement.querySelector('#btn-manage-categories');
+  if (btnManageCats) addListener(btnManageCats, 'click', openCatDrawer);
+  
+  addListener(window, 'openExpenseDrawer', openForm);
+  rootElement.querySelectorAll('.close-expense-drawer').forEach(b => addListener(b, 'click', closeAll));
+  addListener(overlay, 'click', closeAll);
   const keyHandler = (e) => { if (e.key === 'Escape') closeAll(); };
-  document.addEventListener('keydown', keyHandler);
+  addListener(document, 'keydown', keyHandler);
 
   // Render row helper
   const renderRow = (exp) => {
@@ -287,8 +298,8 @@ export function onMount(rootElement) {
   const methodFilter = rootElement.querySelector('#exp-method-filter');
   const dateFilter = rootElement.querySelector('#exp-date-filter');
 
-  const getWeekStart = () => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return d.toISOString().split('T')[0]; };
-  const getMonthStart = () => new Date().toISOString().split('T')[0].substring(0, 7) + '-01';
+  const getWeekStart = () => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return toLocalDateString(d); };
+  const getMonthStart = () => today.substring(0, 7) + '-01';
 
   const applyFilter = () => {
     const q = (searchInput?.value || '').toLowerCase();
@@ -312,14 +323,13 @@ export function onMount(rootElement) {
         ? filtered.map(renderRow).join('')
         : '<tr><td colspan="6" class="px-4 py-12 text-center text-gray-400 text-sm">No expenses match your filters</td></tr>';
       if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-      attachDeleteListeners();
     }
   };
 
-  if (searchInput) searchInput.addEventListener('input', applyFilter);
-  if (catFilter) catFilter.addEventListener('change', applyFilter);
-  if (methodFilter) methodFilter.addEventListener('change', applyFilter);
-  if (dateFilter) dateFilter.addEventListener('change', applyFilter);
+  if (searchInput) addListener(searchInput, 'input', applyFilter);
+  if (catFilter) addListener(catFilter, 'change', applyFilter);
+  if (methodFilter) addListener(methodFilter, 'change', applyFilter);
+  if (dateFilter) addListener(dateFilter, 'change', applyFilter);
 
   // Delete (fix E-003 — no reload, showToast)
   const handleDelete = (e) => {
@@ -335,20 +345,22 @@ export function onMount(rootElement) {
     NotificationService.success('Expense deleted');
   };
 
-  const attachDeleteListeners = () => {
-    rootElement.querySelectorAll('.exp-delete-btn').forEach(btn => {
-      btn.removeEventListener('click', handleDelete);
-      btn.addEventListener('click', handleDelete);
-    });
+  const handleTableClick = (e) => {
+    const btn = e.target.closest('.exp-delete-btn');
+    if (btn) {
+      e.stopPropagation();
+      handleDelete({ currentTarget: btn });
+    }
   };
-  attachDeleteListeners();
+  if (tbody) addListener(tbody, 'click', handleTableClick);
 
   // Initialize Draft Recovery
   const formEl = rootElement.querySelector('#expense-form');
   if (formEl) DraftManager.init('expense', formEl);
 
   // Save (fix E-001 no reload, E-002 showToast)
-  rootElement.querySelector('#btn-save-expense')?.addEventListener('click', () => {
+  const btnSaveExp = rootElement.querySelector('#btn-save-expense');
+  if (btnSaveExp) addListener(btnSaveExp, 'click', () => {
     const form = rootElement.querySelector('#expense-form');
     if (!form.reportValidity()) return;
 
@@ -381,7 +393,6 @@ export function onMount(rootElement) {
       if (tbody) {
         tbody.innerHTML = allExpenses.map(renderRow).join('');
         if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-        attachDeleteListeners();
       }
       if (countLabel) countLabel.textContent = `Showing ${allExpenses.length} expenses`;
       NotificationService.success('Expense saved!');
@@ -419,7 +430,8 @@ export function onMount(rootElement) {
     updateDropdowns();
   };
 
-  rootElement.querySelector('#btn-add-category')?.addEventListener('click', () => {
+  const btnAddCat = rootElement.querySelector('#btn-add-category');
+  if (btnAddCat) addListener(btnAddCat, 'click', () => {
     const input = rootElement.querySelector('#new-cat-name');
     const name = input.value.trim();
     if (!name) {
@@ -438,7 +450,7 @@ export function onMount(rootElement) {
     }
   });
 
-  catListEl?.addEventListener('click', (e) => {
+  if (catListEl) addListener(catListEl, 'click', (e) => {
     if (e.target.closest('.btn-del-cat')) {
       const id = e.target.closest('.btn-del-cat').getAttribute('data-id');
       if (window.confirm('Delete this expense category?')) {
@@ -455,7 +467,9 @@ export function onMount(rootElement) {
   currentCategories = DataProvider.getExpenseCategories ? DataProvider.getExpenseCategories() : [];
 
   return function cleanup() {
-    window.removeEventListener('openExpenseDrawer', openForm);
-    document.removeEventListener('keydown', keyHandler);
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
   };
 }

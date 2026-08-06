@@ -61,7 +61,7 @@ export class DraftManager {
           }
         }
         if (hasRestored && window.showToast) {
-          NotificationService.info();
+          NotificationService.info('Draft restored — your previous entry has been loaded.');
         }
       }
     }

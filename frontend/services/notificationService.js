@@ -3,8 +3,6 @@ export const NotificationService = {
     // If window.showToast is available, use it (assumes UI implementation)
     if (window.showToast) {
       window.showToast(message, type);
-    } else {
-      console.log(`[Notification ${type.toUpperCase()}]: ${message}`);
     }
   },
   

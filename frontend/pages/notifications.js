@@ -2,6 +2,7 @@
  * Senthil Enterprises ERP - Notifications
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const notifications = DataProvider.getNotifications() || [];
@@ -19,7 +20,7 @@ export async function render() {
     try {
       const d = new Date(iso);
       return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-    } catch(e) { return iso; }
+    } catch(e) { return escapeHtml(iso); }
   };
 
   return `
@@ -34,13 +35,13 @@ export async function render() {
 
       <div class="space-y-3" id="notifications-list">
         ${notifications.length > 0 ? notifications.map(n => `
-          <div class="p-4 bg-white border ${n.read ? 'border-border opacity-70' : 'border-primary/20 shadow-sm'} rounded-xl flex items-start gap-4 hover:border-primary/30 transition-colors cursor-pointer notification-item" data-id="${n.id}">
+          <div class="p-4 bg-white border ${n.read ? 'border-border opacity-70' : 'border-primary/20 shadow-sm'} rounded-xl flex items-start gap-4 hover:border-primary/30 transition-colors cursor-pointer notification-item" data-id="${escapeHtml(n.id)}">
             <div class="p-2 bg-${n.type === 'warning' ? 'warning' : n.type === 'danger' ? 'danger' : n.type === 'success' ? 'success' : 'primary'}/10 rounded-lg shrink-0">
               <i data-lucide="${getIconPath(n.type)}" class="w-5 h-5 text-${n.type === 'warning' ? 'warning' : n.type === 'danger' ? 'danger' : n.type === 'success' ? 'success' : 'primary'}"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <h4 class="text-sm font-semibold text-text">${n.title || 'Notification'}</h4>
-              <p class="text-sm text-gray-600 mt-0.5">${n.message || ''}</p>
+              <h4 class="text-sm font-semibold text-text">${escapeHtml(n.title || 'Notification')}</h4>
+              <p class="text-sm text-gray-600 mt-0.5">${escapeHtml(n.message || '')}</p>
             </div>
             <div class="flex flex-col items-end gap-2 shrink-0">
               <span class="text-[10px] text-gray-400 font-medium whitespace-nowrap">${formatTime(n.time)}</span>
@@ -56,10 +57,17 @@ export async function render() {
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
   
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
+
   // Mark all as read
   const markAllBtn = rootElement.querySelector('#mark-all-read-btn');
   if (markAllBtn) {
-    markAllBtn.addEventListener('click', () => {
+    addListener(markAllBtn, 'click', () => {
       DataProvider.markAllNotificationsRead();
       // Update UI
       rootElement.querySelectorAll('.notification-item').forEach(el => {
@@ -72,4 +80,11 @@ export function onMount(rootElement) {
       markAllBtn.classList.add('opacity-50', 'cursor-not-allowed');
     });
   }
+
+  return function cleanup() {
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
+  };
 }

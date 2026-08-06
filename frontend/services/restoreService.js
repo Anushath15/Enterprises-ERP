@@ -99,6 +99,16 @@ export const RestoreService = {
       return { ok: false, reason: 'cancelled' };
     }
 
+    // [DESKTOP REQUIREMENT]: Take an automatic backup before destructive operation
+    try {
+      import('./backupService.js').then(module => {
+        NotificationService.info('Creating safety backup before restore...');
+        module.BackupService.createBackup({ auto: true });
+      }).catch(err => console.warn('Pre-restore backup error:', err));
+    } catch (e) {
+      console.warn("Pre-restore backup failed", e);
+    }
+
     const result = this._applyAtomic(payload.data);
     if (!result.ok) {
       return this._fail('Restore failed: ' + result.reason + '. The previous database was restored.');
