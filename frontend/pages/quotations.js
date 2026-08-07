@@ -1161,13 +1161,6 @@ export function onMount(rootElement) {
     }
   };
 
-  const handleSaveAndPrint = () => {
-     const saved = saveInvoice();
-     if (saved) {
-       document.getElementById('print-receipt-area').innerHTML = getReceiptHtml(saved);
-       window.print();
-     }
-  };
 
   // =====================
   // INITIALIZE
