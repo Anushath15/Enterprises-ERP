@@ -1,8 +1,8 @@
 {
   "name": "senthil-erp",
   "productName": "Senthil Enterprises ERP",
-  "version": "1.0.0",
-  "description": "Offline Retail ERP for Hardware Stores",
+  "version": "3.3.0-RC3.3",
+  "description": "Offline Hardware Shop ERP",
   "main": "desktop/main.js",
   "scripts": {
     "start": "electron .",
@@ -23,7 +23,7 @@
   "build": {
     "appId": "com.senthil.erp",
     "productName": "Senthil Enterprises ERP",
-    "copyright": "Copyright © 2026 Senthil Enterprises",
+    "copyright": "Senthil Enterprises",
     "directories": {
       "output": "dist",
       "buildResources": "desktop/assets"
@@ -41,12 +41,16 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Senthil Enterprises ERP"
+      "shortcutName": "Senthil Enterprises ERP",
+      "artifactName": "Senthil Enterprises ERP Setup vRC3.3.exe"
     },
     "files": [
       "desktop/**/*",
       "frontend/**/*",
       "node_modules/**/*"
-    ]
+    ],
+    "portable": {
+      "artifactName": "Senthil Enterprises ERP Portable vRC3.3.exe"
+    }
   }
 }

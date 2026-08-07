@@ -11,6 +11,7 @@ import { AppLayout, initNavbarResizeLogic } from './components/ui/designSystem.j
 import { MigrationRC3 } from './services/migration_rc3.js';
 import { DataProvider } from './services/dataProvider.js';
 import { BackupService } from './services/backupService.js';
+import { settingsService } from './services/settingsService.js';
 
 const App = {
   /**
@@ -20,6 +21,12 @@ const App = {
   async init() {
     // Run schema migrations first
     MigrationRC3.run();
+
+    // Apply global settings before rendering
+    const settings = settingsService.load();
+    if (settings.theme) settingsService.applyTheme(settings.theme);
+    if (settings.fontSize) settingsService.applyFontSize(settings.fontSize);
+    if (settings.compactMode !== undefined) settingsService.applyCompactMode(settings.compactMode);
 
     // Initialize Offline Data Layer
     DataProvider.init();
@@ -114,6 +121,7 @@ const App = {
   sidebarLinks: [
     { path: '#/', label: 'Dashboard', icon: '<i data-lucide="layout-dashboard" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
     { path: '#/pos', label: 'POS Billing', icon: '<i data-lucide="shopping-cart" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
+    { path: '#/quotations', label: 'Quotations', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
     { path: '#/sales', label: 'Sales Register', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
     { path: '#/purchases', label: 'Purchases', icon: '<i data-lucide="shopping-bag" class="w-5 h-5"></i>', roles: ['admin', 'manager'] },
     { path: '#/inventory', label: 'Inventory', icon: '<i data-lucide="bar-chart-2" class="w-5 h-5"></i>', roles: ['admin', 'manager'] },
@@ -145,11 +153,13 @@ const App = {
     const appRoot = document.getElementById('app-root');
     const user = this.shellUser();
     const allowedLinks = this.sidebarLinks;
+    const settings = settingsService.load();
 
     appRoot.innerHTML = AppLayout({
       sidebarLinks: allowedLinks,
       currentRoute: window.location.hash || '#/',
-      user
+      user,
+      sidebarCollapsed: settings.sidebarCollapsed
     });
 
     // Initialize layout behavior

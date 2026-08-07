@@ -353,9 +353,19 @@ export function onMount(rootElement) {
           if (existing) {
             existing.qty += 1;
           } else {
-            const exGst = product.purchasePrice || product.avgCost || (product.price * 0.8) || 0;
+            const basePrice = product.buyingPrice || product.purchasePrice || product.avgCost || (product.price * 0.8) || 0;
             const gst = product.gst || 18;
-            const incGst = exGst * (1 + (gst / 100));
+            const mode = product.buyingPricingMode || 'inclusive';
+            
+            let exGst = 0, incGst = 0;
+            if (mode === 'inclusive') {
+              incGst = basePrice;
+              exGst = incGst / (1 + (gst / 100));
+            } else {
+              exGst = basePrice;
+              incGst = exGst * (1 + (gst / 100));
+            }
+
             cart.push({
               productId: product.id,
               name: product.name,
@@ -599,11 +609,14 @@ export function onMount(rootElement) {
            saved.items.forEach(it => {
               const prod = DataProvider.getProductById(it.productId);
               if (prod) {
-                  if (prod.purchasePrice !== it.purchasePrice || prod.price !== it.sellingPrice) {
+                  const mode = prod.buyingPricingMode || 'inclusive';
+                  const newBuyingPrice = mode === 'inclusive' ? it.incGst : it.purchasePrice; // purchasePrice is exGst in item
+
+                  if (prod.buyingPrice !== newBuyingPrice || prod.price !== it.sellingPrice) {
                       DataProvider.logProductPriceChange({
                           productId: it.productId,
-                          oldPurchasePrice: prod.purchasePrice || 0,
-                          newPurchasePrice: it.purchasePrice,
+                          oldPurchasePrice: prod.buyingPrice || prod.purchasePrice || 0,
+                          newPurchasePrice: newBuyingPrice,
                           oldSellingPrice: prod.price || 0,
                           newSellingPrice: it.sellingPrice,
                           dealerId: saved.dealerId,
@@ -612,7 +625,8 @@ export function onMount(rootElement) {
                       });
                   }
                   // Update master product file
-                  prod.purchasePrice = it.purchasePrice;
+                  prod.buyingPrice = newBuyingPrice;
+                  prod.purchasePrice = newBuyingPrice; // backward compatibility
                   prod.price = it.sellingPrice;
                   DataProvider.saveProduct(prod);
               }
@@ -744,9 +758,19 @@ export function onMount(rootElement) {
       openForm();
       const p = DataProvider.getProductById(pendingId);
       if (p) {
-        const exGst = p.purchasePrice || p.avgCost || (p.price * 0.8) || 0;
+        const basePrice = p.buyingPrice || p.purchasePrice || p.avgCost || (p.price * 0.8) || 0;
         const gst = p.gst || 18;
-        const incGst = exGst * (1 + (gst / 100));
+        const mode = p.buyingPricingMode || 'inclusive';
+        
+        let exGst = 0, incGst = 0;
+        if (mode === 'inclusive') {
+          incGst = basePrice;
+          exGst = incGst / (1 + (gst / 100));
+        } else {
+          exGst = basePrice;
+          incGst = exGst * (1 + (gst / 100));
+        }
+
         cart = [{
           productId: p.id,
           name: p.name,

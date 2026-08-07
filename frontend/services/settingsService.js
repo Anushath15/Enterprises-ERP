@@ -44,6 +44,9 @@ export const settingsService = {
     if (merged.fontSize) {
       this.applyFontSize(merged.fontSize);
     }
+    if (merged.compactMode !== undefined) {
+      this.applyCompactMode(merged.compactMode);
+    }
     return { ok: true };
   },
 
@@ -74,6 +77,15 @@ export const settingsService = {
     document.documentElement.classList.remove('font-small', 'font-normal', 'font-large');
     const cls = 'font-' + size;
     document.documentElement.classList.add(cls);
+  },
+
+  applyCompactMode(compact) {
+    if (typeof document === 'undefined') return;
+    if (compact) {
+      document.body.classList.add('compact-mode');
+    } else {
+      document.body.classList.remove('compact-mode');
+    }
   },
 
   getBackupStatus() {

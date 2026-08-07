@@ -6,9 +6,9 @@
 // ======================================
 // 1. App Shell
 // ======================================
-export function AppLayout({ sidebarLinks, currentRoute, user, children }) {
+export function AppLayout({ sidebarLinks, currentRoute, user, children, sidebarCollapsed }) {
   const isMobile = window.innerWidth < 768;
-  const defaultDrawerState = isMobile ? '' : 'drawer-open';
+  const defaultDrawerState = isMobile ? '' : (sidebarCollapsed ? '' : 'drawer-open');
   
   return `
     <div class="sidebar-manager ${defaultDrawerState}" id="sidebar-manager">

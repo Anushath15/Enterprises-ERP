@@ -51,18 +51,30 @@ function renderSectionInvoice(settings) {
   return `
     <section class="space-y-4">
       <h2 class="text-lg font-semibold">Invoice Settings</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        ${textInput('Invoice Prefix', 'invoicePrefix', settings.invoicePrefix)}
-        ${textInput('Invoice Number Format', 'invoiceNumberFormat', settings.invoiceNumberFormat)}
-        ${selectInput('Default Tax Type', 'defaultTaxType', settings.defaultTaxType, [
-          { value: 'Exclusive', label: 'Exclusive (before tax)' },
-          { value: 'Inclusive', label: 'Inclusive (after tax)' }
-        ])}
-        ${textInput('Default GST Rate (%)', 'defaultGst', settings.defaultGst)}
-        ${selectInput('Round Off Method', 'roundOffMethod', settings.roundOffMethod, ROUND_OFF_OPTIONS)}
-        ${toggleInput('Auto Invoice Numbering', 'autoInvoiceNumbering', settings.autoInvoiceNumbering)}
-        ${toggleInput('Show Logo on Invoice', 'showLogoOnInvoice', settings.showLogoOnInvoice)}
-      </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${textInput('Invoice Prefix', 'invoicePrefix', settings.invoicePrefix)}
+          ${textInput('Invoice Number Format', 'invoiceNumberFormat', settings.invoiceNumberFormat)}
+          ${selectInput('Default Tax Type', 'defaultTaxType', settings.defaultTaxType, [
+            { value: 'Exclusive', label: 'Exclusive (before tax)' },
+            { value: 'Inclusive', label: 'Inclusive (after tax)' }
+          ])}
+          ${textInput('Default GST Rate (%)', 'defaultGst', settings.defaultGst)}
+          ${selectInput('Round Off Method', 'roundOffMethod', settings.roundOffMethod, ROUND_OFF_OPTIONS)}
+          ${selectInput('Paper Size', 'paperSize', settings.paperSize || 'A4', [
+            { value: 'A4', label: 'A4' },
+            { value: '80mm', label: '80 mm Thermal' },
+            { value: '58mm', label: '58 mm Thermal' }
+          ])}
+          ${textInput('Number of Copies', 'printCopies', settings.printCopies || 1)}
+          ${toggleInput('Auto Invoice Numbering', 'autoInvoiceNumbering', settings.autoInvoiceNumbering)}
+          ${toggleInput('Show Logo on Invoice', 'showLogoOnInvoice', settings.showLogoOnInvoice)}
+          ${toggleInput('Show GSTIN', 'showGstinOnInvoice', settings.showGstinOnInvoice)}
+          ${toggleInput('Show HSN Code', 'showHsnCodeOnInvoice', settings.showHsnCodeOnInvoice)}
+          ${toggleInput('Show Customer Phone', 'showCustomerPhoneOnInvoice', settings.showCustomerPhoneOnInvoice)}
+          ${toggleInput('Show Payment Mode', 'showPaymentModeOnInvoice', settings.showPaymentModeOnInvoice)}
+          ${toggleInput('Show Discount', 'showDiscountOnInvoice', settings.showDiscountOnInvoice)}
+          ${toggleInput('Auto Print After Save', 'autoPrintAfterSave', settings.autoPrintAfterSave)}
+        </div>
       ${textareaInput('Footer Message', 'footerMessage', settings.footerMessage)}
       ${textareaInput('Terms & Conditions', 'terms', settings.terms, { tall: true })}
     </section>
@@ -112,6 +124,7 @@ function renderSectionBackup(settings) {
           { value: 'weekly', label: 'Weekly' },
           { value: 'monthly', label: 'Monthly' }
         ])}
+        ${textInput('Admin Password (DB Reset)', 'adminPassword', settings.adminPassword, { type: 'password' })}
         ${toggleInput('Auto Backup Enabled', 'autoBackupEnabled', settings.autoBackupEnabled)}
       </div>
 
@@ -126,7 +139,7 @@ function renderSectionBackup(settings) {
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2 pt-2">
+      <div class="flex flex-wrap gap-4 pt-4 mt-2">
         <button type="button" id="btn-create-backup" class="btn btn-primary">
           Create Backup Now
         </button>
@@ -229,7 +242,7 @@ function selectInput(label, field, value, options) {
 function toggleInput(label, field, checked) {
   const isChecked = checked ? ' checked' : '';
   return `
-    <div class="flex items-center gap-3 pt-6">
+    <div class="flex items-center gap-3 h-full pt-1">
       <input id="field-${field}" data-field="${field}" type="checkbox" class="toggle" ${isChecked}/>
       <label class="text-sm font-medium" for="field-${field}">${escapeHtml(label)}</label>
     </div>
@@ -404,6 +417,23 @@ export function onMount(rootElement) {
 
   rootElement.querySelectorAll('input[data-field], select[data-field], textarea[data-field]').forEach((el) => {
     el.addEventListener('blur', handleLiveValidate);
+  });
+
+  rootElement.querySelectorAll('select[data-field="theme"], select[data-field="fontSize"], input[data-field="compactMode"], input[data-field="sidebarCollapsed"]').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      if (e.target.dataset.field === 'theme') settingsService.applyTheme(val);
+      if (e.target.dataset.field === 'fontSize') settingsService.applyFontSize(val);
+      if (e.target.dataset.field === 'compactMode') settingsService.applyCompactMode(val);
+      if (e.target.dataset.field === 'sidebarCollapsed') {
+         const sidebar = document.getElementById('sidebar-manager');
+         if (sidebar && window.innerWidth >= 768) {
+           if (val) sidebar.classList.remove('drawer-open');
+           else sidebar.classList.add('drawer-open');
+           window.dispatchEvent(new Event('resize'));
+         }
+      }
+    });
   });
 
   const currentTheme = settingsService.load().theme;

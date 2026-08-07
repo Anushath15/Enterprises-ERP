@@ -15,6 +15,11 @@ export const routes = [
     componentPath: '../pages/pos.js',
   },
   {
+    path: '/quotations',
+    name: 'Quotations',
+    componentPath: '../pages/quotations.js',
+  },
+  {
     path: '/sales',
     name: 'Sales',
     componentPath: '../pages/sales.js',

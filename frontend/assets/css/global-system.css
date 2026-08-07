@@ -285,3 +285,17 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* Compact Mode Overrides */
+body.compact-mode {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+}
+body.compact-mode .responsive-table th, 
+body.compact-mode .responsive-table td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+

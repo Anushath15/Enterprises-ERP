@@ -75,8 +75,24 @@ export async function render() {
         <div class="bg-white p-[var(--spacing-md)] rounded-[var(--radius-md)] border border-border shadow-sm">
           <h4 class="text-sm font-semibold text-primary mb-3">Pricing & Taxation</h4>
           ${FormGrid({ children: `
-            <div><label class="block text-xs font-medium text-gray-500 mb-1">Buying Price</label><input type="number" step="0.01" id="p-buying" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-500 mb-1">Selling Price *</label><input type="number" step="0.01" id="p-price" required class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm focus:ring-2 focus:ring-primary/20"></div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Buying Price</label>
+              <input type="number" step="0.01" id="p-buying" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm">
+              <div class="mt-2 flex items-center gap-4">
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-buying-mode" value="inclusive" checked> GST Inclusive</label>
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-buying-mode" value="exclusive"> GST Exclusive</label>
+              </div>
+              <div id="p-buying-preview" class="mt-2 p-2 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-600 space-y-1"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Selling Price *</label>
+              <input type="number" step="0.01" id="p-price" required class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm focus:ring-2 focus:ring-primary/20">
+              <div class="mt-2 flex items-center gap-4">
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-selling-mode" value="inclusive" checked> GST Inclusive</label>
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-selling-mode" value="exclusive"> GST Exclusive</label>
+              </div>
+              <div id="p-selling-preview" class="mt-2 p-2 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-600 space-y-1"></div>
+            </div>
             <div><label class="block text-xs font-medium text-gray-500 mb-1">MRP</label><input type="number" step="0.01" id="p-mrp" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
             <div><label class="block text-xs font-medium text-gray-500 mb-1">HSN Code</label><input type="text" id="p-hsn" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
             <div><label class="block text-xs font-medium text-gray-500 mb-1">GST %</label><input type="number" id="p-gst" value="18" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
@@ -308,49 +324,111 @@ export function onMount(rootElement) {
 
   if (tbody) addListener(tbody, 'click', handleRowClick);
 
-  const openForm = (id = null) => {
-    const form = document.getElementById('product-form');
-    const title = productModal.querySelector('.responsive-modal-header h3');
-    form.reset();
-    document.getElementById('p-id').value = '';
-    
-      const categories = DataProvider.getCategories() || [];
-      const catSelect = document.getElementById('p-category');
-      catSelect.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
-
-      if (id) {
-        title.textContent = 'Edit Product';
-        const p = DataProvider.getProductById(id);
-        if (p) {
-          document.getElementById('p-id').value = p.id;
-          document.getElementById('p-name').value = p.name || '';
-          document.getElementById('p-sku').value = p.sku || '';
-          document.getElementById('p-barcode').value = p.barcode || '';
-          document.getElementById('p-category').value = p.category || '';
-          document.getElementById('p-subcategory').value = p.subCategory || '';
-          document.getElementById('p-brand').value = p.brand || '';
-          document.getElementById('p-unit').value = p.unit || 'Nos';
-          document.getElementById('p-buying').value = p.buyingPrice || p.avgCost || 0;
-          document.getElementById('p-price').value = p.price || 0;
-          document.getElementById('p-mrp').value = p.mrp || '';
-          document.getElementById('p-hsn').value = p.hsn || '';
-          document.getElementById('p-gst').value = p.gst || 18;
-          document.getElementById('p-stock').value = p.stock || 0;
-          document.getElementById('p-minstock').value = p.minStock || 5;
-          document.getElementById('p-rack').value = p.rack || '';
-          document.getElementById('p-shelf').value = p.shelf || '';
-        }
+    const updatePreviews = () => {
+      const gstPercent = parseFloat(document.getElementById('p-gst').value) || 0;
+      
+      // Buying preview
+      const bPrice = parseFloat(document.getElementById('p-buying').value) || 0;
+      const bMode = document.querySelector('input[name="p-buying-mode"]:checked').value;
+      const bPreview = document.getElementById('p-buying-preview');
+      let bTaxable = 0, bGst = 0, bTotal = 0;
+      if (bMode === 'inclusive') {
+        bTaxable = bPrice / (1 + (gstPercent / 100));
+        bGst = bPrice - bTaxable;
+        bTotal = bPrice;
       } else {
-        title.textContent = 'New Product';
+        bTaxable = bPrice;
+        bGst = bTaxable * (gstPercent / 100);
+        bTotal = bTaxable + bGst;
       }
-      productModal.classList.remove('hidden');
-  };
+      bPreview.innerHTML = `
+        <div class="flex justify-between"><span>Taxable:</span> <strong>₹${bTaxable.toFixed(2)}</strong></div>
+        <div class="flex justify-between"><span>CGST (${gstPercent/2}%):</span> <span>₹${(bGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between"><span>SGST (${gstPercent/2}%):</span> <span>₹${(bGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between pt-1 border-t border-gray-200 text-primary"><span>Final Price:</span> <strong>₹${bTotal.toFixed(2)}</strong></div>
+      `;
 
-  const addBtn = document.getElementById('btn-add-product');
-  if (addBtn) addListener(addBtn, 'click', () => openForm());
-  
-  const handleOpenProductModal = (e) => openForm(e.detail);
-  addListener(window, 'openProductModal', handleOpenProductModal);
+      // Selling preview
+      const sPrice = parseFloat(document.getElementById('p-price').value) || 0;
+      const sMode = document.querySelector('input[name="p-selling-mode"]:checked').value;
+      const sPreview = document.getElementById('p-selling-preview');
+      let sTaxable = 0, sGst = 0, sTotal = 0;
+      if (sMode === 'inclusive') {
+        sTaxable = sPrice / (1 + (gstPercent / 100));
+        sGst = sPrice - sTaxable;
+        sTotal = sPrice;
+      } else {
+        sTaxable = sPrice;
+        sGst = sTaxable * (gstPercent / 100);
+        sTotal = sTaxable + sGst;
+      }
+      sPreview.innerHTML = `
+        <div class="flex justify-between"><span>Taxable:</span> <strong>₹${sTaxable.toFixed(2)}</strong></div>
+        <div class="flex justify-between"><span>CGST (${gstPercent/2}%):</span> <span>₹${(sGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between"><span>SGST (${gstPercent/2}%):</span> <span>₹${(sGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between pt-1 border-t border-gray-200 text-primary"><span>Final Price:</span> <strong>₹${sTotal.toFixed(2)}</strong></div>
+      `;
+    };
+
+    const openForm = (id = null) => {
+      const form = document.getElementById('product-form');
+      const title = productModal.querySelector('.responsive-modal-header h3');
+      form.reset();
+      document.getElementById('p-id').value = '';
+      
+        const categories = DataProvider.getCategories() || [];
+        const catSelect = document.getElementById('p-category');
+        catSelect.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+
+        if (id) {
+          title.textContent = 'Edit Product';
+          const p = DataProvider.getProductById(id);
+          if (p) {
+            document.getElementById('p-id').value = p.id;
+            document.getElementById('p-name').value = p.name || '';
+            document.getElementById('p-sku').value = p.sku || '';
+            document.getElementById('p-barcode').value = p.barcode || '';
+            document.getElementById('p-category').value = p.category || '';
+            document.getElementById('p-subcategory').value = p.subCategory || '';
+            document.getElementById('p-brand').value = p.brand || '';
+            document.getElementById('p-unit').value = p.unit || 'Nos';
+            document.getElementById('p-buying').value = p.buyingPrice || p.avgCost || 0;
+            document.getElementById('p-price').value = p.price || 0;
+            document.getElementById('p-mrp').value = p.mrp || '';
+            document.getElementById('p-hsn').value = p.hsn || '';
+            document.getElementById('p-gst').value = p.gst || 18;
+            document.getElementById('p-stock').value = p.stock || 0;
+            document.getElementById('p-minstock').value = p.minStock || 5;
+            document.getElementById('p-rack').value = p.rack || '';
+            document.getElementById('p-shelf').value = p.shelf || '';
+            
+            const bMode = p.buyingPricingMode || 'inclusive';
+            const sMode = p.sellingPricingMode || 'inclusive';
+            document.querySelector(`input[name="p-buying-mode"][value="${bMode}"]`).checked = true;
+            document.querySelector(`input[name="p-selling-mode"][value="${sMode}"]`).checked = true;
+          }
+        } else {
+          title.textContent = 'New Product';
+          document.querySelector(`input[name="p-buying-mode"][value="inclusive"]`).checked = true;
+          document.querySelector(`input[name="p-selling-mode"][value="inclusive"]`).checked = true;
+        }
+        
+        updatePreviews();
+        productModal.classList.remove('hidden');
+    };
+
+    const addBtn = document.getElementById('btn-add-product');
+    if (addBtn) addListener(addBtn, 'click', () => openForm());
+    
+    const handleOpenProductModal = (e) => openForm(e.detail);
+    addListener(window, 'openProductModal', handleOpenProductModal);
+    
+    // Bind preview listeners
+    addListener(document.getElementById('p-buying'), 'input', updatePreviews);
+    addListener(document.getElementById('p-price'), 'input', updatePreviews);
+    addListener(document.getElementById('p-gst'), 'input', updatePreviews);
+    document.querySelectorAll('input[name="p-buying-mode"]').forEach(r => addListener(r, 'change', updatePreviews));
+    document.querySelectorAll('input[name="p-selling-mode"]').forEach(r => addListener(r, 'change', updatePreviews));
 
   const saveBtn = document.getElementById('save-p-btn');
   if (saveBtn) {
@@ -388,7 +466,9 @@ export function onMount(rootElement) {
         brand: document.getElementById('p-brand').value,
         unit: document.getElementById('p-unit').value,
         buyingPrice: Number(document.getElementById('p-buying').value || 0),
+        buyingPricingMode: document.querySelector('input[name="p-buying-mode"]:checked').value,
         price: Number(document.getElementById('p-price').value || 0),
+        sellingPricingMode: document.querySelector('input[name="p-selling-mode"]:checked').value,
         mrp: Number(document.getElementById('p-mrp').value || 0),
         hsn: document.getElementById('p-hsn').value,
         gst: Number(document.getElementById('p-gst').value || 18),
@@ -475,7 +555,9 @@ export function onMount(rootElement) {
               brand: row.Brand || row.brand || (existing ? existing.brand : ''),
               unit: row.Unit || row.unit || (existing ? existing.unit : 'Nos'),
               buyingPrice: Number(row.BuyingPrice || row.buyingPrice || row.Cost || (existing ? existing.buyingPrice : 0)),
+              buyingPricingMode: row.BuyingPricingMode || row.buyingPricingMode || (existing ? existing.buyingPricingMode : 'inclusive'),
               price: Number(row.SellingPrice || row.sellingPrice || row.Price || (existing ? existing.price : 0)),
+              sellingPricingMode: row.SellingPricingMode || row.sellingPricingMode || (existing ? existing.sellingPricingMode : 'inclusive'),
               mrp: Number(row.MRP || row.mrp || (existing ? existing.mrp : 0)),
               gst: Number(row.GST || row.gst || (existing ? existing.gst : 18)),
               stock: Number(row.Stock || row.stock || row.Qty || (existing ? existing.stock : 0)),

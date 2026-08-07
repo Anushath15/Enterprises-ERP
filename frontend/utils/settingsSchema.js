@@ -25,6 +25,14 @@ export const SETTINGS_DEFAULTS = {
   roundOffMethod: 'nearest',
   autoInvoiceNumbering: true,
   showLogoOnInvoice: true,
+  showGstinOnInvoice: true,
+  showHsnCodeOnInvoice: true,
+  showCustomerPhoneOnInvoice: true,
+  showPaymentModeOnInvoice: true,
+  showDiscountOnInvoice: true,
+  autoPrintAfterSave: false,
+  paperSize: 'A4',
+  printCopies: 1,
   footerMessage: '',
   terms: '1. Goods once sold cannot be returned.\n2. Subject to jurisdiction.\n3. Payment due within 30 days.',
 
@@ -50,6 +58,7 @@ export const SETTINGS_DEFAULTS = {
   currencySymbol: '\u20B9',
   timeZone: 'Asia/Kolkata',
   dbVersion: '1',
+  adminPassword: 'admin123',
 
   // Session state (read/written by daily_closing.js)
   sessionOpen: false,
@@ -69,12 +78,19 @@ export const REQUIRED_FIELDS = [
 
 export const NUMERIC_FIELDS = new Set([
   'defaultGst',
-  'lowStockThreshold'
+  'lowStockThreshold',
+  'printCopies'
 ]);
 
 export const BOOLEAN_FIELDS = new Set([
   'autoInvoiceNumbering',
   'showLogoOnInvoice',
+  'showGstinOnInvoice',
+  'showHsnCodeOnInvoice',
+  'showCustomerPhoneOnInvoice',
+  'showPaymentModeOnInvoice',
+  'showDiscountOnInvoice',
+  'autoPrintAfterSave',
   'allowNegativeStock',
   'autoUpdateStock',
   'autoBackupEnabled',
@@ -94,9 +110,14 @@ export const SECTION_ORDER = [
 
 export const FIELD_SECTIONS = {
   business: ['shopName', 'tagline', 'address', 'ownerName', 'gstin', 'phone', 'email'],
-  invoice: ['invoicePrefix', 'invoiceNumberFormat', 'defaultTaxType', 'defaultGst', 'roundOffMethod', 'autoInvoiceNumbering', 'showLogoOnInvoice', 'footerMessage', 'terms'],
+  invoice: [
+    'invoicePrefix', 'invoiceNumberFormat', 'defaultTaxType', 'defaultGst', 'roundOffMethod', 
+    'autoInvoiceNumbering', 'showLogoOnInvoice', 'showGstinOnInvoice', 'showHsnCodeOnInvoice', 
+    'showCustomerPhoneOnInvoice', 'showPaymentModeOnInvoice', 'showDiscountOnInvoice', 
+    'autoPrintAfterSave', 'paperSize', 'printCopies', 'footerMessage', 'terms'
+  ],
   inventory: ['lowStockThreshold', 'defaultUnit', 'allowNegativeStock', 'autoUpdateStock', 'stockWarningColor'],
-  backup: ['backupFrequency', 'autoBackupEnabled'],
+  backup: ['backupFrequency', 'autoBackupEnabled', 'adminPassword'],
   appearance: ['theme', 'compactMode', 'fontSize', 'sidebarCollapsed'],
   about: []
 };
@@ -202,6 +223,14 @@ export function getFieldLabel(field) {
     roundOffMethod: 'Round Off Method',
     autoInvoiceNumbering: 'Auto Invoice Numbering',
     showLogoOnInvoice: 'Show Logo on Invoice',
+    showGstinOnInvoice: 'Show GSTIN',
+    showHsnCodeOnInvoice: 'Show HSN Code',
+    showCustomerPhoneOnInvoice: 'Show Customer Phone',
+    showPaymentModeOnInvoice: 'Show Payment Mode',
+    showDiscountOnInvoice: 'Show Discount',
+    autoPrintAfterSave: 'Auto Print After Save',
+    paperSize: 'Paper Size',
+    printCopies: 'Number of Copies',
     footerMessage: 'Footer Message',
     terms: 'Terms & Conditions',
     lowStockThreshold: 'Low Stock Threshold',
@@ -211,6 +240,7 @@ export function getFieldLabel(field) {
     stockWarningColor: 'Stock Warning Color',
     backupFrequency: 'Backup Frequency',
     autoBackupEnabled: 'Auto Backup Enabled',
+    adminPassword: 'Admin Password (DB Reset)',
     theme: 'Theme',
     compactMode: 'Compact Mode',
     fontSize: 'Font Size',

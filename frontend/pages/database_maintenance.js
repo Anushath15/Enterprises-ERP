@@ -12,6 +12,7 @@
  */
 import { MaintenanceService } from '../services/maintenanceService.js';
 import { NotificationService } from '../services/notificationService.js';
+import { settingsService } from '../services/settingsService.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { formatCurrency, formatDate } from '../utils/exportUtils.js';
 
@@ -139,6 +140,7 @@ function renderStorage(s) {
       </div>
       <div class='text-xs text-gray-500'>(ERP data: ${(s.erpBytes / 1024).toFixed(1)} KB · other app data: ${(s.otherBytes / 1024).toFixed(1)} KB)</div>
       <button id='storage-refresh' type='button' class='btn btn-ghost'>${icon('refresh-cw')} Refresh</button>
+      <button id='storage-request-quota' type='button' class='btn btn-outline ml-2'>${icon('hard-drive')} Request 1GB Quota</button>
       <table class='w-full text-sm mt-2'>
         <thead class='bg-gray-100'><tr class='text-left'><th class='py-1 pr-2'>Largest collections (raw bytes)</th><th class='py-1 pr-2 text-right'>Size</th></tr></thead>
         <tbody>${rows || '<tr><td colspan=2 class="py-4 text-center text-gray-400">empty</td></tr>'}</tbody>
@@ -185,6 +187,7 @@ function renderReset() {
       <p class='text-sm text-red-800'>This completely wipes ALL ERP data (products, customers, dealers, invoices, expenses, settings, daily closings, stock adjustments and every erp_* collection). This action cannot be undone. After completion the application reloads to a fresh install state.</p>
       <p class='text-sm text-red-800'>A backup is strongly recommended before resetting.</p>
       <label class='flex items-center gap-2 text-sm'><input type='checkbox' id='reset-backup-got-it' class='rounded border-red-300 text-red-600' /> <span>I have created a backup (or understand the risk)</span></label>
+      <label class='flex items-center gap-2 text-sm'><input type='password' id='reset-admin-pwd' class='font-mono border border-red-300 rounded px-2 py-1 w-40' placeholder='Admin Password' /> <span class='text-xs text-red-700'>Required authentication</span></label>
       <label class='flex items-center gap-2 text-sm'><input type='text' id='reset-confirmation' class='font-mono border border-red-300 rounded px-2 py-1 w-40' placeholder='Type ERASE' /> <span class='text-xs text-red-700'>Type <b>ERASE</b> to enable reset</span></label>
       <div class='flex gap-3'><button id='reset-run' type='button' class='btn bg-red-600 hover:bg-red-700 text-white' disabled>${icon('power')} Reset Database</button><span id='reset-result' class='text-sm text-gray-500'></span></div>
     </div>
@@ -238,8 +241,38 @@ export function onMount(rootElement) {
           out.textContent = r.ok ? `Repair applied: ${r.actions.length} operation(s).` : 'Repair failed: ' + r.reason;
         });
       } else if (id === 'storage') {
-        set(renderStorage(MaintenanceService.storageUsage()));
-        addListener(document.getElementById('storage-refresh'), 'click', () => set(renderStorage(MaintenanceService.storageUsage())));
+        const loadStorage = async () => {
+          let usage = MaintenanceService.storageUsage();
+          if (navigator.storage && navigator.storage.estimate) {
+            try {
+              const est = await navigator.storage.estimate();
+              if (est && est.quota) {
+                usage.quotaBytes = est.quota;
+                usage.percent = usage.quotaBytes > 0 ? Math.min(100, Math.round((usage.usedBytes / usage.quotaBytes) * 100)) : 0;
+              }
+            } catch (e) {}
+          }
+          set(renderStorage(usage));
+          addListener(document.getElementById('storage-refresh'), 'click', loadStorage);
+          addListener(document.getElementById('storage-request-quota'), 'click', async () => {
+            try {
+              if (navigator.storage && navigator.storage.persist) {
+                const persistent = await navigator.storage.persist();
+                if (persistent) {
+                  NotificationService.success('Storage upgraded / Persistent storage enabled');
+                } else {
+                  NotificationService.info('Persistent storage unavailable / Using normal local storage');
+                }
+                loadStorage();
+              } else {
+                NotificationService.error('Storage quota API not available in this environment.');
+              }
+            } catch (e) {
+              NotificationService.error('Failed to request quota: ' + e.message);
+            }
+          });
+        };
+        loadStorage();
       } else if (id === 'cleanup') {
         const refresh = () => { set(renderCleanup(MaintenanceService.cleanupPreview())); wireCleanup(); };
         function wireCleanup() {
@@ -259,14 +292,21 @@ export function onMount(rootElement) {
         set(renderReset());
         const btn = document.getElementById('reset-run');
         const chk = document.getElementById('reset-backup-got-it');
+        const pwd = document.getElementById('reset-admin-pwd');
         const input = document.getElementById('reset-confirmation');
         const out = document.getElementById('reset-result');
-        const updateBtn = () => { btn.disabled = !(chk.checked && input.value === 'ERASE'); };
+        const updateBtn = () => { btn.disabled = !(chk.checked && pwd.value.trim() !== '' && input.value === 'ERASE'); };
         addListener(chk, 'change', updateBtn);
+        addListener(pwd, 'input', updateBtn);
         addListener(input, 'input', updateBtn);
         updateBtn();
         addListener(btn, 'click', async () => {
           if (!chk.checked || input.value !== 'ERASE') { out.textContent = 'Confirm via checkbox and typing ERASE.'; return; }
+          const settings = settingsService.load();
+          if (pwd.value !== settings.adminPassword) {
+            out.textContent = 'Authentication failed. Incorrect admin password.';
+            return;
+          }
           const c1 = await window.confirm('FINAL WARNING: you are about to destroy ALL ERP data and reload.');
           if (!c1) { out.textContent = 'Reset cancelled.'; return; }
           const c2 = await window.confirm('Type ERASE to confirm this final dialog. All data will be lost.');

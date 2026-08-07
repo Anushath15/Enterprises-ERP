@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // like localStorage which work perfectly in the Electron sandbox.
 // If any IPC is needed in the future, it can be securely added here.
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Empty secure bridge for future extensibility
+  printPreview: (html, options) => ipcRenderer.invoke('open-print-preview', html, options)
 });
 
 // Prevent default drag and drop behavior to stop accidental navigation/file dropping

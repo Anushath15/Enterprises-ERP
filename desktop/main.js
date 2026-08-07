@@ -3,6 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const windowStateKeeper = require('electron-window-state');
 
+// Remove storage quota limitations for offline data
+app.commandLine.appendSwitch('unlimited-storage');
+
 // Force single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -193,6 +196,70 @@ app.whenReady().then(() => {
   // Disable arbitrary file execution/navigation
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     callback(false);
+  });
+
+  ipcMain.handle('open-print-preview', async (event, html, options = {}) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const hiddenWin = new BrowserWindow({ 
+          show: false, 
+          webPreferences: { nodeIntegration: false, contextIsolation: true } 
+        });
+
+        const paperSize = options.paperSize || 'A4';
+        let pageSize;
+        if (paperSize === 'A4') {
+          pageSize = 'A4';
+        } else if (paperSize === '80mm') {
+          pageSize = { width: 80000, height: 297000 };
+        } else {
+          pageSize = { width: 58000, height: 297000 }; // 58mm
+        }
+
+        hiddenWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+        hiddenWin.webContents.on('did-finish-load', async () => {
+          try {
+            const pdfBuffer = await hiddenWin.webContents.printToPDF({
+              pageSize: pageSize,
+              printBackground: true,
+              marginsType: 1 // No margins
+            });
+
+            const tempPath = path.join(app.getPath('temp'), `preview_${Date.now()}.pdf`);
+            fs.writeFileSync(tempPath, pdfBuffer);
+            hiddenWin.close();
+
+            const previewWin = new BrowserWindow({
+              width: 900,
+              height: 800,
+              title: 'Print Preview',
+              icon: path.join(__dirname, 'assets', 'icon.ico'),
+              webPreferences: {
+                plugins: true // crucial for PDF viewer
+              }
+            });
+
+            previewWin.setMenuBarVisibility(false);
+            previewWin.loadFile(tempPath);
+            
+            // cleanup temp file when window is closed
+            previewWin.on('closed', () => {
+              try { fs.unlinkSync(tempPath); } catch (e) {}
+            });
+            
+            resolve(true);
+          } catch (e) {
+            console.error('PDF generation failed:', e);
+            hiddenWin.close();
+            resolve(false);
+          }
+        });
+      } catch (err) {
+        console.error('Print preview error:', err);
+        resolve(false);
+      }
+    });
   });
 
   createSplashWindow();
