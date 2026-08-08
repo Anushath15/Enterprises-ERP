@@ -27,9 +27,9 @@ export const OfflineDataProvider = {
 
       LocalStorageService.set('erp_auth_users', [
         { id: 'USR-01', username: 'admin', pinHash: defaultHash, role: 'admin', requiresPinChange: true },
-        { id: 'USR-02', username: 'cashier', pinHash: defaultHash, role: 'cashier', requiresPinChange: false },
-        { id: 'USR-03', username: 'accountant', pinHash: defaultHash, role: 'accountant', requiresPinChange: false },
-        { id: 'USR-04', username: 'storekeeper', pinHash: defaultHash, role: 'storekeeper', requiresPinChange: false }
+        { id: 'USR-02', username: 'cashier', pinHash: defaultHash, role: 'cashier', requiresPinChange: true },
+        { id: 'USR-03', username: 'accountant', pinHash: defaultHash, role: 'accountant', requiresPinChange: true },
+        { id: 'USR-04', username: 'storekeeper', pinHash: defaultHash, role: 'storekeeper', requiresPinChange: true }
       ]);
     }
   },
@@ -119,6 +119,28 @@ export const OfflineDataProvider = {
   logout() {
     localStorage.removeItem('auth_user');
     window.location.hash = '#/login';
+  },
+
+  async changePin(username, newPin) {
+    const users = LocalStorageService.get('erp_auth_users') || [];
+    const userIndex = users.findIndex(u => u.username === username);
+    if (userIndex === -1) throw new Error('User not found');
+    
+    const pinHash = await hashPassword(newPin, DEFAULT_PASSWORD_SALT);
+    users[userIndex].pinHash = pinHash;
+    users[userIndex].requiresPinChange = false;
+    LocalStorageService.set('erp_auth_users', users);
+    
+    // Update active session if changing own PIN
+    const authStr = localStorage.getItem('auth_user');
+    if (authStr) {
+      const authUser = JSON.parse(authStr);
+      if (authUser.username === username) {
+        authUser.requiresPinChange = false;
+        localStorage.setItem('auth_user', JSON.stringify(authUser));
+      }
+    }
+    return true;
   },
 
   async getMe() {
