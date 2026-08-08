@@ -395,11 +395,40 @@ export function onMount(rootElement) {
 
   const getCartTotals = () => {
     let subtotal = 0, taxTotal = 0, totalDiscount = 0, cgstTotal = 0, sgstTotal = 0, taxableAmount = 0;
+    
+    // 1. Calculate cartTotalBeforeDiscount
+    let cartTotalBeforeDiscount = 0;
+    cart.forEach(item => {
+       cartTotalBeforeDiscount += (item.qty * item.price);
+    });
+
+    // Determine global cart discount in flat value
+    let globalCartDiscount = 0;
+    if (discountVal > 0 && cartTotalBeforeDiscount > 0) {
+       if (discountType === 'percent') {
+          globalCartDiscount = cartTotalBeforeDiscount * (discountVal / 100);
+       } else {
+          globalCartDiscount = discountVal;
+       }
+    }
+
+    // 2. Calculate cartDiscountRatio
+    let cartDiscountRatio = cartTotalBeforeDiscount > 0 ? (globalCartDiscount / cartTotalBeforeDiscount) : 0;
+
     cart.forEach(item => {
       const mode = item.pricingMode || 'inclusive';
       const rawBase = item.price * item.qty;
-      const rawDisc = rawBase * ((item.discountPercent || 0) / 100);
-      const rawAfterDisc = rawBase - rawDisc;
+      
+      // Calculate item's specific discount
+      const itemDisc = rawBase * ((item.discountPercent || 0) / 100);
+      
+      // 3. Compute itemDiscountShare (Global)
+      const globalDiscShare = rawBase * cartDiscountRatio;
+      
+      // 4. Compute netItemValue
+      const totalItemDisc = itemDisc + globalDiscShare;
+      const rawAfterDisc = rawBase - totalItemDisc;
+      
       const gstFactor = 1 + ((item.taxRate || 0) / 100);
 
       let lineTaxable = 0;
@@ -407,14 +436,15 @@ export function onMount(rootElement) {
       let lineTaxableBeforeDisc = 0;
       let lineDiscTaxable = 0;
 
+      // 5. Calculate GST on netItemValue
       if (mode === 'inclusive') {
         lineTaxableBeforeDisc = rawBase / gstFactor;
-        lineDiscTaxable = rawDisc / gstFactor;
+        lineDiscTaxable = totalItemDisc / gstFactor;
         lineTaxable = rawAfterDisc / gstFactor;
         lineTax = rawAfterDisc - lineTaxable;
       } else {
         lineTaxableBeforeDisc = rawBase;
-        lineDiscTaxable = rawDisc;
+        lineDiscTaxable = totalItemDisc;
         lineTaxable = rawAfterDisc;
         lineTax = lineTaxable * ((item.taxRate || 0) / 100);
       }
