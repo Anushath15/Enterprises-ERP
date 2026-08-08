@@ -4,19 +4,33 @@
  */
 import { LocalStorageService } from './storage/localStorageService.js';
 import { SeedData } from '../data/seedData.js';
-import { verifyPassword, hashForReset, DEFAULT_PASSWORD_SALT, DEFAULT_PASSWORD_HASH } from '../utils/password.js';
+import { verifyPassword, hashPassword, DEFAULT_PASSWORD_SALT } from '../utils/password.js';
 
 export const OfflineDataProvider = {
   
   // ==========================================
   // INITIALIZATION & METADATA
   // ==========================================
-  init() {
+  async init() {
     if (!LocalStorageService.has('erp_system_state')) {
       // Initializing ERP Data for the first time...
       Object.keys(SeedData).forEach(key => {
         LocalStorageService.set(key, SeedData[key]);
       });
+    }
+
+    if (!LocalStorageService.has('erp_auth_users')) {
+      // Seed default accounts
+      const pinSalt = DEFAULT_PASSWORD_SALT;
+      const defaultPin = '1234';
+      const defaultHash = await hashPassword(defaultPin, pinSalt);
+
+      LocalStorageService.set('erp_auth_users', [
+        { id: 'USR-01', username: 'admin', pinHash: defaultHash, role: 'admin', requiresPinChange: true },
+        { id: 'USR-02', username: 'cashier', pinHash: defaultHash, role: 'cashier', requiresPinChange: false },
+        { id: 'USR-03', username: 'accountant', pinHash: defaultHash, role: 'accountant', requiresPinChange: false },
+        { id: 'USR-04', username: 'storekeeper', pinHash: defaultHash, role: 'storekeeper', requiresPinChange: false }
+      ]);
     }
   },
   
@@ -55,20 +69,28 @@ export const OfflineDataProvider = {
   },
   
   getBaseMetadata() {
+    const authStr = localStorage.getItem('auth_user');
+    const authUser = authStr ? JSON.parse(authStr) : null;
+    const userId = authUser ? authUser.id : 'SYSTEM';
+
     return {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      createdBy: 'USR-01', // Placeholder admin
-      updatedBy: 'USR-01',
+      createdBy: userId,
+      updatedBy: userId,
       isDeleted: false,
       version: 1
     };
   },
   
   getUpdateMetadata(entity) {
+    const authStr = localStorage.getItem('auth_user');
+    const authUser = authStr ? JSON.parse(authStr) : null;
+    const userId = authUser ? authUser.id : 'SYSTEM';
+
     return {
       updatedAt: new Date().toISOString(),
-      updatedBy: 'USR-01',
+      updatedBy: userId,
       version: (entity.version || 1) + 1
     };
   },
@@ -76,9 +98,36 @@ export const OfflineDataProvider = {
   // ==========================================
   // AUTHENTICATION
   // ==========================================
-  // Auth removed
+  async login(username, pin) {
+    const users = LocalStorageService.get('erp_auth_users') || [];
+    const user = users.find(u => u.username === username);
+    if (!user) return false;
+
+    const pinHash = await hashPassword(pin, DEFAULT_PASSWORD_SALT);
+    if (user.pinHash === pinHash) {
+      localStorage.setItem('auth_user', JSON.stringify({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        requiresPinChange: user.requiresPinChange
+      }));
+      return true;
+    }
+    return false;
+  },
+
+  logout() {
+    localStorage.removeItem('auth_user');
+    window.location.hash = '#/login';
+  },
+
   async getMe() {
-    return { name: 'Senthil Enterprises', role: 'admin' };
+    const authStr = localStorage.getItem('auth_user');
+    if (authStr) {
+      const u = JSON.parse(authStr);
+      return { name: u.username, role: u.role, id: u.id };
+    }
+    return null;
   },
 
   // ==========================================

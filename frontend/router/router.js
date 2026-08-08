@@ -37,8 +37,15 @@ export class Router {
       window.history.replaceState(null, null, '#' + errorRoute);
     }
 
-    // Route Guard: enforce authentication and role-based access has been completely removed.
-    // All routes are open by default.
+    // Route Guard: enforce authentication
+    const authUserStr = localStorage.getItem('auth_user');
+    const authUser = authUserStr ? JSON.parse(authUserStr) : null;
+    const isPublicRoute = route.path === '/login';
+
+    if (!authUser && !isPublicRoute) {
+      window.history.replaceState(null, null, '#/login');
+      return this.handleRouteChange();
+    }
 
     this.currentRoute = route;
 

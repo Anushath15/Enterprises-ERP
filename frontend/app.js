@@ -22,17 +22,17 @@ const App = {
     // Run schema migrations first
     MigrationRC3.run();
 
+    // Initialize Offline Data Layer
+    await DataProvider.init();
+    
+    // Daily automatic backup (once per day; boot + hourly + tab-return checks)
+    BackupService.init();
+
     // Apply global settings before rendering
     const settings = settingsService.load();
     if (settings.theme) settingsService.applyTheme(settings.theme);
     if (settings.fontSize) settingsService.applyFontSize(settings.fontSize);
     if (settings.compactMode !== undefined) settingsService.applyCompactMode(settings.compactMode);
-
-    // Initialize Offline Data Layer
-    DataProvider.init();
-    
-    // Daily automatic backup (once per day; boot + hourly + tab-return checks)
-    BackupService.init();
     
     // Mount the Application Shell (Phase 4 Step 1 & 2)
     this.renderShell();

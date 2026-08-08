@@ -5,6 +5,11 @@
 
 export const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    componentPath: '../pages/login.js',
+  },
+  {
     path: '/',
     name: 'Dashboard',
     componentPath: '../pages/dashboard.js',
