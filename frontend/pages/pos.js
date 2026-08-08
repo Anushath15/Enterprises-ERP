@@ -408,7 +408,7 @@ export function onMount(rootElement) {
        if (discountType === 'percent') {
           globalCartDiscount = cartTotalBeforeDiscount * (discountVal / 100);
        } else {
-          globalCartDiscount = discountVal;
+          globalCartDiscount = Math.min(discountVal, cartTotalBeforeDiscount);
        }
     }
 
