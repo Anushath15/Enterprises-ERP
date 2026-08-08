@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'file:///' + path.resolve(__dirname, '../../frontend/index.html').replace(/\\/g, '/');
 const UI_DIR = path.resolve('../Evidence/UI');
 const PRINT_DIR = path.resolve('../Evidence/PRINT');
 
-test.describe('V1.0 Evidence Collection', () => {
+test.describe('V1.0 Evidence Collection (Browser/Static)', () => {
 
   test.beforeEach(async ({ page }) => {
     // Fail on any console error per Zero Assumption rule

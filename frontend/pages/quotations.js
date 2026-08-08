@@ -747,13 +747,9 @@ export function onMount(rootElement) {
     const shopName = settings.shopName || 'Senthil Enterprises';
     const shopAddress = settings.address || '';
     const shopPhone = settings.phone || '';
-    const gstin = settings.gstin || '';
     const date = new Date(invoice.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const subtotal = num(invoice.subtotal);
     const discount = num(invoice.discount);
-    const taxableAmount = num(invoice.taxableAmount);
-    const cgstTotal = num(invoice.cgstTotal);
-    const sgstTotal = num(invoice.sgstTotal);
     const totalAmount = num(invoice.totalAmount || invoice.total);
 
     const receiptArea = document.getElementById('print-receipt-area');
@@ -761,7 +757,6 @@ export function onMount(rootElement) {
       <div class="receipt-title">${escapeHtml(shopName)}</div>
       ${shopAddress ? `<div style="text-align:center;font-size:11px;">${escapeHtml(shopAddress)}</div>` : ''}
       ${shopPhone ? `<div style="text-align:center;font-size:11px;">Ph: ${escapeHtml(shopPhone)}</div>` : ''}
-      ${gstin ? `<div style="text-align:center;font-size:11px;">GSTIN: ${escapeHtml(gstin)}</div>` : ''}
       <div class="receipt-divider"></div>
       <div style="font-size:11px;"><b>Invoice:</b> ${escapeHtml(invoice.id)}</div>
       <div style="font-size:11px;"><b>Date:</b> ${escapeHtml(date)}</div>
@@ -792,9 +787,6 @@ export function onMount(rootElement) {
       <div class="receipt-divider"></div>
       <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Subtotal</span><span>₹${subtotal.toFixed(2)}</span></div>
       ${discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${discount.toFixed(2)}</span></div>` : ''}
-      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${taxableAmount.toFixed(2)}</span></div>
-      ${cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${cgstTotal.toFixed(2)}</span></div>` : ''}
-      ${sgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>SGST</span><span>+ ₹${sgstTotal.toFixed(2)}</span></div>` : ''}
       <div class="receipt-divider"></div>
       <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>GRAND TOTAL</span><span>₹${totalAmount.toFixed(2)}</span></div>
       <div class="receipt-divider"></div>
@@ -811,7 +803,6 @@ export function onMount(rootElement) {
     const shopName = settings.shopName || 'Senthil Enterprises';
     const shopAddress = settings.address || '';
     const shopPhone = settings.phone || '';
-    const gstin = settings.gstin || '';
     const date = new Date(invoice.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const subtotal = num(invoice.subtotal);
     const discount = num(invoice.discount);
@@ -860,7 +851,6 @@ export function onMount(rootElement) {
             ${hsnCell}
             <td style="text-align:right; padding: 4px; border-bottom: 1px dashed #eee;">₹${rate.toFixed(2)}</td>
             <td style="text-align:center; padding: 4px; border-bottom: 1px dashed #eee;">${qty}</td>
-            <td style="text-align:center; padding: 4px; border-bottom: 1px dashed #eee;">${gstPercent}%</td>
             <td style="text-align:right; padding: 4px; border-bottom: 1px dashed #eee;">₹${finalAmount.toFixed(2)}</td>
         </tr>`;
     }).join('');
@@ -875,7 +865,6 @@ export function onMount(rootElement) {
    <div style="font-size: 10px; font-weight: bold; margin-top: 2px;">( NOT A TAX INVOICE )</div>
             ${shopAddress ? `<div style="font-size: 12px; margin-top: 2px;">${escapeHtml(shopAddress)}</div>` : ''}
             ${shopPhone ? `<div style="font-size: 12px; margin-top: 2px;">Ph: ${escapeHtml(shopPhone)}</div>` : ''}
-            ${(showGstin && gstin) ? `<div style="font-size: 12px; margin-top: 2px;"><b>GSTIN:</b> ${escapeHtml(gstin)}</div>` : ''}
         </div>
         
         <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 10px; font-size: 12px;">
@@ -902,7 +891,6 @@ export function onMount(rootElement) {
                     ${hsnHeader}
                     <th style="text-align:right; padding: 4px; border-bottom: 1px dashed #ccc;">Rate</th>
                     <th style="text-align:center; padding: 4px; border-bottom: 1px dashed #ccc;">Qty</th>
-                    <th style="text-align:center; padding: 4px; border-bottom: 1px dashed #ccc;">GST</th>
                     <th style="text-align:right; padding: 4px; border-bottom: 1px dashed #ccc;">Amount</th>
                 </tr>
             </thead>

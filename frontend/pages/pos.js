@@ -275,6 +275,11 @@ export function onMount(rootElement) {
      const estimations = DataProvider.getEstimations();
      const estimation = estimations.find(q => q.id === convertEstimateId);
      if (estimation) {
+       if (estimation.status === 'Converted') {
+           NotificationService.error('Estimation has already been converted to an invoice.');
+           window.history.replaceState(null, null, '#/pos');
+           return;
+       }
        cart = estimation.items || [];
        selectedCustomer = { id: estimation.customerId, name: estimation.customerName };
        paymentMode = 'Cash'; // Default to cash for new invoice
