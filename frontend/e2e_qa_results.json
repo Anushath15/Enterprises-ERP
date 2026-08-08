@@ -1,26 +1,5 @@
 {
-  "errors": [
-    {
-      "type": "RouteError",
-      "message": "Route #/products returned a 404 UI"
-    },
-    {
-      "type": "RouteError",
-      "message": "Route #/inventory returned a 404 UI"
-    },
-    {
-      "type": "ConsoleError",
-      "message": "Error reading erp_last_backup from localStorage SyntaxError: Unexpected non-whitespace character after JSON at position 4 (line 1 column 5)"
-    },
-    {
-      "type": "ConsoleError",
-      "message": "Error reading erp_last_auto_backup from localStorage SyntaxError: Unexpected non-whitespace character after JSON at position 4 (line 1 column 5)"
-    },
-    {
-      "type": "ConsoleError",
-      "message": "Router Error rendering page /database-maintenance: ReferenceError: handleActualCashInput is not defined"
-    }
-  ],
-  "consoleLogs": 2,
-  "success": false
+  "errors": [],
+  "consoleLogs": 3,
+  "success": true
 }

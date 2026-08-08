@@ -193,21 +193,18 @@ export async function render() {
 
 export function onMount(rootElement) {
   const __listeners = [];
-  const _origAddEventListener = rootElement.addEventListener;
-  rootElement.addEventListener = function(type, listener, options) {
+  const safeRootAdd = (type, listener, options) => {
     __listeners.push({ target: rootElement, type, listener, options });
-    _origAddEventListener.call(rootElement, type, listener, options);
+    rootElement.addEventListener(type, listener, options);
   };
-  const _origWindowAdd = window.addEventListener;
-  const _origDocAdd = document.addEventListener;
   const trackedWindowDoc = [];
-  window.addEventListener = function(type, listener, options) {
-     trackedWindowDoc.push({ target: window, type, listener, options });
-     _origWindowAdd.call(window, type, listener, options);
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
   };
-  document.addEventListener = function(type, listener, options) {
-     trackedWindowDoc.push({ target: document, type, listener, options });
-     _origDocAdd.call(document, type, listener, options);
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
   };
   
   if (window.lucide) window.lucide.createIcons();
@@ -325,7 +322,7 @@ export function onMount(rootElement) {
   const newBtn = rootElement.querySelector('[data-delivery-new]');
   if (newBtn) newBtn.addEventListener('click', handleNewDelivery);
 
-  window.addEventListener('openDeliveryDrawer', openForm);
+  safeWindowAdd('openDeliveryDrawer', openForm);
   const handleCloseClick = () => closeAll();
   closeBtns.forEach(btn => btn.addEventListener('click', handleCloseClick));
   overlay.addEventListener('click', handleCloseClick);
@@ -370,8 +367,7 @@ export function onMount(rootElement) {
     trackedWindowDoc.forEach(({target, type, listener, options}) => {
       target.removeEventListener(type, listener, options);
     });
-    window.addEventListener = _origWindowAdd;
-    document.addEventListener = _origDocAdd;
+    
 
     window.removeEventListener('openDeliveryDrawer', openForm);
     tabBtns.forEach(btn => btn.removeEventListener('click', handleTabClick));

@@ -547,6 +547,25 @@ export const OfflineDataProvider = {
       throw e;
     }
   },
+  
+  // ==========================================
+  // ESTIMATIONS (RC3.5)
+  // ==========================================
+  getEstimations() {
+    return this._getAll('erp_estimations');
+  },
+  saveEstimation(estimation) {
+    if (!estimation.items || estimation.items.length === 0) {
+      throw new Error('Cannot save an empty estimation.');
+    }
+    // Estimations DO NOT deduct stock, do not hit ledgers, and do not hit sales history.
+    // We only preserve the estimation data itself.
+    return this._save('erp_estimations', estimation, 'EST');
+  },
+  deleteEstimation(id) {
+    return this._softDelete('erp_estimations', id);
+  },
+
   getExpenses() {
     return this._getAll('erp_expenses');
   },

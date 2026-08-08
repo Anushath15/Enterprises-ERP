@@ -16,7 +16,7 @@ export const routes = [
   },
   {
     path: '/quotations',
-    name: 'Quotations',
+    name: 'Estimations',
     componentPath: '../pages/quotations.js',
   },
   {

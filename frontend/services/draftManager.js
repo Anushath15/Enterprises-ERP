@@ -15,21 +15,41 @@ export class DraftManager {
     }
   }
 
+  static _saveTimeout = null;
+  static _pendingDrafts = null;
+
   static saveDraft(moduleName, data) {
-    const drafts = this.getDrafts();
-    drafts[moduleName] = {
+    if (!this._pendingDrafts) {
+       this._pendingDrafts = this.getDrafts();
+    }
+    this._pendingDrafts[moduleName] = {
       timestamp: new Date().toISOString(),
       data: data
     };
-    localStorage.setItem(this.DRAFT_KEY, JSON.stringify(drafts));
+    
+    if (this._saveTimeout) clearTimeout(this._saveTimeout);
+    this._saveTimeout = setTimeout(() => {
+      try {
+        localStorage.setItem(this.DRAFT_KEY, JSON.stringify(this._pendingDrafts));
+        this._pendingDrafts = null;
+      } catch (e) {
+        console.error('Draft save failed', e);
+      }
+    }, 500);
   }
 
   static getDraft(moduleName) {
+    if (this._pendingDrafts && this._pendingDrafts[moduleName]) {
+      return this._pendingDrafts[moduleName].data;
+    }
     const drafts = this.getDrafts();
     return drafts[moduleName] ? drafts[moduleName].data : null;
   }
 
   static clearDraft(moduleName) {
+    if (this._pendingDrafts) {
+      delete this._pendingDrafts[moduleName];
+    }
     const drafts = this.getDrafts();
     delete drafts[moduleName];
     localStorage.setItem(this.DRAFT_KEY, JSON.stringify(drafts));

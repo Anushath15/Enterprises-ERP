@@ -178,21 +178,18 @@ export async function render() {
 
 export function onMount(rootElement) {
   const __listeners = [];
-  const _origAddEventListener = rootElement.addEventListener;
-  rootElement.addEventListener = function(type, listener, options) {
+  const safeRootAdd = (type, listener, options) => {
     __listeners.push({ target: rootElement, type, listener, options });
-    _origAddEventListener.call(rootElement, type, listener, options);
+    rootElement.addEventListener(type, listener, options);
   };
-  const _origWindowAdd = window.addEventListener;
-  const _origDocAdd = document.addEventListener;
   const trackedWindowDoc = [];
-  window.addEventListener = function(type, listener, options) {
-     trackedWindowDoc.push({ target: window, type, listener, options });
-     _origWindowAdd.call(window, type, listener, options);
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
   };
-  document.addEventListener = function(type, listener, options) {
-     trackedWindowDoc.push({ target: document, type, listener, options });
-     _origDocAdd.call(document, type, listener, options);
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
   };
   
   if (window.lucide) window.lucide.createIcons();
@@ -531,11 +528,11 @@ export function onMount(rootElement) {
     const btn = e.target.closest('[data-sales-nav]');
     if (btn) window.location.hash = btn.getAttribute('data-sales-nav');
   };
-  rootElement.addEventListener('click', handleNavClick);
+  safeRootAdd('click', handleNavClick);
 
   // ESC to close modal
   const keyHandler = (e) => { if (e.key === 'Escape') closeInvoiceModal(); };
-  window.addEventListener('keydown', keyHandler);
+  safeWindowAdd('keydown', keyHandler);
 
   return function cleanup() {
     __listeners.forEach(({target, type, listener, options}) => {
@@ -544,8 +541,7 @@ export function onMount(rootElement) {
     trackedWindowDoc.forEach(({target, type, listener, options}) => {
       target.removeEventListener(type, listener, options);
     });
-    window.addEventListener = _origWindowAdd;
-    document.addEventListener = _origDocAdd;
+    
 
     window.removeEventListener('keydown', keyHandler);
   };

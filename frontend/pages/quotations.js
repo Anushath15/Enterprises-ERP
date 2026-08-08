@@ -101,62 +101,29 @@ export async function render() {
                 <span class="text-gray-500">Taxable Amount</span>
                 <span class="font-medium text-text" id="summary-taxable">₹0.00</span>
               </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500">CGST</span>
-                <span class="font-medium text-gray-500" id="summary-cgst">+ ₹0.00</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500">SGST</span>
-                <span class="font-medium text-gray-500" id="summary-sgst">+ ₹0.00</span>
-              </div>
-              <div class="flex items-center justify-between text-sm border-b border-border pb-2">
-                <span class="text-gray-500 font-semibold">Total GST</span>
-                <span class="font-medium text-text font-semibold" id="summary-tax">+ ₹0.00</span>
-              </div>
+              
               <div class="pt-1 flex items-center justify-between">
                 <span class="text-base font-bold text-text">Grand Total</span>
                 <span class="text-2xl font-extrabold text-primary" id="summary-total">₹0.00</span>
               </div>
             </div>
-
-            <!-- Payment Mode -->
+            
             <div class="mb-4">
-              <p class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Payment Mode</p>
-              <div class="grid grid-cols-3 gap-2" id="payment-modes">
-                <button data-mode="Cash" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border-2 border-primary bg-primary/5 active transition-all">
-                  <i data-lucide="banknote" class="w-5 h-5 text-primary mb-1"></i>
-                  <span class="text-[10px] font-bold text-primary">Cash</span>
-                </button>
-                <button data-mode="UPI" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-all">
-                  <i data-lucide="smartphone" class="w-5 h-5 mb-1"></i>
-                  <span class="text-[10px] font-medium">UPI</span>
-                </button>
-                <button data-mode="Credit" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-all">
-                  <i data-lucide="credit-card" class="w-5 h-5 mb-1"></i>
-                  <span class="text-[10px] font-medium">Credit</span>
-                </button>
-              </div>
-              <div id="split-payment-container" class="mt-3 bg-gray-50 rounded-lg p-3 border border-border transition-all">
-                <label class="flex items-center gap-2 cursor-pointer mb-1">
-                  <input type="checkbox" id="enable-split-payment" class="w-4 h-4 rounded border-gray-300 text-primary">
-                  <span class="text-xs font-semibold text-gray-700">Partial Payment (Split with Credit)</span>
-                </label>
-                <div id="split-amount-wrapper" class="hidden flex items-center gap-3 mt-2 pt-2 border-t border-gray-200">
-                   <div class="flex-1">
-                     <label class="text-[10px] text-gray-500 font-semibold uppercase block mb-1">Amount Received (₹)</label>
-                     <input type="number" id="split-amount-input" class="w-full px-2 py-1.5 border border-border rounded text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="0">
-                   </div>
-                   <div class="flex-1 text-right">
-                     <p class="text-[10px] text-gray-500 font-semibold uppercase mb-1">Balance to Credit</p>
-                     <p class="text-sm font-bold text-danger" id="split-credit-amount">₹0.00</p>
-                   </div>
-                </div>
-              </div>
+              <label class="text-xs font-semibold text-gray-500 mb-2 uppercase block">Estimation Status</label>
+              <select id="estimation-status" class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+                <option value="Draft">Draft</option>
+                <option value="Sent">Sent</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Converted">Converted</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Expired">Expired</option>
+              </select>
             </div>
 
+            <!-- Payment Mode -->
             <!-- Action Buttons -->
             <div class="grid grid-cols-3 gap-2">
-              <button id="btn-save-invoice" class="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-white border border-border text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm" title="Save (F2 or Ctrl+S)">
+              <button id="btn-save-estimation" class="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-white border border-border text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm" title="Save (F2 or Ctrl+S)">
                 <i data-lucide="save" class="w-4 h-4"></i> Save
               </button>
               <button id="btn-save-print" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
@@ -234,7 +201,30 @@ export async function render() {
   `;
 }
 
+
 export function onMount(rootElement) {
+  // Logic for convert to invoice
+  const convertBtn = rootElement.querySelector('#btn-convert-invoice');
+  const statusSelect = rootElement.querySelector('#estimation-status');
+  
+  if(statusSelect && convertBtn) {
+    statusSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'Confirmed') {
+        convertBtn.classList.remove('hidden');
+      } else {
+        convertBtn.classList.add('hidden');
+      }
+    });
+    
+    convertBtn.addEventListener('click', () => {
+      if (statusSelect.value === 'Confirmed' && lastSavedEstimation) {
+        window.location.hash = '#/pos?estimateId=' + lastSavedEstimation.id;
+      } else {
+         NotificationService.warning('Please save the estimation as Confirmed before converting.');
+      }
+    });
+  }
+
   const __listeners = [];
   const addListener = (el, evt, handler, options = false) => {
     if (!el) return;
@@ -252,7 +242,7 @@ export function onMount(rootElement) {
   let allCustomers = [];
   let activeCategory = 'All Products';
   let searchQuery = '';
-  let lastSavedQuotation = null;
+  let lastSavedEstimation = null;
 
   // Load data
   allProducts = DataProvider.getProducts().filter(p => p.isActive);
@@ -261,7 +251,7 @@ export function onMount(rootElement) {
   const productById = new Map(allProducts.map(p => [p.id, p]));
 
   const savePosDraft = () => {
-    DraftManager.saveDraft('pos', {
+    DraftManager.saveDraft('estimation', {
       cart,
       selectedCustomer,
       paymentMode,
@@ -270,7 +260,7 @@ export function onMount(rootElement) {
     });
   };
 
-  const draft = DraftManager.getDraft('pos');
+  const draft = DraftManager.getDraft('estimation');
   if (draft) {
     cart = draft.cart || [];
     selectedCustomer = draft.selectedCustomer || null;
@@ -779,8 +769,8 @@ export function onMount(rootElement) {
       <div style="font-size:11px;"><b>Payment:</b> ${escapeHtml(invoice.paymentMode)}</div>
       <div class="receipt-divider"></div>
       <table style="width: 100%; font-size: 10px;">
-        <tr><th style="text-align:left">Item</th><th style="text-align:right">Rate</th><th style="text-align:center">Qty</th><th style="text-align:center">CGST</th><th style="text-align:center">SGST</th><th style="text-align:right">Amount</th></tr>
-        ${(invoice.items || []).map(item => {
+        <tr><th style="text-align:left">Item</th><th style="text-align:right">Rate</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr>
+        ${(estimation.items || []).map(item => {
            const mode = item.pricingMode || 'inclusive';
            const qty = num(item.qty);
            const price = num(item.price);
@@ -789,30 +779,14 @@ export function onMount(rootElement) {
            const rawLineTotal = qty * price;
            const discountAmt = rawLineTotal * (num(item.discountPercent) / 100);
            const rawAfterDisc = rawLineTotal - discountAmt;
-           let taxableAmount = 0, lineTax = 0, finalAmount = 0;
-
-           if (mode === 'inclusive') {
-             taxableAmount = rawAfterDisc / gstFactor;
-             lineTax = rawAfterDisc - taxableAmount;
-             finalAmount = rawAfterDisc;
-           } else {
-             taxableAmount = rawAfterDisc;
-             lineTax = taxableAmount * (gstPercent / 100);
-             finalAmount = taxableAmount + lineTax;
-           }
-           const rate = qty > 0 ? (taxableAmount / qty) : 0;
-           const halfGst = (gstPercent / 2).toFixed(1) + '%';
+           let finalAmount = rawAfterDisc;
            
-           const discHtml = discountAmt > 0 ? `<br><small style="color:#666">(-₹${discountAmt.toFixed(2)})</small>` : '';
-           return `
-          <tr>
-            <td style="font-size:10px;">${escapeHtml(item.name)}${discHtml}</td>
-            <td style="text-align:right">₹${rate.toFixed(2)}</td>
-            <td style="text-align:center">${qty}</td>
-            <td style="text-align:center">${halfGst}</td>
-            <td style="text-align:center">${halfGst}</td>
-            <td style="text-align:right">₹${finalAmount.toFixed(2)}</td>
-          </tr>`;
+           return `<tr>
+             <td style="text-align:left; padding: 2px 0;">${escapeHtml(item.name)}</td>
+             <td style="text-align:right; padding: 2px 0;">${price.toFixed(2)}</td>
+             <td style="text-align:center; padding: 2px 0;">${qty}</td>
+             <td style="text-align:right; padding: 2px 0;">${finalAmount.toFixed(2)}</td>
+           </tr>`;
         }).join('')}
       </table>
       <div class="receipt-divider"></div>
@@ -897,7 +871,7 @@ export function onMount(rootElement) {
         <div style="text-align:center; margin-bottom: 15px;">
             ${settings.showLogoOnInvoice && settings.logoUrl ? `<img src="${settings.logoUrl}" style="max-height:60px; margin-bottom:5px;" />` : ''}
             <h2 style="margin:0; font-size: 18px; font-weight: bold; text-transform: uppercase;">${escapeHtml(shopName)}</h2>
-   <div style="font-size: 14px; font-weight: bold; margin-top: 5px;">QUOTATION</div>
+   <div style="font-size: 14px; font-weight: bold; margin-top: 5px;">ESTIMATION</div>
    <div style="font-size: 10px; font-weight: bold; margin-top: 2px;">( NOT A TAX INVOICE )</div>
             ${shopAddress ? `<div style="font-size: 12px; margin-top: 2px;">${escapeHtml(shopAddress)}</div>` : ''}
             ${shopPhone ? `<div style="font-size: 12px; margin-top: 2px;">Ph: ${escapeHtml(shopPhone)}</div>` : ''}
@@ -908,7 +882,7 @@ export function onMount(rootElement) {
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <td style="vertical-align: top; width: 50%;">
-                        <div><b>Quotation No:</b> ${escapeHtml(invoiceId)}</div>
+                        <div><b>Estimation No:</b> ${escapeHtml(invoiceId)}</div>
                         <div><b>Date:</b> ${escapeHtml(date)}</div>
                     </td>
                     <td style="vertical-align: top; width: 50%; text-align: right;">
@@ -977,7 +951,7 @@ export function onMount(rootElement) {
          NotificationService.warning('Cart is empty. Nothing to preview.');
          return;
        }
-       invoice = buildInvoiceObject(true);
+       invoice = buildEstimationObject(true);
     }
     const html = getReceiptHtml(invoice);
     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
@@ -997,17 +971,17 @@ export function onMount(rootElement) {
   const closePrintPreview = () => { /* No-op, managed by electron */ };
 
   const handleSaveAndPrint = () => {
-     const saved = saveInvoice();
+     const saved = saveEstimationBtn();
      if (saved) {
        openPrintPreview(saved);
      }
   };
 
   const reprintLastInvoice = () => {
-    if (lastSavedQuotation) {
-      openPrintPreview(lastSavedQuotation);
+    if (lastSavedEstimation) {
+      openPrintPreview(lastSavedEstimation);
     } else {
-      NotificationService.warning('No quotation saved in this session.');
+      NotificationService.warning('No estimation saved in this session.');
     }
   };
 
@@ -1016,7 +990,7 @@ export function onMount(rootElement) {
   // SAVE INVOICE
   // =====================
 
-  const buildInvoiceObject = (isDraft = false) => {
+  const buildEstimationObject = (isDraft = false) => {
     const state = JSON.parse(localStorage.getItem('erp_system_state') || '{}');
     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
     const prefix = 'QT-';
@@ -1071,13 +1045,13 @@ export function onMount(rootElement) {
       sgstTotal,
       totalAmount: grandTotal,
       paymentMode,
-      paymentStatus: paymentMode === 'Credit' ? 'Pending' : (parsedAmountPaid < grandTotal ? 'Partial' : (isDraft ? 'Paid' : 'Paid Full')),
-      amountPaid: paymentMode === 'Credit' ? 0 : parsedAmountPaid,
-      status: paymentMode === 'Credit' ? 'Pending' : (parsedAmountPaid < grandTotal ? 'Partial' : 'Paid')
+      
+      
+      status: document.getElementById('estimation-status').value || 'Draft'
     };
   };
 
-  const saveInvoice = () => {
+  const saveEstimationBtn = () => {
     if (cart.length === 0) {
       NotificationService.warning('Cart is empty! Add products first.');
       return null;
@@ -1116,12 +1090,12 @@ export function onMount(rootElement) {
       return null;
     }
 
-    const invoice = buildInvoiceObject(false);
+    const estimation = buildEstimationObject(false);
 
     try {
-      const saved = DataProvider.saveSalesInvoice(invoice);
-      lastSavedInvoice = saved;
-      DraftManager.clearDraft('pos');
+      const saved = DataProvider.saveEstimation(estimation);
+      lastSavedEstimation = saved;
+      DraftManager.clearDraft('estimation');
       
       cart = [];    // Reset state in-place — NO page reload
       paymentMode = 'Cash';
@@ -1294,7 +1268,7 @@ export function onMount(rootElement) {
   });
 
   // Save invoice
-  addListener(rootElement.querySelector('#btn-save-invoice'), 'click', saveInvoice);
+  addListener(rootElement.querySelector('#btn-save-estimation'), 'click', saveEstimationBtn);
   
   // Save & Print invoice
   addListener(rootElement.querySelector('#btn-save-print'), 'click', handleSaveAndPrint);
@@ -1321,7 +1295,7 @@ export function onMount(rootElement) {
     // Save: F2 or Ctrl+S
     if (e.key === 'F2' || (e.ctrlKey && e.key.toLowerCase() === 's')) { 
       e.preventDefault(); 
-      saveInvoice(); 
+      saveEstimationBtn(); 
       return;
     }
     

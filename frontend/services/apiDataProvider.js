@@ -82,6 +82,20 @@ export const ApiDataProvider = {
     return []; // Future
   },
 
+  // Estimations
+  async getEstimations(params = {}) {
+    return await api.get('/estimations/', params);
+  },
+  async saveEstimation(estimation) {
+    if (estimation.id && !String(estimation.id).startsWith('EST')) {
+      return await api.put(`/estimations/${encodeURIComponent(estimation.id)}`, estimation);
+    }
+    return await api.post('/estimations/', estimation);
+  },
+  async deleteEstimation(id) {
+    return await api.delete(`/estimations/${encodeURIComponent(id)}`);
+  },
+
   // Purchases
   async getPurchaseInvoices(params = {}) {
     return await api.get('/purchases/', params);

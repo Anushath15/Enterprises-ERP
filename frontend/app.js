@@ -121,7 +121,7 @@ const App = {
   sidebarLinks: [
     { path: '#/', label: 'Dashboard', icon: '<i data-lucide="layout-dashboard" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
     { path: '#/pos', label: 'POS Billing', icon: '<i data-lucide="shopping-cart" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
-    { path: '#/quotations', label: 'Quotations', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
+    { path: '#/quotations', label: 'Estimations', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
     { path: '#/sales', label: 'Sales Register', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>', roles: ['admin', 'manager', 'user'] },
     { path: '#/purchases', label: 'Purchases', icon: '<i data-lucide="shopping-bag" class="w-5 h-5"></i>', roles: ['admin', 'manager'] },
     { path: '#/inventory', label: 'Inventory', icon: '<i data-lucide="bar-chart-2" class="w-5 h-5"></i>', roles: ['admin', 'manager'] },

@@ -250,6 +250,7 @@ export function onMount(rootElement) {
   let activeCategory = 'All Products';
   let searchQuery = '';
   let lastSavedInvoice = null;
+  let activeEstimateId = null;
 
   // Load data
   allProducts = DataProvider.getProducts().filter(p => p.isActive);
@@ -268,18 +269,19 @@ export function onMount(rootElement) {
   };
 
   const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
-  const convertQuotationId = hashParams.get('quotation');
+  const convertEstimateId = hashParams.get('estimateId');
 
-  if (convertQuotationId) {
-     const quotations = DataProvider.getAll('quotations');
-     const quotation = quotations.find(q => q.id === convertQuotationId);
-     if (quotation) {
-       cart = quotation.items || [];
-       selectedCustomer = { id: quotation.customerId, name: quotation.customerName };
-       paymentMode = quotation.paymentMode || 'Cash';
-       NotificationService.success(`Loaded Quotation: ${quotation.id}`);
+  if (convertEstimateId) {
+     const estimations = DataProvider.getEstimations();
+     const estimation = estimations.find(q => q.id === convertEstimateId);
+     if (estimation) {
+       cart = estimation.items || [];
+       selectedCustomer = { id: estimation.customerId, name: estimation.customerName };
+       paymentMode = 'Cash'; // Default to cash for new invoice
+       activeEstimateId = convertEstimateId; // <-- BUG FIX
+       NotificationService.success(`Loaded Estimation: ${estimation.id}`);
      } else {
-       NotificationService.error('Quotation not found!');
+       NotificationService.error('Estimation not found!');
      }
      // Clear URL so refresh doesn't reload it
      window.history.replaceState(null, null, '#/pos');
@@ -832,7 +834,7 @@ export function onMount(rootElement) {
         }).join('')}
       </table>
       <div class="receipt-divider"></div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Subtotal</span><span>₹${subtotal.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Product Value</span><span>₹${subtotal.toFixed(2)}</span></div>
       ${discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${discount.toFixed(2)}</span></div>` : ''}
       <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${taxableAmount.toFixed(2)}</span></div>
       ${cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${cgstTotal.toFixed(2)}</span></div>` : ''}
@@ -953,19 +955,22 @@ export function onMount(rootElement) {
 
         <!-- Totals -->
         <div style="border-top: 1px dashed #000; padding-top: 10px; font-size: 12px; margin-left: auto; width: 60%; min-width: 150px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
-                <span>Subtotal:</span>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;">
+                <span>Product Value:</span>
                 <span>₹${subtotal.toFixed(2)}</span>
-            </div>
-            ${discount > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: #555;">
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;color:#d97706;">
                 <span>Discount:</span>
                 <span>- ₹${discount.toFixed(2)}</span>
-            </div>` : ''}
-            
-            <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:5px;">
+                <span>Total GST:</span>
+                <span>+ ₹${(cgstTotal + sgstTotal).toFixed(2)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;">
                 <span>Round Off:</span>
-                <span>₹${(totalAmount - (subtotal - discount)).toFixed(2)}</span>
-            </div>
+                <span>₹${(totalAmount - (subtotal - discount + cgstTotal + sgstTotal)).toFixed(2)}</span>
+              </div>
             
             <div style="display:flex; justify-content:space-between; margin-top: 5px; padding-top: 5px; border-top: 1px solid #000; font-weight: bold; font-size: 14px;">
                 <span>Grand Total:</span>
@@ -1141,6 +1146,18 @@ export function onMount(rootElement) {
     try {
       const saved = DataProvider.saveSalesInvoice(invoice);
       lastSavedInvoice = saved;
+      
+      // Update Estimation Status if this was converted from an estimation
+      if (activeEstimateId) {
+        const estimations = DataProvider.getEstimations();
+        const est = estimations.find(e => e.id === activeEstimateId);
+        if (est) {
+           est.status = 'Converted';
+           DataProvider.saveEstimation(est);
+        }
+        activeEstimateId = null;
+      }
+      
       DraftManager.clearDraft('pos');
       
       cart = [];    // Reset state in-place — NO page reload

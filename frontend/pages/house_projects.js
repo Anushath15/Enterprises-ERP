@@ -274,21 +274,18 @@ export async function render() {
 
 export function onMount(rootElement) {
   const __listeners = [];
-  const _origAddEventListener = rootElement.addEventListener;
-  rootElement.addEventListener = function(type, listener, options) {
+  const safeRootAdd = (type, listener, options) => {
     __listeners.push({ target: rootElement, type, listener, options });
-    _origAddEventListener.call(rootElement, type, listener, options);
+    rootElement.addEventListener(type, listener, options);
   };
-  const _origWindowAdd = window.addEventListener;
-  const _origDocAdd = document.addEventListener;
   const trackedWindowDoc = [];
-  window.addEventListener = function(type, listener, options) {
-     trackedWindowDoc.push({ target: window, type, listener, options });
-     _origWindowAdd.call(window, type, listener, options);
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
   };
-  document.addEventListener = function(type, listener, options) {
-     trackedWindowDoc.push({ target: document, type, listener, options });
-     _origDocAdd.call(document, type, listener, options);
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
   };
   
   if (window.lucide) window.lucide.createIcons();
@@ -423,7 +420,7 @@ export function onMount(rootElement) {
   if (addBtn) addBtn.addEventListener('click', handleNewProject);
   
   const handleOpenProjectDrawer = (e) => openForm(e.detail);
-  window.addEventListener('openProjectDrawer', handleOpenProjectDrawer);
+  safeWindowAdd('openProjectDrawer', handleOpenProjectDrawer);
 
   const handleRowClick = (e) => {
     const delBtn = e.target.closest('.project-delete-btn');
@@ -452,7 +449,7 @@ export function onMount(rootElement) {
       NotificationService.error(err.message);
     }
   };
-  window.addEventListener('deleteProject', handleDeleteProject);
+  safeWindowAdd('deleteProject', handleDeleteProject);
 
   const closeBtns = document.querySelectorAll('.close-project-drawer');
   const handleCloseClick = () => closeAll();
@@ -548,8 +545,7 @@ export function onMount(rootElement) {
     trackedWindowDoc.forEach(({target, type, listener, options}) => {
       target.removeEventListener(type, listener, options);
     });
-    window.addEventListener = _origWindowAdd;
-    document.addEventListener = _origDocAdd;
+    
 
     window.removeEventListener('openProjectDrawer', handleOpenProjectDrawer);
     window.removeEventListener('deleteProject', handleDeleteProject);
