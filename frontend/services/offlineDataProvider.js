@@ -4,18 +4,33 @@
  */
 import { LocalStorageService } from './storage/localStorageService.js';
 import { SeedData } from '../data/seedData.js';
+import { verifyPassword, hashPassword, DEFAULT_PASSWORD_SALT } from '../utils/password.js';
 
 export const OfflineDataProvider = {
   
   // ==========================================
   // INITIALIZATION & METADATA
   // ==========================================
-  init() {
+  async init() {
     if (!LocalStorageService.has('erp_system_state')) {
-      console.log('Initializing ERP Data for the first time...');
+      // Initializing ERP Data for the first time...
       Object.keys(SeedData).forEach(key => {
         LocalStorageService.set(key, SeedData[key]);
       });
+    }
+
+    if (!LocalStorageService.has('erp_auth_users')) {
+      // Seed default accounts
+      const pinSalt = DEFAULT_PASSWORD_SALT;
+      const defaultPin = '1234';
+      const defaultHash = await hashPassword(defaultPin, pinSalt);
+
+      LocalStorageService.set('erp_auth_users', [
+        { id: 'USR-01', username: 'admin', pinHash: defaultHash, role: 'admin', requiresPinChange: true },
+        { id: 'USR-02', username: 'cashier', pinHash: defaultHash, role: 'cashier', requiresPinChange: true },
+        { id: 'USR-03', username: 'accountant', pinHash: defaultHash, role: 'accountant', requiresPinChange: true },
+        { id: 'USR-04', username: 'storekeeper', pinHash: defaultHash, role: 'storekeeper', requiresPinChange: true }
+      ]);
     }
   },
   
@@ -54,51 +69,120 @@ export const OfflineDataProvider = {
   },
   
   getBaseMetadata() {
+    const authStr = localStorage.getItem('auth_user');
+    const authUser = authStr ? JSON.parse(authStr) : null;
+    const userId = authUser ? authUser.id : 'SYSTEM';
+
     return {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      createdBy: 'USR-01', // Placeholder admin
-      updatedBy: 'USR-01',
+      createdBy: userId,
+      updatedBy: userId,
       isDeleted: false,
       version: 1
     };
   },
   
   getUpdateMetadata(entity) {
+    const authStr = localStorage.getItem('auth_user');
+    const authUser = authStr ? JSON.parse(authStr) : null;
+    const userId = authUser ? authUser.id : 'SYSTEM';
+
     return {
       updatedAt: new Date().toISOString(),
-      updatedBy: 'USR-01',
+      updatedBy: userId,
       version: (entity.version || 1) + 1
     };
   },
 
   // ==========================================
-  // AUTHENTICATION (Mock)
+  // AUTHENTICATION
   // ==========================================
-  async login(username, password) {
-    return {
-      access_token: "mock-offline-token",
-      user: {
-        id: 1,
-        username: username,
-        role: "Admin",
-        permissions: ["products.read", "products.write", "sales.create"]
-      }
-    };
+  async login(username, pin) {
+    const users = LocalStorageService.get('erp_auth_users') || [];
+    const user = users.find(u => u.username === username);
+    if (!user) return false;
+
+    const pinHash = await hashPassword(pin, DEFAULT_PASSWORD_SALT);
+    if (user.pinHash === pinHash) {
+      localStorage.setItem('auth_user', JSON.stringify({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        requiresPinChange: user.requiresPinChange
+      }));
+      return true;
+    }
+    return false;
   },
-  async logout() {
+
+  logout() {
+    localStorage.removeItem('auth_user');
+    window.location.hash = '#/login';
+  },
+
+  async changePin(username, newPin) {
+    const users = LocalStorageService.get('erp_auth_users') || [];
+    const userIndex = users.findIndex(u => u.username === username);
+    if (userIndex === -1) throw new Error('User not found');
+    
+    const pinHash = await hashPassword(newPin, DEFAULT_PASSWORD_SALT);
+    users[userIndex].pinHash = pinHash;
+    users[userIndex].requiresPinChange = false;
+    LocalStorageService.set('erp_auth_users', users);
+    
+    // Update active session if changing own PIN
+    const authStr = localStorage.getItem('auth_user');
+    if (authStr) {
+      const authUser = JSON.parse(authStr);
+      if (authUser.username === username) {
+        authUser.requiresPinChange = false;
+        localStorage.setItem('auth_user', JSON.stringify(authUser));
+      }
+    }
     return true;
   },
+
   async getMe() {
-    return { id: 1, username: "admin", role: "Admin", permissions: [] };
+    const authStr = localStorage.getItem('auth_user');
+    if (authStr) {
+      const u = JSON.parse(authStr);
+      return { name: u.username, role: u.role, id: u.id };
+    }
+    return null;
   },
 
   // ==========================================
   // GENERIC CRUD HELPERS
   // ==========================================
+  _toFinite(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  },
+
+  _serialize(key) {
+    const value = LocalStorageService.get(key);
+    return value === null || value === undefined ? null : JSON.stringify(value);
+  },
+
+  _restore(backup, key) {
+    if (backup !== null && backup !== undefined) {
+      LocalStorageService.set(key, JSON.parse(backup));
+    }
+  },
+
+  _dueAmount(invoice) {
+    if (!invoice || invoice.paymentStatus === 'Paid Full') return 0;
+    const total = Number(invoice.totalAmount || invoice.total || 0);
+    const paid = Number(invoice.amountPaid || 0);
+    const due = total - paid;
+    return due > 0 ? due : 0;
+  },
+
   _getAll(collectionKey) {
-    const data = LocalStorageService.get(collectionKey) || [];
-    return data.filter(item => !item.isDeleted);
+    const data = LocalStorageService.get(collectionKey);
+    if (!Array.isArray(data)) return [];
+    return data.filter(item => item && !item.isDeleted);
   },
 
   _getById(collectionKey, id) {
@@ -107,31 +191,51 @@ export const OfflineDataProvider = {
   },
 
   _save(collectionKey, entity, prefix) {
-    const data = LocalStorageService.get(collectionKey) || [];
-    
+    const data = LocalStorageService.get(collectionKey);
+    const list = Array.isArray(data) ? data : [];
+
     if (!entity.id) {
       entity.id = this.generateId(prefix);
       entity = { ...entity, ...this.getBaseMetadata() };
-      data.push(entity);
+      list.push(entity);
     } else {
-      const index = data.findIndex(item => item.id === entity.id);
+      const index = list.findIndex(item => item.id === entity.id);
       if (index !== -1) {
-        entity = { ...data[index], ...entity, ...this.getUpdateMetadata(data[index]) };
-        data[index] = entity;
+        const prev = list[index] || {};
+        entity = { ...prev, ...entity };
+        // Trust boundary: caller-supplied data must not forge metadata
+        entity.updatedAt = new Date().toISOString();
+        entity.updatedBy = 'USR-01';
+        entity.version = (Number(prev.version) || 1) + 1;
+        entity.isDeleted = prev.isDeleted === true;
+        entity.createdAt = prev.createdAt;
+        entity.createdBy = prev.createdBy;
+        list[index] = entity;
+      } else {
+        // Entity with caller-supplied id (e.g. InvoiceService.next) not in list yet — append
+        entity = { ...this.getBaseMetadata(), ...entity };
+        list.push(entity);
       }
     }
-    
-    LocalStorageService.set(collectionKey, data);
+
+    LocalStorageService.set(collectionKey, list);
     return entity;
   },
 
   _softDelete(collectionKey, id) {
-    const data = LocalStorageService.get(collectionKey) || [];
-    const index = data.findIndex(item => item.id === id);
+    const data = LocalStorageService.get(collectionKey);
+    const list = Array.isArray(data) ? data : [];
+    const index = list.findIndex(item => item.id === id);
     if (index !== -1) {
-      data[index].isDeleted = true;
-      data[index] = { ...data[index], ...this.getUpdateMetadata(data[index]) };
-      LocalStorageService.set(collectionKey, data);
+      const prev = list[index] || {};
+      list[index] = {
+        ...prev,
+        isDeleted: true,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'USR-01',
+        version: (Number(prev.version) || 1) + 1
+      };
+      LocalStorageService.set(collectionKey, list);
       return true;
     }
     return false;
@@ -164,7 +268,7 @@ export const OfflineDataProvider = {
   saveExpenseCategory(category) {
     const existing = this.getExpenseCategories();
     // Prevent duplicates
-    if (existing.some(c => c.name.toLowerCase() === category.name.toLowerCase() && c.id !== category.id)) {
+    if (existing.some(c => String(c.name || '').toLowerCase() === String(category.name || '').toLowerCase() && c.id !== category.id)) {
       throw new Error('Expense category with this name already exists.');
     }
     return this._save('erp_expense_categories', category, 'ECAT');
@@ -183,12 +287,18 @@ export const OfflineDataProvider = {
     return this._getById('erp_products', id);
   },
   saveProduct(product) {
-    product.price = Number(product.price || 0);
-    product.stock = Number(product.stock || 0);
-    product.minStock = Number(product.minStock || 0);
-    
+    product.price = this._toFinite(product.price, 0);
+    product.stock = this._toFinite(product.stock, 0);
+    product.minStock = this._toFinite(product.minStock, 0);
+
+    if (product.price < 0) {
+      throw new Error('Price cannot be negative.');
+    }
     if (product.stock < 0) {
       throw new Error('Stock cannot be negative.');
+    }
+    if (product.minStock < 0) {
+      throw new Error('Minimum stock cannot be negative.');
     }
 
     const existing = this.getProducts();
@@ -243,41 +353,6 @@ export const OfflineDataProvider = {
   },
 
   // ==========================================
-  // STOCK ADJUSTMENTS
-  // ==========================================
-  getStockAdjustments() {
-    return this._getAll('erp_stock_adjustments').sort((a, b) => new Date(b.date) - new Date(a.date));
-  },
-  saveStockAdjustment(adj) {
-    const saved = this._save('erp_stock_adjustments', adj, 'ADJ');
-    
-    // Actually update the stock
-    const product = this.getProductById(adj.productId);
-    if (product) {
-      if (adj.type === 'Add') {
-        product.stock += Number(adj.qty);
-      } else if (adj.type === 'Remove') {
-        product.stock -= Number(adj.qty);
-      }
-      this.saveProduct(product);
-    }
-    return saved;
-  },
-
-  updateStock(id, qtyChange) {
-    const product = this.getProductById(id);
-    if (product) {
-      product.stock += Number(qtyChange);
-      this.saveProduct(product); // will trigger status badge updates
-      
-      // trigger notification if low stock
-      if (product.stock <= product.minStock && product.stock > 0) {
-        this.createNotification('warning', 'Low Stock Alert', `${product.name} is running low (${product.stock} left).`);
-      }
-    }
-  },
-
-  // ==========================================
   // CATEGORIES
   // ==========================================
   getCategories() {
@@ -288,7 +363,7 @@ export const OfflineDataProvider = {
   },
   saveCategory(category) {
     const existing = this.getCategories();
-    if (existing.some(c => c.name.toLowerCase() === category.name.toLowerCase() && c.id !== category.id)) {
+    if (existing.some(c => String(c.name || '').toLowerCase() === String(category.name || '').toLowerCase() && c.id !== category.id)) {
       throw new Error('Category with this name already exists.');
     }
     return this._save('erp_categories', category, 'CAT');
@@ -308,22 +383,47 @@ export const OfflineDataProvider = {
   },
   saveCustomer(customer) {
     const existing = this.getCustomers();
-    if (existing.some(c => c.name.toLowerCase() === customer.name.toLowerCase() && c.id !== customer.id)) {
+    if (existing.some(c => String(c.name || '').toLowerCase() === String(customer.name || '').toLowerCase() && c.id !== customer.id)) {
       throw new Error('Customer with this name already exists.');
     }
-    customer.creditLimit = Number(customer.creditLimit || 0);
-    customer.outstanding = Number(customer.outstanding || 0);
+    customer.creditLimit = this._toFinite(customer.creditLimit, 0);
+    customer.outstanding = this._toFinite(customer.outstanding, 0);
     return this._save('erp_customers', customer, 'CUS');
   },
   deleteCustomer(id) {
     return this._softDelete('erp_customers', id);
   },
   updateCustomerBalance(id, amountChange) {
+    const change = this._toFinite(amountChange);
+    if (change === 0) return;
     const customer = this.getCustomerById(id);
     if (customer) {
-      customer.outstanding = (customer.outstanding || 0) + Number(amountChange);
+      customer.outstanding = this._toFinite(customer.outstanding) + change;
       this.saveCustomer(customer);
     }
+  },
+
+  // ==========================================
+  // CREDIT PAYMENTS (AUDIT-H04)
+  // Collections recorded when cash is received
+  // against a customer's outstanding balance.
+  // ==========================================
+  getCreditPayments() {
+    return this._getAll('erp_credit_payments');
+  },
+  saveCreditPayment(payment) {
+    if (!payment.customerId) {
+      throw new Error('Customer is required for a credit payment.');
+    }
+    const amount = this._toFinite(payment.amount);
+    if (amount <= 0) {
+      throw new Error('Payment amount must be greater than zero.');
+    }
+    payment.amount = amount;
+    const saved = this._save('erp_credit_payments', payment, 'PAY');
+    // Synchronize the customer ledger immediately (net zero risk: updateCustomerBalance is idempotent on re-save).
+    this.updateCustomerBalance(saved.customerId, -amount);
+    return saved;
   },
 
   // ==========================================
@@ -342,9 +442,11 @@ export const OfflineDataProvider = {
     return this._softDelete('erp_dealers', id);
   },
   updateDealerBalance(id, amountChange) {
+    const change = this._toFinite(amountChange);
+    if (change === 0) return;
     const dealer = this.getDealerById(id);
     if (dealer) {
-      dealer.outstanding = (dealer.outstanding || 0) + Number(amountChange);
+      dealer.outstanding = this._toFinite(dealer.outstanding) + change;
       this.saveDealer(dealer);
     }
   },
@@ -355,47 +457,79 @@ export const OfflineDataProvider = {
     if (!invoice.items || invoice.items.length === 0) {
       throw new Error('Cannot save an empty purchase invoice.');
     }
-    const saved = this._save('erp_purchases', invoice, 'PUR');
-    
-    // Increase inventory and update costs
-    invoice.items.forEach(item => {
-      const product = this.getProductById(item.productId);
-      if (product) {
-        const currentStock = Number(product.stock || 0);
-        const currentCost = Number(product.avgCost || product.buyingPrice || 0);
-        const newQty = Number(item.qty);
-        const newPrice = Number(item.costPrice || item.price || 0);
-        
-        if (currentStock + newQty > 0) {
-           const totalValue = (currentStock * currentCost) + (newQty * newPrice);
-           product.avgCost = parseFloat((totalValue / (currentStock + newQty)).toFixed(2));
+
+    const prev = invoice.id ? this._getAll('erp_purchases').find(i => i.id === invoice.id) : null;
+    const prevItems = prev && Array.isArray(prev.items) ? prev.items : [];
+    const prevByProduct = new Map(prevItems.map(it => [it.productId, this._toFinite(it.qty)]));
+    const newItems = invoice.items.map(it => ({ 
+      productId: it.productId, 
+      qty: this._toFinite(it.qty),
+      costPrice: this._toFinite(it.costPrice || it.price, 0),
+      price: this._toFinite(it.price, 0)
+    }));
+
+    // Backup state for atomicity (mirrors saveSalesInvoice)
+    const backupInvoices = this._serialize('erp_purchases');
+    const backupProducts = this._serialize('erp_products');
+    const backupDealers = this._serialize('erp_dealers');
+
+    try {
+      const saved = this._save('erp_purchases', invoice, 'PUR');
+
+      // Inventory: apply net delta vs previous version (idempotent on re-save)
+      const seen = new Set();
+      newItems.forEach(item => {
+        const delta = item.qty - (prevByProduct.get(item.productId) || 0);
+        seen.add(item.productId);
+
+        const product = this.getProductById(item.productId);
+        if (product) {
+          const currentStock = Number(product.stock || 0);
+          const currentCost = Number(product.avgCost || product.buyingPrice || 0);
+          const newQty = Number(item.qty);
+          const newPrice = this._toFinite(item.costPrice || item.price, 0);
+
+          if (currentStock + newQty > 0) {
+            const totalValue = (currentStock * currentCost) + (newQty * newPrice);
+            product.avgCost = parseFloat((totalValue / (currentStock + newQty)).toFixed(2));
+          }
+          product.buyingPrice = newPrice;
+          product.lastPurchaseDate = new Date().toISOString().split('T')[0];
+          product.supplier = invoice.dealerName || product.supplier;
+
+          this.saveProduct(product);
         }
-        product.buyingPrice = newPrice;
-        product.lastPurchaseDate = new Date().toISOString().split('T')[0];
-        product.supplier = invoice.dealerName || product.supplier;
-        
-        this.saveProduct(product);
-        this.updateStock(item.productId, newQty);
+
+        if (delta !== 0) this.updateStock(item.productId, delta);
+      });
+      // Lines removed from the invoice: undo their stock effect
+      prevByProduct.forEach((qty, productId) => {
+        if (!seen.has(productId) && qty !== 0) {
+          this.updateStock(productId, -qty);
+        }
+      });
+
+      // Update dealer outstanding if credit, as a net delta
+      if (invoice.dealerId) {
+        const dealer = this.getDealerById(invoice.dealerId);
+        if (dealer) {
+          dealer.lastPurchaseDate = new Date().toISOString().split('T')[0];
+          this.saveDealer(dealer);
+        }
+        const delta = this._dueAmount(invoice) - this._dueAmount(prev);
+        if (delta !== 0) {
+          this.updateDealerBalance(invoice.dealerId, delta);
+        }
       }
-    });
-    
-    // Update dealer outstanding if credit
-    if (invoice.paymentStatus !== 'Paid Full' && invoice.dealerId) {
-      const total = Number(invoice.totalAmount || invoice.total || 0);
-      const amountDue = total - Number(invoice.amountPaid || 0);
-      if (amountDue > 0) {
-        this.updateDealerBalance(invoice.dealerId, amountDue);
-      }
+
+      return saved;
+    } catch (e) {
+      // Restore state on failure
+      this._restore(backupInvoices, 'erp_purchases');
+      this._restore(backupProducts, 'erp_products');
+      this._restore(backupDealers, 'erp_dealers');
+      throw e;
     }
-    
-    if (invoice.dealerId) {
-      const dealer = this.getDealerById(invoice.dealerId);
-      if (dealer) {
-        dealer.lastPurchaseDate = new Date().toISOString().split('T')[0];
-        this.saveDealer(dealer);
-      }
-    }
-    return saved;
   },
   getPurchaseReturns() {
     return this._getAll('erp_purchase_returns');
@@ -411,69 +545,98 @@ export const OfflineDataProvider = {
     if (!invoice.items || invoice.items.length === 0) {
       throw new Error('Cannot save an empty invoice.');
     }
-    
+
+    const prev = invoice.id ? this._getAll('erp_sales_invoices').find(i => i.id === invoice.id) : null;
+    const prevItems = prev && Array.isArray(prev.items) ? prev.items : [];
+    const prevByProduct = new Map(prevItems.map(it => [it.productId, this._toFinite(it.qty)]));
+    const newItems = invoice.items.map(it => ({ productId: it.productId, qty: this._toFinite(it.qty) }));
+
     // Backup state for atomicity (BUG-02 fix)
-    const backupInvoices = JSON.stringify(LocalStorageService.get('erp_sales_invoices'));
-    const backupProducts = JSON.stringify(LocalStorageService.get('erp_products'));
-    const backupCustomers = JSON.stringify(LocalStorageService.get('erp_customers'));
-    const backupProjects = JSON.stringify(LocalStorageService.get('erp_house_projects'));
+    const backupInvoices = this._serialize('erp_sales_invoices');
+    const backupProducts = this._serialize('erp_products');
+    const backupCustomers = this._serialize('erp_customers');
+    const backupProjects = this._serialize('erp_house_projects');
 
     try {
       // Save invoice
       const savedInvoice = this._save('erp_sales_invoices', invoice, 'SAL');
-      
-      // Decrease inventory
-      invoice.items.forEach(item => {
-        this.updateStock(item.productId, -Number(item.qty));
+
+      // Inventory: apply net delta vs previous version (idempotent on re-save)
+      const seen = new Set();
+      newItems.forEach(item => {
+        const delta = item.qty - (prevByProduct.get(item.productId) || 0);
+        seen.add(item.productId);
+        if (delta !== 0) this.updateStock(item.productId, -delta);
         const product = this.getProductById(item.productId);
         if (product) {
           product.lastSaleDate = new Date().toISOString().split('T')[0];
           this.saveProduct(product);
         }
       });
-      
-      // House Project integration
+      // Lines removed from the invoice: return their stock
+      prevByProduct.forEach((qty, productId) => {
+        if (!seen.has(productId) && qty !== 0) {
+          this.updateStock(productId, qty);
+        }
+      });
+
+      // House Project integration (outstanding as a net delta)
       if (invoice.projectId) {
         const projects = this._getAll('erp_house_projects');
         const project = projects.find(p => p.id === invoice.projectId);
         if (project) {
-          if (!project.invoices) project.invoices = [];
-          project.invoices.push(savedInvoice.id);
-          
+          if (!Array.isArray(project.invoices)) project.invoices = [];
+          if (!project.invoices.includes(savedInvoice.id)) project.invoices.push(savedInvoice.id);
+
           const total = Number(invoice.totalAmount || invoice.total || 0);
-          project.outstanding = (Number(project.outstanding) || 0) + total;
+          const prevTotal = Number(prev && (prev.totalAmount || prev.total) || 0);
+          project.outstanding = (Number(project.outstanding) || 0) + (total - prevTotal);
           this._save('erp_house_projects', project, 'PRJ');
         }
       }
-      
-      // Update customer outstanding if credit payment
-      if (invoice.paymentStatus !== 'Paid Full' && invoice.customerId) {
-        const total = Number(invoice.totalAmount || invoice.total || 0);
-        const amountDue = total - Number(invoice.amountPaid || 0);
-        if (amountDue > 0) {
-          this.updateCustomerBalance(invoice.customerId, amountDue);
-        }
-      }
-      
-      // Update Customer last purchase date
+
+      // Update customer outstanding if credit payment, as a net delta
       if (invoice.customerId) {
         const customer = this.getCustomerById(invoice.customerId);
         if (customer) {
           customer.lastPurchaseDate = new Date().toISOString().split('T')[0];
           this.saveCustomer(customer);
         }
+        const delta = this._dueAmount(invoice) - this._dueAmount(prev);
+        if (delta !== 0) {
+          this.updateCustomerBalance(invoice.customerId, delta);
+        }
       }
-      
+
       return savedInvoice;
     } catch (e) {
       // Restore state on failure
-      if (backupInvoices) LocalStorageService.set('erp_sales_invoices', JSON.parse(backupInvoices));
-      if (backupProducts) LocalStorageService.set('erp_products', JSON.parse(backupProducts));
-      if (backupCustomers) LocalStorageService.set('erp_customers', JSON.parse(backupCustomers));
-      if (backupProjects) LocalStorageService.set('erp_house_projects', JSON.parse(backupProjects));
+      this._restore(backupInvoices, 'erp_sales_invoices');
+      this._restore(backupProducts, 'erp_products');
+      this._restore(backupCustomers, 'erp_customers');
+      this._restore(backupProjects, 'erp_house_projects');
       throw e;
     }
   },
+  
+  // ==========================================
+  // ESTIMATIONS (RC3.5)
+  // ==========================================
+  getEstimations() {
+    return this._getAll('erp_estimations');
+  },
+  saveEstimation(estimation) {
+    if (!estimation.items || estimation.items.length === 0) {
+      throw new Error('Cannot save an empty estimation.');
+    }
+    // Estimations DO NOT deduct stock, do not hit ledgers, and do not hit sales history.
+    // We only preserve the estimation data itself.
+    return this._save('erp_estimations', estimation, 'EST');
+  },
+  deleteEstimation(id) {
+    return this._softDelete('erp_estimations', id);
+  },
+
   getExpenses() {
     return this._getAll('erp_expenses');
   },
@@ -535,6 +698,10 @@ export const OfflineDataProvider = {
     return this._getAll('erp_users');
   },
   saveUser(user) {
+    if (!user.id && !user.passwordHash) {
+      user.passwordSalt = DEFAULT_PASSWORD_SALT;
+      user.passwordHash = DEFAULT_PASSWORD_HASH;
+    }
     return this._save('erp_users', user, 'USR');
   },
   saveSalesReturn(ret) {
@@ -594,11 +761,14 @@ export const OfflineDataProvider = {
   submitDailyClosing(closingData) {
     return this._save('erp_daily_closings', closingData, 'CLS');
   },
-  resetUserPassword(userId, newPassword) {
-    const user = this._getAll('erp_users').find(u => u.id === userId);
+  async resetUserPassword(userId, newPassword) {
+    const users = this._getAll('erp_users');
+    const user = users.find(u => u.id === userId);
     if (user) {
-      user.password = newPassword; // Mock for now
-      this._save('erp_users', user, 'USR');
+      const hashed = await hashForReset(newPassword);
+      user.passwordSalt = hashed.passwordSalt;
+      user.passwordHash = hashed.passwordHash;
+      LocalStorageService.set('erp_users', users);
       return true;
     }
     return false;
@@ -618,23 +788,44 @@ export const OfflineDataProvider = {
   // RC3 - HISTORICAL RECORDS & ADJUSTMENTS
   // ==========================================
   getStockAdjustments() {
-    return this._getAll('erp_stock_adjustments');
+    return this._getAll('erp_stock_adjustments').sort((a, b) => new Date(b.date) - new Date(a.date));
   },
   saveStockAdjustment(adjustment) {
+    const qty = this._toFinite(adjustment.qty);
+    if (qty <= 0) {
+      throw new Error('Adjustment quantity must be a positive number.');
+    }
+
     const saved = this._save('erp_stock_adjustments', adjustment, 'ADJ');
-    
+
     // Auto-update inventory stock
     const product = this.getProductById(saved.productId);
     if (product) {
-      if (saved.adjustmentType === 'Manual Correction' || saved.adjustmentType === 'Found') {
-        product.stock = Number(saved.adjustedQuantity);
+      if (['Found', 'Manual Add', 'Add'].includes(saved.type)) {
+        product.stock = Number(product.stock || 0) + qty;
+      } else if (saved.type === 'Manual Correction') {
+        product.stock = qty;
       } else {
-        // Damaged, Broken, Lost, Expired all REDUCE stock. (Unless adjustedQuantity is treated as the new absolute total. The specs say "Current Stock, Adjusted Quantity, Reason". Usually this implies setting the new stock value).
-        product.stock = Number(saved.adjustedQuantity);
+        // Damaged, Broken, Lost, Expired, Remove — reduce stock
+        product.stock = Number(product.stock || 0) - qty;
       }
-      this.saveProduct(product);
+      this.saveProduct(product); // enforces non-negative stock
     }
     return saved;
+  },
+
+  updateStock(id, qtyChange) {
+    const change = this._toFinite(qtyChange);
+    const product = this.getProductById(id);
+    if (product) {
+      product.stock = Number(product.stock || 0) + change;
+      this.saveProduct(product); // will trigger status badge updates and non-negative check
+
+      // trigger notification if low stock
+      if (product.stock <= (Number(product.minStock) || 0) && product.stock > 0) {
+        this.createNotification('warning', 'Low Stock Alert', `${product.name} is running low (${product.stock} left).`);
+      }
+    }
   },
 
   getDailyClosingHistory() {
@@ -652,4 +843,3 @@ export const OfflineDataProvider = {
     return this._save('erp_product_price_history', historyRecord, 'PPH');
   }
 };
-

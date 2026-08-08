@@ -5,6 +5,7 @@
  */
 import { DataProvider } from '../services/dataProvider.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { todayISO, toLocalDateString } from '../utils/dateUtils.js';
 
 export async function render() {
   const invoices = DataProvider.getSalesInvoices() || [];
@@ -12,7 +13,7 @@ export async function render() {
 
   // KPI calculations
   const totalRevenue = invoices.reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayISO();
   const todaysInvoices = invoices.filter(i => (i.date || '').startsWith(todayStr));
   const todaysSales = todaysInvoices.reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
   const creditPending = invoices.filter(i => i.paymentStatus !== 'Paid Full' && i.paymentMode === 'Credit');
@@ -176,6 +177,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
 
   const allInvoices = DataProvider.getSalesInvoices() || [];
@@ -199,7 +215,7 @@ export function onMount(rootElement) {
     const dateRange = dateFilter.value;
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = todayISO();
 
     let filtered = allInvoices.filter(inv => {
       // Text search
@@ -211,7 +227,7 @@ export function onMount(rootElement) {
       // Date range
       if (dateRange) {
         const invDate = new Date(inv.date || 0);
-        const invDateStr = invDate.toISOString().split('T')[0];
+        const invDateStr = toLocalDateString(invDate);
         if (dateRange === 'today' && invDateStr !== todayStr) return false;
         if (dateRange === 'week') {
           const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
@@ -344,15 +360,34 @@ export function onMount(rootElement) {
                 <th class="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase">Total</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border">
-              ${(inv.items || []).map(item => `
+              ${(inv.items || []).map(item => {
+                const mode = item.pricingMode || 'inclusive';
+                const qty = Number(item.qty) || 0;
+                const price = Number(item.price) || 0;
+                const gstPercent = Number(item.taxRate) || 0;
+                const gstFactor = 1 + (gstPercent / 100);
+                const rawLineTotal = qty * price;
+                const discountAmt = rawLineTotal * (Number(item.discountPercent) / 100);
+                const rawAfterDisc = rawLineTotal - discountAmt;
+                let taxableAmount = 0, finalAmount = 0;
+                if (mode === 'inclusive') {
+                  taxableAmount = rawAfterDisc / gstFactor;
+                  finalAmount = rawAfterDisc;
+                } else {
+                  taxableAmount = rawAfterDisc;
+                  finalAmount = taxableAmount + (taxableAmount * (gstPercent / 100));
+                }
+                const rate = qty > 0 ? (taxableAmount / qty) : 0;
+
+                return `
                 <tr>
                   <td class="px-4 py-3 text-sm font-medium text-text">${escapeHtml(item.name)}</td>
-                  <td class="px-4 py-3 text-sm text-gray-500 text-center">${item.qty}</td>
-                  <td class="px-4 py-3 text-sm text-gray-500 text-right">₹${(item.price || 0).toLocaleString('en-IN')}</td>
-                  <td class="px-4 py-3 text-sm text-gray-500 text-right">${item.taxRate || 0}%</td>
-                  <td class="px-4 py-3 text-sm font-semibold text-text text-right">₹${((item.qty || 0) * (item.price || 0)).toFixed(2)}</td>
-                </tr>`).join('')}
+                  <td class="px-4 py-3 text-sm text-gray-500 text-center">${qty}</td>
+                  <td class="px-4 py-3 text-sm text-gray-500 text-right">₹${rate.toFixed(2)}</td>
+                  <td class="px-4 py-3 text-sm text-gray-500 text-right">${gstPercent}%</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-text text-right">₹${finalAmount.toFixed(2)}</td>
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -423,15 +458,42 @@ export function onMount(rootElement) {
       <div style="font-size:11px;"><b>Customer:</b> ${escapeHtml(inv.customerName || 'Walk-in')}</div>
       <div style="font-size:11px;"><b>Payment:</b> ${escapeHtml(inv.paymentMode)}</div>
       <div class="receipt-divider"></div>
-      <table>
-        <tr><th style="text-align:left">Item</th><th>Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr>
-        ${(inv.items || []).map(item => `
+      <table style="width: 100%; font-size: 10px;">
+        <tr><th style="text-align:left">Item</th><th style="text-align:right">Rate</th><th style="text-align:center">Qty</th><th style="text-align:center">CGST</th><th style="text-align:center">SGST</th><th style="text-align:right">Amount</th></tr>
+        ${(inv.items || []).map(item => {
+           const mode = item.pricingMode || 'inclusive';
+           const qty = Number(item.qty) || 0;
+           const price = Number(item.price) || 0;
+           const gstPercent = Number(item.taxRate) || 0;
+           const gstFactor = 1 + (gstPercent / 100);
+           const rawLineTotal = qty * price;
+           const discountAmt = rawLineTotal * (Number(item.discountPercent) / 100);
+           const rawAfterDisc = rawLineTotal - discountAmt;
+           let taxableAmount = 0, lineTax = 0, finalAmount = 0;
+
+           if (mode === 'inclusive') {
+             taxableAmount = rawAfterDisc / gstFactor;
+             lineTax = rawAfterDisc - taxableAmount;
+             finalAmount = rawAfterDisc;
+           } else {
+             taxableAmount = rawAfterDisc;
+             lineTax = taxableAmount * (gstPercent / 100);
+             finalAmount = taxableAmount + lineTax;
+           }
+           const rate = qty > 0 ? (taxableAmount / qty) : 0;
+           const halfGst = (gstPercent / 2).toFixed(1) + '%';
+           
+           const discHtml = discountAmt > 0 ? `<br><small style="color:#666">(-₹${discountAmt.toFixed(2)})</small>` : '';
+           return `
           <tr>
-            <td style="font-size:10px;">${escapeHtml(item.name)}</td>
-            <td style="text-align:center">${item.qty}</td>
-            <td style="text-align:right">₹${item.price}</td>
-            <td style="text-align:right">₹${(item.qty * item.price).toFixed(2)}</td>
-          </tr>`).join('')}
+            <td style="font-size:10px;">${escapeHtml(item.name)}${discHtml}</td>
+            <td style="text-align:right">₹${rate.toFixed(2)}</td>
+            <td style="text-align:center">${qty}</td>
+            <td style="text-align:center">${halfGst}</td>
+            <td style="text-align:center">${halfGst}</td>
+            <td style="text-align:right">₹${finalAmount.toFixed(2)}</td>
+          </tr>`;
+        }).join('')}
       </table>
       <div class="receipt-divider"></div>
       ${Number(inv.discount || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Discount</span><span>- ₹${Number(inv.discount).toFixed(2)}</span></div>` : ''}
@@ -466,13 +528,21 @@ export function onMount(rootElement) {
     const btn = e.target.closest('[data-sales-nav]');
     if (btn) window.location.hash = btn.getAttribute('data-sales-nav');
   };
-  rootElement.addEventListener('click', handleNavClick);
+  safeRootAdd('click', handleNavClick);
 
   // ESC to close modal
   const keyHandler = (e) => { if (e.key === 'Escape') closeInvoiceModal(); };
-  window.addEventListener('keydown', keyHandler);
+  safeWindowAdd('keydown', keyHandler);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('keydown', keyHandler);
   };
 }

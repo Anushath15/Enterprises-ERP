@@ -5,6 +5,7 @@ import { NotificationService } from '../services/notificationService.js';
  */
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   return `
@@ -59,6 +60,13 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({ el, evt, handler });
+  };
+
   let allProducts = DataProvider.getProducts().filter(p => p.isActive && p.stock === 0);
   let renderLimit = 100;
   
@@ -83,8 +91,8 @@ export function onMount(rootElement) {
     
     tbody.innerHTML = displayList.map(p => `
       <tr class="hover:bg-gray-50/50 transition-colors" data-id="${p.id}">
-        <td class="px-4 py-2 text-xs text-gray-500 font-mono">${p.sku}</td>
-        <td class="px-4 py-2 text-sm font-medium text-text">${p.name}</td>
+        <td class="px-4 py-2 text-xs text-gray-500 font-mono">${escapeHtml(p.sku)}</td>
+        <td class="px-4 py-2 text-sm font-medium text-text">${escapeHtml(p.name)}</td>
         <td class="px-4 py-2">
           <input type="number" id="qty-${p.id}" min="0" class="input-qty w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="Qty">
         </td>
@@ -100,14 +108,15 @@ export function onMount(rootElement) {
   
   renderTable();
   
-  searchInput.addEventListener('input', (e) => {
+  const handleSearch = (e) => {
     renderTable(e.target.value);
-  });
+  };
+  addListener(searchInput, 'input', handleSearch);
   
   const formEl = rootElement.querySelector('#wizard-stock-form');
   if (formEl) DraftManager.init('wizardStock', formEl);
 
-  rootElement.querySelector('#btn-save-wizard').addEventListener('click', () => {
+  const handleSave = () => {
     const rows = tbody.querySelectorAll('tr[data-id]');
     const entries = [];
     
@@ -171,7 +180,12 @@ export function onMount(rootElement) {
     } catch (err) {
       NotificationService.error(err.message);
     }
-  });
+  };
+  addListener(rootElement.querySelector('#btn-save-wizard'), 'click', handleSave);
   
   if (window.lucide) window.lucide.createIcons({ nodes: [rootElement] });
+
+  return function cleanup() {
+    __listeners.forEach(l => l.el.removeEventListener(l.evt, l.handler));
+  };
 }

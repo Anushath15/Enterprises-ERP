@@ -14,6 +14,9 @@ export const itemReducer = (state = [], action) => {
     case 'ITEM_REMOVE':
       return state.filter(item => item.id !== action.payload.id);
       
+    case TransactionActions.ITEM_DELETE:
+      return state.filter((_, idx) => idx !== action.payload.index);
+      
     default:
       return state;
   }

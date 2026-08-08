@@ -242,11 +242,16 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
+
   const overlay = rootElement.querySelector('#purchase-drawer-overlay');
   const formDrawer = rootElement.querySelector('#purchase-form-drawer');
   const closeBtns = rootElement.querySelectorAll('.close-purchase-drawer');
-
-  let removeDocumentClick = () => {};
 
   // Set default date
   const today = new Date().toISOString().split('T')[0];
@@ -294,8 +299,8 @@ export function onMount(rootElement) {
       mainTbody.innerHTML = filtered.length > 0 ? filtered.map(buildRow).join('') : '<tr><td colspan="7"><div class="empty-state"><i data-lucide="shopping-cart"></i><p>No purchases match your search</p></div></td></tr>';
     }
   };
-  if (poSearch) poSearch.addEventListener('input', applyPoFilter);
-  if (poStatusFilter) poStatusFilter.addEventListener('change', applyPoFilter);
+  if (poSearch) addListener(poSearch, 'input', applyPoFilter);
+  if (poStatusFilter) addListener(poStatusFilter, 'change', applyPoFilter);
 
   let cart = [];
   let products = [];
@@ -307,7 +312,7 @@ export function onMount(rootElement) {
     const searchInput = rootElement.querySelector('#po-product-search');
     const searchResults = rootElement.querySelector('#po-product-results');
     
-    searchInput.addEventListener('input', (e) => {
+    addListener(searchInput, 'input', (e) => {
       const q = e.target.value.toLowerCase();
       if (!q) {
         searchResults.classList.add('hidden');
@@ -335,11 +340,10 @@ export function onMount(rootElement) {
         searchResults.classList.add('hidden');
       }
     };
-    document.addEventListener('click', handleDocumentClick);
-    removeDocumentClick = () => document.removeEventListener('click', handleDocumentClick);
+    addListener(document, 'click', handleDocumentClick);
 
     // Add product to cart
-    searchResults.addEventListener('click', (e) => {
+    addListener(searchResults, 'click', (e) => {
       const itemEl = e.target.closest('.po-search-item');
       if (itemEl) {
         const pId = itemEl.getAttribute('data-id');
@@ -349,9 +353,19 @@ export function onMount(rootElement) {
           if (existing) {
             existing.qty += 1;
           } else {
-            const exGst = product.purchasePrice || product.avgCost || (product.price * 0.8) || 0;
+            const basePrice = product.buyingPrice || product.purchasePrice || product.avgCost || (product.price * 0.8) || 0;
             const gst = product.gst || 18;
-            const incGst = exGst * (1 + (gst / 100));
+            const mode = product.buyingPricingMode || 'inclusive';
+            
+            let exGst = 0, incGst = 0;
+            if (mode === 'inclusive') {
+              incGst = basePrice;
+              exGst = incGst / (1 + (gst / 100));
+            } else {
+              exGst = basePrice;
+              incGst = exGst * (1 + (gst / 100));
+            }
+
             cart.push({
               productId: product.id,
               name: product.name,
@@ -452,7 +466,7 @@ export function onMount(rootElement) {
     };
 
     // Listeners for cart inputs
-    rootElement.querySelector('#po-cart-items').addEventListener('input', (e) => {
+    addListener(rootElement.querySelector('#po-cart-items'), 'input', (e) => {
       const tr = e.target.closest('tr');
       if (!tr) return;
       const idx = parseInt(tr.getAttribute('data-index'), 10);
@@ -513,7 +527,7 @@ export function onMount(rootElement) {
       updateTotals();
     });
 
-    rootElement.querySelector('#po-cart-items').addEventListener('click', (e) => {
+    addListener(rootElement.querySelector('#po-cart-items'), 'click', (e) => {
       if (e.target.closest('.po-remove-btn')) {
         const tr = e.target.closest('tr');
         if (tr) {
@@ -524,10 +538,20 @@ export function onMount(rootElement) {
     });
 
     // Save PO
-    rootElement.querySelector('#btn-save-po').addEventListener('click', () => {
+    addListener(rootElement.querySelector('#btn-save-po'), 'click', () => {
       const dealerId = rootElement.querySelector('#po-dealer').value;
       if (!dealerId) { NotificationService.warning('Please select a dealer.'); return; }
       if (cart.length === 0) { NotificationService.warning('Please add at least one product.'); return; }
+      if (!rootElement.querySelector('#po-date').value) { NotificationService.warning('Please select a purchase date.'); return; }
+      const badItem = cart.find(it =>
+        Number(it.qty) < 1 ||
+        Number(it.exGst) < 0 ||
+        Number(it.incGst) < 0 ||
+        Number(it.gst) < 0 || Number(it.gst) > 100 ||
+        Number(it.discount) < 0 || Number(it.discount) > 100 ||
+        Number(it.sellingPrice) < 0
+      );
+      if (badItem) { NotificationService.error(`Invalid quantity, price, GST or discount in row for ${badItem.name}.`); return; }
 
       let subtotal = 0;
       let totalGst = 0;
@@ -585,11 +609,14 @@ export function onMount(rootElement) {
            saved.items.forEach(it => {
               const prod = DataProvider.getProductById(it.productId);
               if (prod) {
-                  if (prod.purchasePrice !== it.purchasePrice || prod.price !== it.sellingPrice) {
+                  const mode = prod.buyingPricingMode || 'inclusive';
+                  const newBuyingPrice = mode === 'inclusive' ? it.incGst : it.purchasePrice; // purchasePrice is exGst in item
+
+                  if (prod.buyingPrice !== newBuyingPrice || prod.price !== it.sellingPrice) {
                       DataProvider.logProductPriceChange({
                           productId: it.productId,
-                          oldPurchasePrice: prod.purchasePrice || 0,
-                          newPurchasePrice: it.purchasePrice,
+                          oldPurchasePrice: prod.buyingPrice || prod.purchasePrice || 0,
+                          newPurchasePrice: newBuyingPrice,
                           oldSellingPrice: prod.price || 0,
                           newSellingPrice: it.sellingPrice,
                           dealerId: saved.dealerId,
@@ -598,7 +625,8 @@ export function onMount(rootElement) {
                       });
                   }
                   // Update master product file
-                  prod.purchasePrice = it.purchasePrice;
+                  prod.buyingPrice = newBuyingPrice;
+                  prod.purchasePrice = newBuyingPrice; // backward compatibility
                   prod.price = it.sellingPrice;
                   DataProvider.saveProduct(prod);
               }
@@ -701,7 +729,7 @@ export function onMount(rootElement) {
     formDrawer.classList.remove('translate-x-full');
   };
 
-  window.addEventListener('openPurchaseDrawer', openForm);
+  addListener(window, 'openPurchaseDrawer', openForm);
 
   // Delegated row clicks (replaces inline onclick)
   const handleTableClick = (e) => {
@@ -714,13 +742,13 @@ export function onMount(rootElement) {
     }
     if (row) openForm({ detail: row.getAttribute('data-open-po') });
   };
-  mainTbody.addEventListener('click', handleTableClick);
+  addListener(mainTbody, 'click', handleTableClick);
 
   const newPoBtn = rootElement.querySelector('#btn-new-po');
-  if (newPoBtn) newPoBtn.addEventListener('click', () => openForm());
+  if (newPoBtn) addListener(newPoBtn, 'click', () => openForm());
 
-  closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  closeBtns.forEach(btn => addListener(btn, 'click', closeAll));
+  addListener(overlay, 'click', closeAll);
   
   // Pending purchase redirect hook
   setTimeout(() => {
@@ -730,9 +758,19 @@ export function onMount(rootElement) {
       openForm();
       const p = DataProvider.getProductById(pendingId);
       if (p) {
-        const exGst = p.purchasePrice || p.avgCost || (p.price * 0.8) || 0;
+        const basePrice = p.buyingPrice || p.purchasePrice || p.avgCost || (p.price * 0.8) || 0;
         const gst = p.gst || 18;
-        const incGst = exGst * (1 + (gst / 100));
+        const mode = p.buyingPricingMode || 'inclusive';
+        
+        let exGst = 0, incGst = 0;
+        if (mode === 'inclusive') {
+          incGst = basePrice;
+          exGst = incGst / (1 + (gst / 100));
+        } else {
+          exGst = basePrice;
+          incGst = exGst * (1 + (gst / 100));
+        }
+
         cart = [{
           productId: p.id,
           name: p.name,
@@ -756,8 +794,9 @@ export function onMount(rootElement) {
 
   // Cleanup: prevent duplicate listeners on back-navigation
   return function cleanup() {
-    window.removeEventListener('openPurchaseDrawer', openForm);
-    removeDocumentClick();
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
   };
 }
-

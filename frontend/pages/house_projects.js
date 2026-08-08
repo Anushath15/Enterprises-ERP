@@ -125,7 +125,7 @@ export async function render() {
     <div id="project-drawer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
     
     <!-- Drawer -->
-    <aside id="project-form-drawer" class="fixed top-0 right-0 h-screen w-full md:w-[900px] lg:w-[1100px] bg-gray-50 border-l border-border z-[60] drawer-exit flex flex-col shadow-2xl">
+    <aside id="project-form-drawer" class="fixed top-0 right-0 h-screen w-full md:w-[900px] lg:w-[1100px] bg-gray-50 border-l border-border z-[60] transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
       <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-border shadow-sm z-10">
         <div class="flex items-center gap-3">
           <div class="p-2 bg-primary/10 rounded-lg text-primary">
@@ -272,7 +272,22 @@ export async function render() {
   `;
 }
 
-export function onMount() {
+export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
   const allProjects = DataProvider.getProjects();
 
@@ -282,8 +297,7 @@ export function onMount() {
   const closeAll = () => {
     overlay.classList.remove('opacity-100');
     overlay.classList.add('opacity-0', 'pointer-events-none');
-    drawer.classList.remove('drawer-enter-active');
-    drawer.classList.add('drawer-exit-active');
+    drawer.classList.add('translate-x-full');
   };
 
   // Tab switching logic
@@ -398,8 +412,7 @@ export function onMount() {
     
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
-    drawer.classList.remove('drawer-exit-active', 'drawer-exit');
-    drawer.classList.add('drawer-enter-active');
+    drawer.classList.remove('translate-x-full');
   };
 
   const handleNewProject = () => openForm();
@@ -407,7 +420,7 @@ export function onMount() {
   if (addBtn) addBtn.addEventListener('click', handleNewProject);
   
   const handleOpenProjectDrawer = (e) => openForm(e.detail);
-  window.addEventListener('openProjectDrawer', handleOpenProjectDrawer);
+  safeWindowAdd('openProjectDrawer', handleOpenProjectDrawer);
 
   const handleRowClick = (e) => {
     const delBtn = e.target.closest('.project-delete-btn');
@@ -436,7 +449,7 @@ export function onMount() {
       NotificationService.error(err.message);
     }
   };
-  window.addEventListener('deleteProject', handleDeleteProject);
+  safeWindowAdd('deleteProject', handleDeleteProject);
 
   const closeBtns = document.querySelectorAll('.close-project-drawer');
   const handleCloseClick = () => closeAll();
@@ -526,6 +539,14 @@ export function onMount() {
   if (saveBtn) saveBtn.addEventListener('click', handleSaveProject);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openProjectDrawer', handleOpenProjectDrawer);
     window.removeEventListener('deleteProject', handleDeleteProject);
     tabBtns.forEach(btn => btn.removeEventListener('click', handleTabClick));

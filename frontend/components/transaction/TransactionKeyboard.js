@@ -10,8 +10,6 @@ export const TransactionKeyboard = {
     boundHandler = (e) => {
       // Avoid if inside modal or dialog
       if (document.querySelector('dialog[open]')) return;
-      console.log('KEY PRESSED:', e.key);
-
       // Ctrl + S (Save)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
@@ -22,10 +20,8 @@ export const TransactionKeyboard = {
       if (e.key === 'F2') {
         e.preventDefault();
         const entityEl = document.querySelector('#txn-entity');
-        console.log('F2 handler:', entityEl ? 'found select' : 'no select');
         if (entityEl) {
            entityEl.focus();
-           console.log('F2 focus applied, active:', document.activeElement.id);
         }
       }
 

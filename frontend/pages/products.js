@@ -9,6 +9,7 @@ import {
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { validateForm, rules } from '../utils/validate.js';
 
 const badgeClasses = {
   success: 'bg-success/10 text-success',
@@ -74,8 +75,24 @@ export async function render() {
         <div class="bg-white p-[var(--spacing-md)] rounded-[var(--radius-md)] border border-border shadow-sm">
           <h4 class="text-sm font-semibold text-primary mb-3">Pricing & Taxation</h4>
           ${FormGrid({ children: `
-            <div><label class="block text-xs font-medium text-gray-500 mb-1">Buying Price</label><input type="number" step="0.01" id="p-buying" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-500 mb-1">Selling Price *</label><input type="number" step="0.01" id="p-price" required class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm focus:ring-2 focus:ring-primary/20"></div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Buying Price</label>
+              <input type="number" step="0.01" id="p-buying" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm">
+              <div class="mt-2 flex items-center gap-4">
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-buying-mode" value="inclusive" checked> GST Inclusive</label>
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-buying-mode" value="exclusive"> GST Exclusive</label>
+              </div>
+              <div id="p-buying-preview" class="mt-2 p-2 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-600 space-y-1"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Selling Price *</label>
+              <input type="number" step="0.01" id="p-price" required class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm focus:ring-2 focus:ring-primary/20">
+              <div class="mt-2 flex items-center gap-4">
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-selling-mode" value="inclusive" checked> GST Inclusive</label>
+                <label class="flex items-center gap-1 text-xs"><input type="radio" name="p-selling-mode" value="exclusive"> GST Exclusive</label>
+              </div>
+              <div id="p-selling-preview" class="mt-2 p-2 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-600 space-y-1"></div>
+            </div>
             <div><label class="block text-xs font-medium text-gray-500 mb-1">MRP</label><input type="number" step="0.01" id="p-mrp" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
             <div><label class="block text-xs font-medium text-gray-500 mb-1">HSN Code</label><input type="text" id="p-hsn" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
             <div><label class="block text-xs font-medium text-gray-500 mb-1">GST %</label><input type="number" id="p-gst" value="18" class="w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm"></div>
@@ -137,7 +154,7 @@ export async function render() {
         children: TableWrapper({
           headers: ['ID', 'SKU', 'Product Name', 'Category', 'Brand', 'Stock', 'Cost', 'Price', 'GST', 'Status', 'Actions'],
           tbodyId: 'products-tbody',
-          rowsHtml: products.length ? products.map(renderRow).join('') : `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products found', subtitle: 'Add a new product or adjust filters'})}</td></tr>`
+          rowsHtml: products.length ? products.slice(0, 50).map(renderRow).join('') : `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products found', subtitle: 'Add a new product or adjust filters'})}</td></tr>`
         })
       })}
 
@@ -177,9 +194,16 @@ export async function render() {
   });
 }
 
-export function onMount() {
+export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
   
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
+
   const allProducts = DataProvider.getProducts();
   const productModal = document.getElementById('product-modal');
   
@@ -191,25 +215,62 @@ export function onMount() {
   const renderRow = window._productsRenderRow;
 
   if (searchInput && tbody) {
-    const applyFilter = () => {
-      const q = searchInput.value.toLowerCase().trim();
-      const cat = categoryFilter?.value || '';
+    let renderQueue = [];
+    let isRendering = false;
 
-      const filtered = allProducts.filter(p => {
-        if (q && !p.name.toLowerCase().includes(q) && !(p.sku || '').toLowerCase().includes(q) && !(p.barcode || '').includes(q) && !(p.category || '').toLowerCase().includes(q) && !(p.brand || '').toLowerCase().includes(q)) return false;
-        if (cat && p.category !== cat) return false;
-        return true;
-      });
-
-      if (countLabel) countLabel.textContent = `Showing ${filtered.length} products`;
-      tbody.innerHTML = filtered.length > 0 
-        ? filtered.map(renderRow).join('') 
-        : `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products match your filters'})}</td></tr>`;
-      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+    const processRenderQueue = () => {
+      if (renderQueue.length === 0) {
+        isRendering = false;
+        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        return;
+      }
+      const chunk = renderQueue.splice(0, 50);
+      tbody.insertAdjacentHTML('beforeend', chunk.map(renderRow).join(''));
+      requestAnimationFrame(processRenderQueue);
     };
 
-    searchInput.addEventListener('input', applyFilter);
-    categoryFilter?.addEventListener('change', applyFilter);
+    let searchTimeout;
+    const applyFilter = () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const q = searchInput.value.toLowerCase().trim();
+        const cat = categoryFilter?.value || '';
+
+        const filtered = allProducts.filter(p => {
+          if (q) {
+            const match = 
+              p.name?.toLowerCase().includes(q) ||
+              p.sku?.toLowerCase().includes(q) ||
+              p.barcode?.toLowerCase().includes(q) ||
+              p.category?.toLowerCase().includes(q) ||
+              p.brand?.toLowerCase().includes(q) ||
+              p.hsn?.toLowerCase().includes(q) ||
+              p.dealer?.toLowerCase().includes(q);
+            if (!match) return false;
+          }
+          if (cat && p.category !== cat) return false;
+          return true;
+        });
+
+        if (countLabel) countLabel.textContent = `Showing ${filtered.length} products`;
+        
+        tbody.innerHTML = ''; // clear existing
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="11">${EmptyState({icon: 'package', title: 'No products match your filters'})}</td></tr>`;
+          renderQueue = [];
+          isRendering = false;
+        } else {
+          renderQueue = [...filtered];
+          if (!isRendering) {
+            isRendering = true;
+            processRenderQueue();
+          }
+        }
+      }, 100);
+    };
+
+    addListener(searchInput, 'input', applyFilter);
+    if (categoryFilter) addListener(categoryFilter, 'change', applyFilter);
   }
 
   const handleDelete = (btn) => {
@@ -261,62 +322,139 @@ export function onMount() {
     }
   };
 
-  if (tbody) tbody.addEventListener('click', handleRowClick);
+  if (tbody) addListener(tbody, 'click', handleRowClick);
 
-  const openForm = (id = null) => {
-    const form = document.getElementById('product-form');
-    const title = productModal.querySelector('.responsive-modal-header h3');
-    form.reset();
-    document.getElementById('p-id').value = '';
-    
-    import('../services/dataProvider.js').then(({ DataProvider }) => {
-      const categories = DataProvider.getCategories() || [];
-      const catSelect = document.getElementById('p-category');
-      catSelect.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
-
-      if (id) {
-        title.textContent = 'Edit Product';
-        const p = DataProvider.getProductById(id);
-        if (p) {
-          document.getElementById('p-id').value = p.id;
-          document.getElementById('p-name').value = p.name || '';
-          document.getElementById('p-sku').value = p.sku || '';
-          document.getElementById('p-barcode').value = p.barcode || '';
-          document.getElementById('p-category').value = p.category || '';
-          document.getElementById('p-subcategory').value = p.subCategory || '';
-          document.getElementById('p-brand').value = p.brand || '';
-          document.getElementById('p-unit').value = p.unit || 'Nos';
-          document.getElementById('p-buying').value = p.buyingPrice || p.avgCost || 0;
-          document.getElementById('p-price').value = p.price || 0;
-          document.getElementById('p-mrp').value = p.mrp || '';
-          document.getElementById('p-hsn').value = p.hsn || '';
-          document.getElementById('p-gst').value = p.gst || 18;
-          document.getElementById('p-stock').value = p.stock || 0;
-          document.getElementById('p-minstock').value = p.minStock || 5;
-          document.getElementById('p-rack').value = p.rack || '';
-          document.getElementById('p-shelf').value = p.shelf || '';
-        }
+    const updatePreviews = () => {
+      const gstPercent = parseFloat(document.getElementById('p-gst').value) || 0;
+      
+      // Buying preview
+      const bPrice = parseFloat(document.getElementById('p-buying').value) || 0;
+      const bMode = document.querySelector('input[name="p-buying-mode"]:checked').value;
+      const bPreview = document.getElementById('p-buying-preview');
+      let bTaxable = 0, bGst = 0, bTotal = 0;
+      if (bMode === 'inclusive') {
+        bTaxable = bPrice / (1 + (gstPercent / 100));
+        bGst = bPrice - bTaxable;
+        bTotal = bPrice;
       } else {
-        title.textContent = 'New Product';
+        bTaxable = bPrice;
+        bGst = bTaxable * (gstPercent / 100);
+        bTotal = bTaxable + bGst;
       }
-      productModal.classList.remove('hidden');
-    });
-  };
+      bPreview.innerHTML = `
+        <div class="flex justify-between"><span>Taxable:</span> <strong>₹${bTaxable.toFixed(2)}</strong></div>
+        <div class="flex justify-between"><span>CGST (${gstPercent/2}%):</span> <span>₹${(bGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between"><span>SGST (${gstPercent/2}%):</span> <span>₹${(bGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between pt-1 border-t border-gray-200 text-primary"><span>Final Price:</span> <strong>₹${bTotal.toFixed(2)}</strong></div>
+      `;
 
-  const addBtn = document.getElementById('btn-add-product');
-  if (addBtn) addBtn.addEventListener('click', () => openForm());
-  
-  const handleOpenProductModal = (e) => openForm(e.detail);
-  window.addEventListener('openProductModal', handleOpenProductModal);
+      // Selling preview
+      const sPrice = parseFloat(document.getElementById('p-price').value) || 0;
+      const sMode = document.querySelector('input[name="p-selling-mode"]:checked').value;
+      const sPreview = document.getElementById('p-selling-preview');
+      let sTaxable = 0, sGst = 0, sTotal = 0;
+      if (sMode === 'inclusive') {
+        sTaxable = sPrice / (1 + (gstPercent / 100));
+        sGst = sPrice - sTaxable;
+        sTotal = sPrice;
+      } else {
+        sTaxable = sPrice;
+        sGst = sTaxable * (gstPercent / 100);
+        sTotal = sTaxable + sGst;
+      }
+      sPreview.innerHTML = `
+        <div class="flex justify-between"><span>Taxable:</span> <strong>₹${sTaxable.toFixed(2)}</strong></div>
+        <div class="flex justify-between"><span>CGST (${gstPercent/2}%):</span> <span>₹${(sGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between"><span>SGST (${gstPercent/2}%):</span> <span>₹${(sGst/2).toFixed(2)}</span></div>
+        <div class="flex justify-between pt-1 border-t border-gray-200 text-primary"><span>Final Price:</span> <strong>₹${sTotal.toFixed(2)}</strong></div>
+      `;
+    };
+
+    const openForm = (id = null) => {
+      const form = document.getElementById('product-form');
+      const title = productModal.querySelector('.responsive-modal-header h3');
+      form.reset();
+      document.getElementById('p-id').value = '';
+      
+        const categories = DataProvider.getCategories() || [];
+        const catSelect = document.getElementById('p-category');
+        catSelect.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+
+        if (id) {
+          title.textContent = 'Edit Product';
+          const p = DataProvider.getProductById(id);
+          if (p) {
+            document.getElementById('p-id').value = p.id;
+            document.getElementById('p-name').value = p.name || '';
+            document.getElementById('p-sku').value = p.sku || '';
+            document.getElementById('p-barcode').value = p.barcode || '';
+            document.getElementById('p-category').value = p.category || '';
+            document.getElementById('p-subcategory').value = p.subCategory || '';
+            document.getElementById('p-brand').value = p.brand || '';
+            document.getElementById('p-unit').value = p.unit || 'Nos';
+            document.getElementById('p-buying').value = p.buyingPrice || p.avgCost || 0;
+            document.getElementById('p-price').value = p.price || 0;
+            document.getElementById('p-mrp').value = p.mrp || '';
+            document.getElementById('p-hsn').value = p.hsn || '';
+            document.getElementById('p-gst').value = p.gst || 18;
+            document.getElementById('p-stock').value = p.stock || 0;
+            document.getElementById('p-minstock').value = p.minStock || 5;
+            document.getElementById('p-rack').value = p.rack || '';
+            document.getElementById('p-shelf').value = p.shelf || '';
+            
+            const bMode = p.buyingPricingMode || 'inclusive';
+            const sMode = p.sellingPricingMode || 'inclusive';
+            document.querySelector(`input[name="p-buying-mode"][value="${bMode}"]`).checked = true;
+            document.querySelector(`input[name="p-selling-mode"][value="${sMode}"]`).checked = true;
+          }
+        } else {
+          title.textContent = 'New Product';
+          document.querySelector(`input[name="p-buying-mode"][value="inclusive"]`).checked = true;
+          document.querySelector(`input[name="p-selling-mode"][value="inclusive"]`).checked = true;
+        }
+        
+        updatePreviews();
+        productModal.classList.remove('hidden');
+    };
+
+    const addBtn = document.getElementById('btn-add-product');
+    if (addBtn) addListener(addBtn, 'click', () => openForm());
+    
+    const handleOpenProductModal = (e) => openForm(e.detail);
+    addListener(window, 'openProductModal', handleOpenProductModal);
+    
+    // Bind preview listeners
+    addListener(document.getElementById('p-buying'), 'input', updatePreviews);
+    addListener(document.getElementById('p-price'), 'input', updatePreviews);
+    addListener(document.getElementById('p-gst'), 'input', updatePreviews);
+    document.querySelectorAll('input[name="p-buying-mode"]').forEach(r => addListener(r, 'change', updatePreviews));
+    document.querySelectorAll('input[name="p-selling-mode"]').forEach(r => addListener(r, 'change', updatePreviews));
 
   const saveBtn = document.getElementById('save-p-btn');
   if (saveBtn) {
     const formEl = document.getElementById('product-form');
     if (formEl) DraftManager.init('product', formEl);
 
-    saveBtn.addEventListener('click', () => {
+    addListener(saveBtn, 'click', () => {
       const form = document.getElementById('product-form');
       if (!form.reportValidity()) return;
+      
+      const field = (id) => document.getElementById(id);
+      const validationError = validateForm([
+        { el: field('p-name'), check: (v) => rules.required(v, 'Product name') || rules.maxLength(v, 100, 'Product name') },
+        { el: field('p-sku'), check: (v) => rules.maxLength(v, 50, 'SKU') },
+        { el: field('p-barcode'), check: (v) => rules.maxLength(v, 50, 'Barcode') },
+        { el: field('p-hsn'), check: (v) => rules.maxLength(v, 20, 'HSN code') },
+        { el: field('p-buying'), check: (v) => rules.number(v, 'Buying price') || rules.nonNegative(v, 'Buying price') },
+        { el: field('p-mrp'), check: (v) => rules.number(v, 'MRP') || rules.nonNegative(v, 'MRP') },
+        { el: field('p-gst'), check: (v) => rules.number(v, 'GST %') || rules.nonNegative(v, 'GST %') || rules.max(v, 100, 'GST %') },
+        { el: field('p-stock'), check: (v) => rules.required(v, 'Current stock') || rules.nonNegative(v, 'Current stock') },
+        { el: field('p-minstock'), check: (v) => rules.number(v, 'Min stock') || rules.nonNegative(v, 'Min stock') }
+      ]);
+      if (validationError) {
+        NotificationService.error(validationError);
+        return;
+      }
       
       const product = {
         id: document.getElementById('p-id').value || null,
@@ -328,7 +466,9 @@ export function onMount() {
         brand: document.getElementById('p-brand').value,
         unit: document.getElementById('p-unit').value,
         buyingPrice: Number(document.getElementById('p-buying').value || 0),
+        buyingPricingMode: document.querySelector('input[name="p-buying-mode"]:checked').value,
         price: Number(document.getElementById('p-price').value || 0),
+        sellingPricingMode: document.querySelector('input[name="p-selling-mode"]:checked').value,
         mrp: Number(document.getElementById('p-mrp').value || 0),
         hsn: document.getElementById('p-hsn').value,
         gst: Number(document.getElementById('p-gst').value || 18),
@@ -366,14 +506,14 @@ export function onMount() {
   const fileNameLabel = document.getElementById('file-name-label');
   
   if (btnImportExcel) {
-    btnImportExcel.addEventListener('click', () => {
+    addListener(btnImportExcel, 'click', () => {
       importModal.classList.remove('hidden');
     });
   }
   
   let workbookData = null;
   if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
+    addListener(fileInput, 'change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       fileNameLabel.textContent = file.name;
@@ -393,7 +533,7 @@ export function onMount() {
   }
   
   if (processBtn) {
-    processBtn.addEventListener('click', () => {
+    addListener(processBtn, 'click', () => {
       if (!workbookData || !workbookData.length) return;
       import('../services/dataProvider.js').then(({ DataProvider }) => {
           let imported = 0, updated = 0;
@@ -415,7 +555,9 @@ export function onMount() {
               brand: row.Brand || row.brand || (existing ? existing.brand : ''),
               unit: row.Unit || row.unit || (existing ? existing.unit : 'Nos'),
               buyingPrice: Number(row.BuyingPrice || row.buyingPrice || row.Cost || (existing ? existing.buyingPrice : 0)),
+              buyingPricingMode: row.BuyingPricingMode || row.buyingPricingMode || (existing ? existing.buyingPricingMode : 'inclusive'),
               price: Number(row.SellingPrice || row.sellingPrice || row.Price || (existing ? existing.price : 0)),
+              sellingPricingMode: row.SellingPricingMode || row.sellingPricingMode || (existing ? existing.sellingPricingMode : 'inclusive'),
               mrp: Number(row.MRP || row.mrp || (existing ? existing.mrp : 0)),
               gst: Number(row.GST || row.gst || (existing ? existing.gst : 18)),
               stock: Number(row.Stock || row.stock || row.Qty || (existing ? existing.stock : 0)),
@@ -450,11 +592,12 @@ export function onMount() {
     const modal = document.getElementById(e.currentTarget.getAttribute('data-close-modal'));
     if (modal) modal.classList.add('hidden');
   };
-  closeButtons.forEach(btn => btn.addEventListener('click', handleCloseModal));
+  closeButtons.forEach(btn => addListener(btn, 'click', handleCloseModal));
 
   return function cleanup() {
-    window.removeEventListener('openProductModal', handleOpenProductModal);
-    if (tbody) tbody.removeEventListener('click', handleRowClick);
-    closeButtons.forEach(btn => btn.removeEventListener('click', handleCloseModal));
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
   };
 }

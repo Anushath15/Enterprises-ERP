@@ -1,3 +1,5 @@
+import { TransactionCalculator } from '../TransactionCalculator.js';
+
 export const CellRenderers = {
   IndexCell: (item, index, col) => {
     const align = col.align || 'text-left';
@@ -53,5 +55,13 @@ export const CellRenderers = {
         <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
       </button>
     </td>`;
+  },
+
+  ComputedLineCell: (item, index, col, config) => {
+    const align = col.align || 'text-right';
+    const calc = TransactionCalculator.calculateLine(item, config?.pricing?.field || 'price');
+    const val = col.compute === 'gstAmt' ? calc.gstAmt : calc.lineTotal;
+    const classes = col.bold ? 'text-sm font-bold text-text' : 'text-xs text-gray-500';
+    return `<td class="px-2 py-3 ${align} ${classes} po-${col.key}">Rs.${val.toFixed(2)}</td>`;
   }
 };

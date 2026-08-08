@@ -192,6 +192,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
 
   const allDeliveries = DataProvider.getDeliveries() || [];
@@ -307,7 +322,7 @@ export function onMount(rootElement) {
   const newBtn = rootElement.querySelector('[data-delivery-new]');
   if (newBtn) newBtn.addEventListener('click', handleNewDelivery);
 
-  window.addEventListener('openDeliveryDrawer', openForm);
+  safeWindowAdd('openDeliveryDrawer', openForm);
   const handleCloseClick = () => closeAll();
   closeBtns.forEach(btn => btn.addEventListener('click', handleCloseClick));
   overlay.addEventListener('click', handleCloseClick);
@@ -346,6 +361,14 @@ export function onMount(rootElement) {
   rootElement.querySelector('#save-delivery-btn')?.addEventListener('click', handleSaveDelivery);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openDeliveryDrawer', openForm);
     tabBtns.forEach(btn => btn.removeEventListener('click', handleTabClick));
     if (delSearch) delSearch.removeEventListener('input', handleSearchInput);

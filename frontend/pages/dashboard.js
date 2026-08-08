@@ -8,20 +8,22 @@ import { Badge } from '../components/ui/status.js';
 import { IconButton } from '../components/ui/buttons.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { todayISO, lastLocalDays, isLocalDateIn } from '../utils/dateUtils.js';
 
 function getBackupStatus() {
-  const lastBackupStr = localStorage.getItem('erp_last_backup');
-  if (!lastBackupStr) {
+  const rawBackupStr = localStorage.getItem('erp_last_backup');
+  if (!rawBackupStr) {
     return '<span class="text-red-500 font-semibold"><i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>No backup has ever been created!</span>';
   }
-  const lastBackup = new Date(lastBackupStr);
+  const lastBackupStr = escapeHtml(rawBackupStr);
+  const lastBackup = new Date(rawBackupStr);
   const diffDays = Math.floor((new Date() - lastBackup) / (1000 * 60 * 60 * 24));
   
   if (diffDays === 0) return '<span class="text-green-600">Last backup: Today</span>';
   if (diffDays === 1) return '<span class="text-orange-500">Last backup: Yesterday</span>';
   if (diffDays > 3) return `<span class="text-red-500 font-semibold"><i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>Last backup: ${diffDays} days ago!</span>`;
   
-  return `<span class="text-gray-500">Last backup: ${diffDays} days ago</span>`;
+  return `<span class="text-gray-500">Last backup: ${Number.isNaN(diffDays) ? lastBackupStr : diffDays + ' days ago'}</span>`;
 }
 
 export async function render() {
@@ -33,40 +35,39 @@ export async function render() {
   const deliveries = DataProvider.getDeliveries() || [];
   const expenses = DataProvider.getExpenses() || [];
   
-  // Date Helpers
-  const today = new Date().toISOString().split('T')[0];
-  const last7Days = Array.from({length: 7}, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d.toISOString().split('T')[0];
-  });
+  // Date Helpers (AUDIT-H05: local-date safe)
+  const today = todayISO();
+  const last7Days = lastLocalDays(7);
 
   // 2. Calculate KPIs
   
   // Sales & Collections
-  const todaysInvoices = invoices.filter(inv => (inv.date || '').startsWith(today));
+  const todaysInvoices = invoices.filter(inv => isLocalDateIn(inv.date || '', [today]));
   const todaysSales = todaysInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || inv.total || 0), 0);
-  const todaysCollection = todaysInvoices.reduce((sum, inv) => sum + Number(inv.amountPaid || inv.totalAmount || 0), 0); // Assuming paid if not specified
+  const todaysCollection = todaysInvoices.reduce((sum, inv) => sum + Number(inv.amountPaid ?? inv.totalAmount ?? 0), 0); // Assuming paid if not specified
   
   // Receivables & Payables
   const customerReceivables = customers.reduce((sum, c) => sum + Number(c.outstanding || 0), 0);
   const dealerPayables = dealers.reduce((sum, d) => sum + Number(d.outstanding || 0), 0);
   
   // Expenses
-  const todaysExpenses = expenses.filter(e => e.date === today).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const todaysExpenses = expenses.filter(e => isLocalDateIn(e.date || '', [today]) || e.date === today).reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   // Stock
   const lowStockProducts = products.filter(p => Number(p.stock ?? 0) <= Number(p.minStock ?? 5) && Number(p.stock ?? 0) > 0);
   const deadStockProducts = products.filter(p => Number(p.stock ?? 0) <= 0);
   
   // Profit Analysis (Today & Last 7 Days)
+  // AUDIT-C01: invoice items store `productId` (see POS saveInvoice), not `id`.
+  // Look up by productId (with legacy `id` fallback) so COGS resolves to real
+  // average cost instead of 0.
   const calculateProfit = (invoiceList) => {
     let revenue = 0;
     let cogs = 0;
     invoiceList.forEach(inv => {
       revenue += Number(inv.totalAmount || inv.total || 0);
       (inv.items || []).forEach(item => {
-        const prod = products.find(p => p.id === item.id) || {};
+        const prod = products.find(p => p.id === (item.productId || item.id)) || {};
         const cost = Number(prod.avgCost || prod.purchasePrice || prod.buyingPrice || 0);
         cogs += (cost * Number(item.qty || 1));
       });
@@ -75,10 +76,10 @@ export async function render() {
   };
 
   const todaysProfit = calculateProfit(todaysInvoices);
-  const last7DaysInvoices = invoices.filter(inv => last7Days.includes((inv.date || '').split('T')[0]));
+  const last7DaysInvoices = invoices.filter(inv => isLocalDateIn(inv.date || '', last7Days));
   const weekProfit = calculateProfit(last7DaysInvoices);
   
-  const weekExpenses = expenses.filter(e => last7Days.includes((e.date || '').split('T')[0]))
+  const weekExpenses = expenses.filter(e => isLocalDateIn(e.date || '', last7Days))
                                .reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const netWeekProfit = weekProfit.grossProfit - weekExpenses;
   
@@ -88,7 +89,7 @@ export async function render() {
   // 3. Process Chart Data (Last 7 Days Sales)
   const chartData = last7Days.map(dateStr => {
     const dailyTotal = invoices
-      .filter(inv => (inv.date || '').startsWith(dateStr))
+      .filter(inv => isLocalDateIn(inv.date || '', [dateStr]))
       .reduce((sum, inv) => sum + Number(inv.totalAmount || inv.total || 0), 0);
     return {
       label: new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -113,7 +114,7 @@ export async function render() {
         return `
           <div class="flex flex-col items-center flex-1 group">
             <div class="relative w-full flex justify-center h-full items-end">
-              <div class="w-full max-w-[40px] bg-${isToday ? 'primary' : 'primary/20'} rounded-t-sm transition-all duration-300 group-hover:bg-primary/80" style="height: ${height}%"></div>
+              <div class="w-full max-w-[40px] bg-primary ${isToday ? '' : 'opacity-20 group-hover:opacity-80'} rounded-t-sm transition-all duration-300" style="height: ${height}%"></div>
               <div class="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap">
                 ₹${d.value.toLocaleString('en-IN')}
               </div>
@@ -150,7 +151,7 @@ export async function render() {
     <div class="p-6 max-w-[1600px] mx-auto fade-in pb-20">
       
       <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 class="text-2xl font-bold text-text">Command Center</h1>
           <div class="flex items-center gap-3 mt-1">
@@ -285,7 +286,7 @@ export async function render() {
           ${Card({
             title: 'Pilot Deployment Setup',
             icon: 'rocket',
-            content: `
+            children: `
               <div class="space-y-3 pt-2">
                 <a href="#/onboarding-stock" class="block p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors group">
                   <div class="flex items-center gap-3">
@@ -298,14 +299,27 @@ export async function render() {
                     </div>
                   </div>
                 </a>
-                <a href="#/onboarding-balances" class="block p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors group">
+                
+                <a href="#/onboarding-customers" class="block p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors group">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                      <i data-lucide="scale" class="w-4 h-4 text-orange-600 group-hover:scale-110 transition-transform"></i>
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <i data-lucide="users" class="w-4 h-4 text-primary group-hover:scale-110 transition-transform"></i>
                     </div>
                     <div>
-                      <h4 class="text-sm font-semibold text-text">2. Opening Balances</h4>
-                      <p class="text-[10px] text-gray-500 mt-0.5">Initialize customer and dealer ledgers</p>
+                      <h4 class="text-sm font-semibold text-text">2. Customer Balances</h4>
+                      <p class="text-[10px] text-gray-500 mt-0.5">Enter outstanding customer dues</p>
+                    </div>
+                  </div>
+                </a>
+                
+                <a href="#/onboarding-dealers" class="block p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <i data-lucide="truck" class="w-4 h-4 text-primary group-hover:scale-110 transition-transform"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-text">3. Dealer Payables</h4>
+                      <p class="text-[10px] text-gray-500 mt-0.5">Enter amounts owed to suppliers</p>
                     </div>
                   </div>
                 </a>
@@ -416,6 +430,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) {
     window.lucide.createIcons();
   }
@@ -435,9 +464,17 @@ export function onMount(rootElement) {
     }
   };
 
-  rootElement.addEventListener('click', handleDashClick);
+  safeRootAdd('click', handleDashClick);
 
   return () => {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     rootElement.removeEventListener('click', handleDashClick);
   };
 }

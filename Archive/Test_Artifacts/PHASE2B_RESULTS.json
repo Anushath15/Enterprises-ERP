@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "suite": "Sales Workflow",
+      "status": "PASS"
+    },
+    {
+      "suite": "Purchase Workflow",
+      "status": "PASS"
+    },
+    {
+      "suite": "Sales Return Workflow",
+      "status": "PASS"
+    },
+    {
+      "suite": "Purchase Return Workflow",
+      "status": "PASS"
+    },
+    {
+      "suite": "Real Shop Simulation (100 txns)",
+      "status": "PASS"
+    }
+  ],
+  "bugs": []
+}

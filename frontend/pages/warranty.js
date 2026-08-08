@@ -176,6 +176,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
 
   const allWarranties = DataProvider.getWarranties() || [];
@@ -258,7 +273,7 @@ export function onMount(rootElement) {
     formDrawer.classList.remove('translate-x-full');
   };
 
-  window.addEventListener('openWarrantyDrawer', openForm);
+  safeWindowAdd('openWarrantyDrawer', openForm);
   const handleNewWarranty = () => openForm({ detail: null });
   rootElement.querySelector('[data-warranty-new]')?.addEventListener('click', handleNewWarranty);
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
@@ -317,6 +332,14 @@ export function onMount(rootElement) {
   }
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openWarrantyDrawer', openForm);
     if (wrtSearch) wrtSearch.removeEventListener('input', applyFilter);
     if (wrtStatusFilter) wrtStatusFilter.removeEventListener('change', applyFilter);

@@ -50,7 +50,7 @@ export async function render() {
             <button id="btn-export-excel" class="flex items-center gap-1.5 px-3.5 py-2 border border-border text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
               <i data-lucide="file-spreadsheet" class="w-4 h-4 text-success"></i> Export Excel
             </button>
-            <a href="#/stock_adjustments" class="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
+            <a href="#/stock-adjustments" class="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
               <i data-lucide="sliders" class="w-4 h-4"></i> Adjust Stock
             </a>
           `
@@ -102,7 +102,7 @@ export async function render() {
         children: TableWrapper({
           headers: ['ID', 'Product Name', 'Category', 'Current Stock', 'Location (Rack/Shelf)', 'Avg Cost', 'Selling Price', 'Total Value', 'Actions'],
           tbodyId: 'inv-tbody',
-          rowsHtml: products.length ? products.map(renderRow).join('') : `<tr><td colspan="9">${EmptyState({icon: 'package', title: 'No products found', subtitle: 'Try adjusting your filters'})}</td></tr>`
+          rowsHtml: products.length ? products.slice(0, 50).map(renderRow).join('') : `<tr><td colspan="9">${EmptyState({icon: 'package', title: 'No products found', subtitle: 'Try adjusting your filters'})}</td></tr>`
         })
       })}
     `
@@ -111,6 +111,13 @@ export async function render() {
 
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
+  
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({el, evt, handler});
+  };
   
   const allProducts = DataProvider.getProducts().filter(p => p.isActive !== false);
   const searchInput = rootElement.querySelector('#inv-search');
@@ -122,6 +129,20 @@ export function onMount(rootElement) {
   const renderRow = window._inventoryRenderRow;
 
   if (searchInput && tbody) {
+    let renderQueue = [];
+    let isRendering = false;
+
+    const processRenderQueue = () => {
+      if (renderQueue.length === 0) {
+        isRendering = false;
+        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        return;
+      }
+      const chunk = renderQueue.splice(0, 50);
+      tbody.insertAdjacentHTML('beforeend', chunk.map(renderRow).join(''));
+      requestAnimationFrame(processRenderQueue);
+    };
+
     const applyFilter = () => {
       const q = searchInput.value.toLowerCase().trim();
       const cat = categoryFilter?.value || '';
@@ -137,20 +158,28 @@ export function onMount(rootElement) {
       });
 
       if (countLabel) countLabel.textContent = `Showing ${filtered.length} products`;
-      tbody.innerHTML = filtered.length > 0 
-        ? filtered.map(renderRow).join('') 
-        : `<tr><td colspan="9">${EmptyState({icon: 'package', title: 'No products match your filters', subtitle: 'Try adjusting your search query'})}</td></tr>`;
       
-      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+      tbody.innerHTML = ''; // clear existing
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9">${EmptyState({icon: 'package', title: 'No products match your filters', subtitle: 'Try adjusting your search query'})}</td></tr>`;
+        renderQueue = [];
+        isRendering = false;
+      } else {
+        renderQueue = [...filtered];
+        if (!isRendering) {
+          isRendering = true;
+          processRenderQueue();
+        }
+      }
     };
 
-    searchInput.addEventListener('input', applyFilter);
-    categoryFilter?.addEventListener('change', applyFilter);
-    stockFilter?.addEventListener('change', applyFilter);
+    addListener(searchInput, 'input', applyFilter);
+    if (categoryFilter) addListener(categoryFilter, 'change', applyFilter);
+    if (stockFilter) addListener(stockFilter, 'change', applyFilter);
   }
 
   // Actions
-  tbody?.addEventListener('click', (e) => {
+  if (tbody) addListener(tbody, 'click', (e) => {
     const purchaseBtn = e.target.closest('.purchase-stock-btn');
     if (purchaseBtn) {
       const id = purchaseBtn.getAttribute('data-id');
@@ -182,7 +211,7 @@ export function onMount(rootElement) {
 
   const btnExportExcel = rootElement.querySelector('#btn-export-excel');
   if (btnExportExcel) {
-    btnExportExcel.addEventListener('click', () => {
+    addListener(btnExportExcel, 'click', () => {
       if (!window.XLSX) {
         NotificationService.warning('SheetJS (XLSX) library not loaded.');
         return;
@@ -209,5 +238,10 @@ export function onMount(rootElement) {
     });
   }
 
-  return function cleanup() {};
+  return function cleanup() {
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler);
+    });
+    __listeners.length = 0;
+  };
 }

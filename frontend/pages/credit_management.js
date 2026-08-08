@@ -201,6 +201,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   const overlay = rootElement.querySelector('#credit-drawer-overlay');
   const formDrawer = rootElement.querySelector('#credit-form-drawer');
   const closeBtns = rootElement.querySelectorAll('.close-credit-drawer');
@@ -281,13 +296,14 @@ export function onMount(rootElement) {
           <div><p class="text-[10px] text-gray-500 uppercase tracking-wide">Phone</p><p class="font-semibold text-text">${escapeHtml(cust.phone || '-')}</p></div>
         </div>`;
 
-      // Load real payment history from invoices
-      const invoices = DataProvider.getSalesInvoices().filter(inv => inv.customerId === currentCustomerId && inv.amountPaid > 0);
+      // AUDIT-H04: show recorded credit payments (cash collections) + paid invoices
+      const payments = (DataProvider.getCreditPayments() || [])
+        .filter(p => p.customerId === currentCustomerId)
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       const payHistTbody = rootElement.querySelector('#credit-payment-history');
       if (payHistTbody) {
-        payHistTbody.innerHTML = invoices.length > 0
-          ? invoices.slice(0, 10).map(inv => `<tr><td class="px-3 py-2 text-text">${escapeHtml(inv.date || '-')}</td><td class="px-3 py-2 text-gray-600">${escapeHtml(inv.paymentMethod || 'Cash')} (${escapeHtml(inv.id)})</td><td class="px-3 py-2 text-right font-medium text-success">+ ₹${Number(inv.amountPaid || 0).toLocaleString('en-IN')}</td></tr>`).join('')
-          : '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-400">No payment records found</td></tr>';
+        const paymentRows = payments.slice(0, 10).map(p => `<tr><td class="px-3 py-2 text-text">${escapeHtml(p.date || '-')}</td><td class="px-3 py-2 text-gray-600">${escapeHtml(p.method || 'Cash')} payment</td><td class="px-3 py-2 text-right font-medium text-success">+ ₹${Number(p.amount || 0).toLocaleString('en-IN')}</td></tr>`).join('');
+        payHistTbody.innerHTML = paymentRows || '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-400">No payment records found</td></tr>';
       }
     }
     overlay.classList.remove('opacity-0', 'pointer-events-none');
@@ -307,20 +323,36 @@ export function onMount(rootElement) {
     if (!currentCustomerId) return;
     const amount = parseFloat(rootElement.querySelector('#credit-payment-amount')?.value) || 0;
     if (amount <= 0) { NotificationService.warning('Please enter a valid payment amount.'); return; }
+    const cust = DataProvider.getCustomerById(currentCustomerId);
+    if (!cust) { NotificationService.error('Customer not found.'); return; }
+    if (amount > (cust.outstanding || 0)) {
+      NotificationService.error(`Payment cannot exceed outstanding balance of ₹${(cust.outstanding || 0).toLocaleString('en-IN')}.`);
+      return;
+    }
 
     try {
-      DataProvider.updateCustomerBalance(currentCustomerId, -amount);
+      const payment = {
+        customerId: currentCustomerId,
+        customerName: cust.name,
+        date: rootElement.querySelector('#credit-payment-date')?.value || new Date().toISOString().split('T')[0],
+        amount,
+        method: rootElement.querySelector('#credit-payment-method')?.value || 'Cash',
+        reference: rootElement.querySelector('#credit-payment-ref')?.value || '',
+        notes: rootElement.querySelector('#credit-payment-notes')?.value || ''
+      };
+      // AUDIT-H04: persist the payment record AND sync the customer ledger
+      DataProvider.saveCreditPayment(payment);
       closeAll();
       // In-place update the row
-      const cust = DataProvider.getCustomerById(currentCustomerId);
-      if (cust) {
+      const updated = DataProvider.getCustomerById(currentCustomerId);
+      if (updated) {
         const row = tbody?.querySelector(`tr[data-credit-row="${currentCustomerId}"]`);
         if (row) {
           const outstandingTd = row.querySelectorAll('td')[1];
-          if (outstandingTd) outstandingTd.textContent = '₹' + (cust.outstanding || 0).toLocaleString('en-IN');
+          if (outstandingTd) outstandingTd.textContent = '₹' + (updated.outstanding || 0).toLocaleString('en-IN');
         }
         // Remove row if outstanding is now 0
-        if ((cust.outstanding || 0) <= 0) {
+        if ((updated.outstanding || 0) <= 0) {
           const rowToRemove = tbody?.querySelector(`tr[data-credit-row="${currentCustomerId}"]`);
           if (rowToRemove) { rowToRemove.style.opacity = '0'; setTimeout(() => rowToRemove.remove(), 300); }
         }
@@ -333,7 +365,7 @@ export function onMount(rootElement) {
   const saveBtn = rootElement.querySelector('#save-credit-payment-btn');
   if (saveBtn) saveBtn.addEventListener('click', handleSavePayment);
 
-  window.addEventListener('openCreditDrawer', openForm);
+  safeWindowAdd('openCreditDrawer', openForm);
 
   const handleCloseClick = () => closeAll();
   closeBtns.forEach(btn => btn.addEventListener('click', handleCloseClick));
@@ -345,6 +377,14 @@ export function onMount(rootElement) {
 
   // Cleanup: prevent duplicate listeners on back-navigation
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openCreditDrawer', openForm);
     if (creditSearch) creditSearch.removeEventListener('input', handleSearchInput);
     if (creditStatusFilter) creditStatusFilter.removeEventListener('change', applyFilter);

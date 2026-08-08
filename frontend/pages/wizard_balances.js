@@ -5,6 +5,7 @@ import { NotificationService } from '../services/notificationService.js';
  */
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   return `
@@ -82,6 +83,13 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const addListener = (el, evt, handler) => {
+    if (!el) return;
+    el.addEventListener(evt, handler);
+    __listeners.push({ el, evt, handler });
+  };
+
   let currentTab = 'customers';
   
   const tabs = rootElement.querySelectorAll('#wizard-tabs button');
@@ -108,8 +116,8 @@ export function onMount(rootElement) {
     
     tbody.innerHTML = sorted.map(item => `
       <tr>
-        <td class="px-4 py-2 text-sm font-medium text-text">${item.name}</td>
-        <td class="px-4 py-2 text-sm text-gray-500">${item.phone || '-'}</td>
+        <td class="px-4 py-2 text-sm font-medium text-text">${escapeHtml(item.name)}</td>
+        <td class="px-4 py-2 text-sm text-gray-500">${escapeHtml(item.phone || '-')}</td>
         <td class="px-4 py-2 text-sm font-bold text-danger text-right">₹${Number(item.outstanding || 0).toLocaleString('en-IN')}</td>
       </tr>
     `).join('');
@@ -137,12 +145,15 @@ export function onMount(rootElement) {
     renderList();
   };
   
-  tabs.forEach(t => t.addEventListener('click', () => switchTab(t.getAttribute('data-tab'))));
+  tabs.forEach(t => {
+    const handler = () => switchTab(t.getAttribute('data-tab'));
+    addListener(t, 'click', handler);
+  });
   
   const formEl = rootElement.querySelector('#wizard-form-area');
   if (formEl) DraftManager.init('wizardBalances', formEl);
 
-  rootElement.querySelector('#btn-add-ob').addEventListener('click', () => {
+  const handleAdd = () => {
     const name = nameInp.value.trim();
     if (!name) {
       NotificationService.warning('Name is required.');
@@ -182,9 +193,14 @@ export function onMount(rootElement) {
     } catch (e) {
       NotificationService.error(e.message);
     }
-  });
+  };
+  addListener(rootElement.querySelector('#btn-add-ob'), 'click', handleAdd);
   
   renderList();
   
   if (window.lucide) window.lucide.createIcons({ nodes: [rootElement] });
+
+  return function cleanup() {
+    __listeners.forEach(l => l.el.removeEventListener(l.evt, l.handler));
+  };
 }

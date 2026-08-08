@@ -12,13 +12,23 @@ export const TransactionCalculator = {
       const price = parseFloat(item[priceField]) || 0;
       const itemDisc = parseFloat(item.discount) || 0;
       const gstPercent = parseFloat(item.gst) || 0;
+      const mode = item.pricingMode || 'inclusive'; // fallback to inclusive for backward compatibility
 
       // Line logic
-      const gross = qty * price;
-      const discAmt = gross * (itemDisc / 100);
-      const taxable = gross - discAmt;
-      const gstAmt = taxable * (gstPercent / 100);
-      const lineTotal = taxable + gstAmt;
+      const rawGross = qty * price;
+      const discAmt = rawGross * (itemDisc / 100);
+      const amountAfterDisc = rawGross - discAmt;
+
+      let taxable = 0;
+      let gstAmt = 0;
+
+      if (mode === 'inclusive') {
+        taxable = amountAfterDisc / (1 + (gstPercent / 100));
+        gstAmt = amountAfterDisc - taxable;
+      } else {
+        taxable = amountAfterDisc;
+        gstAmt = taxable * (gstPercent / 100);
+      }
 
       subtotal += taxable;
       taxAmount += gstAmt;
@@ -27,10 +37,7 @@ export const TransactionCalculator = {
     const docDiscountAmt = subtotal * (parseFloat(discount) / 100);
     const finalTaxable = subtotal - docDiscountAmt;
 
-    // We assume taxAmount is already computed linearly per line above, but doc discount might reduce it proportionately
-    // For ERP standard, usually line discounts apply first. Document discount applies to final sum.
-    // If doc discount applies, the GST should technically be reduced too.
-    // For simplicity following the existing purchase calculator:
+    // Adjust tax if document level discount applied proportionally
     const adjustedTax = taxAmount * (1 - (parseFloat(discount) / 100));
 
     let grandTotal = finalTaxable + adjustedTax;
@@ -44,7 +51,34 @@ export const TransactionCalculator = {
       discountAmount: parseFloat(docDiscountAmt.toFixed(2)),
       taxAmount: parseFloat(adjustedTax.toFixed(2)),
       roundOff: parseFloat(ro.toFixed(2)),
-      grandTotal: parseFloat(grandTotal.toFixed(2))
+      grandTotal: Math.round(grandTotal)
     };
+  },
+
+  calculateLine(item, priceField = 'purchasePrice') {
+    const qty = parseFloat(item.qty) || 0;
+    const price = parseFloat(item[priceField]) || 0;
+    const itemDisc = parseFloat(item.discount) || 0;
+    const gstPercent = parseFloat(item.gst) || 0;
+    const mode = item.pricingMode || 'inclusive';
+
+    const rawGross = qty * price;
+    const discAmt = rawGross * (itemDisc / 100);
+    const amountAfterDisc = rawGross - discAmt;
+
+    let taxable = 0;
+    let gstAmt = 0;
+
+    if (mode === 'inclusive') {
+      taxable = amountAfterDisc / (1 + (gstPercent / 100));
+      gstAmt = amountAfterDisc - taxable;
+    } else {
+      taxable = amountAfterDisc;
+      gstAmt = taxable * (gstPercent / 100);
+    }
+
+    const lineTotal = taxable + gstAmt;
+
+    return { gstAmt, lineTotal, taxable };
   }
 };

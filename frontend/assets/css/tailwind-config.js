@@ -6,14 +6,14 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        primary: '#2563EB',
-        success: '#16A34A',
-        warning: '#F59E0B',
-        danger: '#DC2626',
-        bg: '#F8FAFC',
-        card: '#FFFFFF',
-        text: '#1F2937',
-        border: '#E5E7EB',
+        primary: 'var(--color-primary)',
+        success: 'var(--color-success)',
+        warning: 'var(--color-warning)',
+        danger: 'var(--color-danger)',
+        bg: 'var(--color-bg)',
+        card: 'var(--color-card)',
+        text: 'var(--color-text)',
+        border: 'var(--color-border)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

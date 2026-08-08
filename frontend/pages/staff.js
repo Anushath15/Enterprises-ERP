@@ -129,6 +129,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
 
   let allStaff = DataProvider.getStaff() || [];
@@ -198,7 +213,7 @@ export function onMount(rootElement) {
     formDrawer.classList.remove('translate-x-full');
   };
 
-  window.addEventListener('openStaffDrawer', openForm);
+  safeWindowAdd('openStaffDrawer', openForm);
   const handleNewStaff = () => openForm({ detail: null });
   rootElement.querySelector('[data-staff-new]')?.addEventListener('click', handleNewStaff);
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
@@ -253,6 +268,14 @@ export function onMount(rootElement) {
   }
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openStaffDrawer', openForm);
     if (searchInput) searchInput.removeEventListener('input', handleSearch);
     if (tbody) tbody.removeEventListener('click', handleRowClick);

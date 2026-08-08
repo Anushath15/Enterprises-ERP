@@ -130,6 +130,21 @@ export async function render() {
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
   
   let allAdjustments = DataProvider.getStockAdjustments() || [];
@@ -232,7 +247,7 @@ export function onMount(rootElement) {
   };
   productSelect.addEventListener('change', handleProductChange);
 
-  window.addEventListener('openAdjDrawer', openDrawer);
+  safeWindowAdd('openAdjDrawer', openDrawer);
 
   const handleSave = () => {
     const productId = productSelect.value;
@@ -273,6 +288,14 @@ export function onMount(rootElement) {
   rootElement.querySelector('#btn-save-adj').addEventListener('click', handleSave);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openAdjDrawer', openDrawer);
     searchInput.removeEventListener('input', handleSearch);
     closeBtns.forEach(btn => btn.removeEventListener('click', closeDrawer));

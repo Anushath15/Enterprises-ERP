@@ -19,7 +19,7 @@ export const LocalStorageService = {
       return true;
     } catch (error) {
       console.error(`Error saving ${key} to localStorage`, error);
-      return false;
+      throw new Error('Storage capacity exceeded or unavailable.');
     }
   },
 

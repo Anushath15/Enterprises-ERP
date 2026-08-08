@@ -1,6 +1,6 @@
 import { TransactionActions } from './TransactionActions.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
-export const EntityLookup = (config) => {
+export const EntitySelector = (config) => {
   return {
     render() {
       const state = config.store.getState();

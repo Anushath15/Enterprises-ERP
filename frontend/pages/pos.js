@@ -123,28 +123,47 @@ export async function render() {
             <div class="mb-4">
               <p class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Payment Mode</p>
               <div class="grid grid-cols-3 gap-2" id="payment-modes">
-                <button data-mode="Cash" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border-2 border-primary bg-primary/5 active">
+                <button data-mode="Cash" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border-2 border-primary bg-primary/5 active transition-all">
                   <i data-lucide="banknote" class="w-5 h-5 text-primary mb-1"></i>
                   <span class="text-[10px] font-bold text-primary">Cash</span>
                 </button>
-                <button data-mode="UPI" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-colors">
+                <button data-mode="UPI" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-all">
                   <i data-lucide="smartphone" class="w-5 h-5 mb-1"></i>
                   <span class="text-[10px] font-medium">UPI</span>
                 </button>
-                <button data-mode="Credit" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-colors">
+                <button data-mode="Credit" class="payment-btn flex flex-col items-center justify-center p-2.5 rounded-lg border border-border bg-white text-gray-500 hover:border-primary/50 transition-all">
                   <i data-lucide="credit-card" class="w-5 h-5 mb-1"></i>
                   <span class="text-[10px] font-medium">Credit</span>
                 </button>
               </div>
+              <div id="split-payment-container" class="mt-3 bg-gray-50 rounded-lg p-3 border border-border transition-all">
+                <label class="flex items-center gap-2 cursor-pointer mb-1">
+                  <input type="checkbox" id="enable-split-payment" class="w-4 h-4 rounded border-gray-300 text-primary">
+                  <span class="text-xs font-semibold text-gray-700">Partial Payment (Split with Credit)</span>
+                </label>
+                <div id="split-amount-wrapper" class="hidden flex items-center gap-3 mt-2 pt-2 border-t border-gray-200">
+                   <div class="flex-1">
+                     <label class="text-[10px] text-gray-500 font-semibold uppercase block mb-1">Amount Received (₹)</label>
+                     <input type="number" id="split-amount-input" class="w-full px-2 py-1.5 border border-border rounded text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="0">
+                   </div>
+                   <div class="flex-1 text-right">
+                     <p class="text-[10px] text-gray-500 font-semibold uppercase mb-1">Balance to Credit</p>
+                     <p class="text-sm font-bold text-danger" id="split-credit-amount">₹0.00</p>
+                   </div>
+                </div>
+              </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="grid grid-cols-2 gap-2">
-              <button id="btn-save-invoice" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
-                <i data-lucide="save" class="w-4 h-4"></i> Save (F2)
+            <div class="grid grid-cols-3 gap-2">
+              <button id="btn-save-invoice" class="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-white border border-border text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm" title="Save (F2 or Ctrl+S)">
+                <i data-lucide="save" class="w-4 h-4"></i> Save
               </button>
-              <button id="btn-print-last" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-border text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                <i data-lucide="printer" class="w-4 h-4"></i> Print Last
+              <button id="btn-save-print" class="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm" title="Save & Print (Enter)">
+                <i data-lucide="printer" class="w-4 h-4"></i> Save & Print
+              </button>
+              <button id="btn-print-preview" class="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-white border border-border text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm" title="Print Preview (Ctrl+P)">
+                <i data-lucide="eye" class="w-4 h-4"></i> Preview
               </button>
             </div>
           </div>
@@ -180,12 +199,46 @@ export async function render() {
       </div>
     </div>
 
+    <!-- Print Preview Modal -->
+    <div id="print-preview-modal-overlay" class="fixed inset-0 bg-black/40 z-[70] opacity-0 pointer-events-none transition-opacity duration-200 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-[400px] max-w-[92vw] transform transition-all scale-95 opacity-0 flex flex-col max-h-[90vh]" id="print-preview-modal">
+        <div class="p-4 border-b border-border flex items-center justify-between shrink-0">
+          <h3 class="text-base font-semibold text-text flex items-center gap-2">
+            <i data-lucide="printer" class="w-4 h-4 text-primary"></i> Print Preview
+          </h3>
+          <button id="close-preview-modal" class="text-gray-400 hover:text-danger hover:bg-danger/10 p-1 rounded transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="p-4 overflow-y-auto bg-gray-50 flex-1 flex justify-center">
+           <div id="preview-receipt-content" class="bg-white p-4 shadow-sm border border-gray-200" style="width: 300px; min-height: 400px;">
+              <!-- Receipt rendered here -->
+           </div>
+        </div>
+        <div class="p-4 border-t border-border flex items-center justify-between gap-2 shrink-0 bg-white rounded-b-xl">
+           <button id="btn-preview-download" class="flex-1 px-3 py-2 text-sm text-gray-700 bg-white border border-border rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium">
+             <i data-lucide="download" class="w-4 h-4"></i> Download PDF
+           </button>
+           <button id="btn-preview-print" class="flex-1 px-3 py-2 text-sm text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 font-medium">
+             <i data-lucide="printer" class="w-4 h-4"></i> Print Receipt
+           </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Print Receipt Area (Hidden, only shown during print) -->
     <div id="print-receipt-area" style="display:none;"></div>
   `;
 }
 
 export function onMount(rootElement) {
+  const __listeners = [];
+  const addListener = (el, evt, handler, options = false) => {
+    if (!el) return;
+    el.addEventListener(evt, handler, options);
+    __listeners.push({el, evt, handler, options});
+  };
+
   // --- STATE ---
   let cart = [];
   let selectedCustomer = null;
@@ -197,10 +250,13 @@ export function onMount(rootElement) {
   let activeCategory = 'All Products';
   let searchQuery = '';
   let lastSavedInvoice = null;
+  let activeEstimateId = null;
 
   // Load data
   allProducts = DataProvider.getProducts().filter(p => p.isActive);
   allCustomers = DataProvider.getCustomers().filter(c => c.isActive !== false);
+  // AUDIT-H01: precompute product lookup for fast stock checks in cart qty edits
+  const productById = new Map(allProducts.map(p => [p.id, p]));
 
   const savePosDraft = () => {
     DraftManager.saveDraft('pos', {
@@ -212,16 +268,41 @@ export function onMount(rootElement) {
     });
   };
 
-  const draft = DraftManager.getDraft('pos');
-  if (draft) {
-    cart = draft.cart || [];
-    selectedCustomer = draft.selectedCustomer || null;
-    paymentMode = draft.paymentMode || 'Cash';
-    activeCategory = draft.activeCategory || 'All Products';
-    searchQuery = draft.searchQuery || '';
-    if ((cart.length > 0 || selectedCustomer) && window.showToast) {
-       setTimeout(() => NotificationService.info(), 500);
-    }
+  const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  const convertEstimateId = hashParams.get('estimateId');
+
+  if (convertEstimateId) {
+     const estimations = DataProvider.getEstimations();
+     const estimation = estimations.find(q => q.id === convertEstimateId);
+     if (estimation) {
+       if (estimation.status === 'Converted') {
+           NotificationService.error('Estimation has already been converted to an invoice.');
+           window.history.replaceState(null, null, '#/pos');
+           return;
+       }
+       cart = estimation.items || [];
+       selectedCustomer = { id: estimation.customerId, name: estimation.customerName };
+       paymentMode = 'Cash'; // Default to cash for new invoice
+       activeEstimateId = convertEstimateId; // <-- BUG FIX
+       NotificationService.success(`Loaded Estimation: ${estimation.id}`);
+     } else {
+       NotificationService.error('Estimation not found!');
+     }
+     // Clear URL so refresh doesn't reload it
+     window.history.replaceState(null, null, '#/pos');
+  } else {
+     const draft = DraftManager.getDraft('pos');
+     if (draft) {
+       cart = draft.cart || [];
+       selectedCustomer = draft.selectedCustomer || null;
+       paymentMode = draft.paymentMode || 'Cash';
+       activeCategory = draft.activeCategory || 'All Products';
+       searchQuery = draft.searchQuery || '';
+     }
+  }
+
+  if ((cart.length > 0 || selectedCustomer) && window.showToast) {
+     setTimeout(() => NotificationService.info('Draft restored — previous bill loaded.'), 500);
   }
 
   // =====================
@@ -319,22 +400,78 @@ export function onMount(rootElement) {
 
   const getCartTotals = () => {
     let subtotal = 0, taxTotal = 0, totalDiscount = 0, cgstTotal = 0, sgstTotal = 0, taxableAmount = 0;
+    
+    // 1. Calculate cartTotalBeforeDiscount
+    let cartTotalBeforeDiscount = 0;
     cart.forEach(item => {
-      const lineBase = item.price * item.qty;
-      const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
-      const lineAfterDisc = lineBase - lineDisc;
-      const lineTax = lineAfterDisc * ((item.taxRate || 0) / 100);
+       cartTotalBeforeDiscount += (item.qty * item.price);
+    });
+
+    // Determine global cart discount in flat value
+    let globalCartDiscount = 0;
+    if (discountVal > 0 && cartTotalBeforeDiscount > 0) {
+       if (discountType === 'percent') {
+          globalCartDiscount = cartTotalBeforeDiscount * (discountVal / 100);
+       } else {
+          globalCartDiscount = Math.min(discountVal, cartTotalBeforeDiscount);
+       }
+    }
+
+    // 2. Calculate cartDiscountRatio
+    let cartDiscountRatio = cartTotalBeforeDiscount > 0 ? (globalCartDiscount / cartTotalBeforeDiscount) : 0;
+
+    cart.forEach(item => {
+      const mode = item.pricingMode || 'inclusive';
+      const rawBase = item.price * item.qty;
       
-      subtotal += lineBase;
-      totalDiscount += lineDisc;
-      taxableAmount += lineAfterDisc;
+      // Calculate item's specific discount
+      const itemDisc = rawBase * ((item.discountPercent || 0) / 100);
+      
+      // 3. Compute itemDiscountShare (Global)
+      const globalDiscShare = rawBase * cartDiscountRatio;
+      
+      // 4. Compute netItemValue
+      const totalItemDisc = itemDisc + globalDiscShare;
+      const rawAfterDisc = rawBase - totalItemDisc;
+      
+      const gstFactor = 1 + ((item.taxRate || 0) / 100);
+
+      let lineTaxable = 0;
+      let lineTax = 0;
+      let lineTaxableBeforeDisc = 0;
+      let lineDiscTaxable = 0;
+
+      // 5. Calculate GST on netItemValue
+      if (mode === 'inclusive') {
+        lineTaxableBeforeDisc = rawBase / gstFactor;
+        lineDiscTaxable = totalItemDisc / gstFactor;
+        lineTaxable = rawAfterDisc / gstFactor;
+        lineTax = rawAfterDisc - lineTaxable;
+      } else {
+        lineTaxableBeforeDisc = rawBase;
+        lineDiscTaxable = totalItemDisc;
+        lineTaxable = rawAfterDisc;
+        lineTax = lineTaxable * ((item.taxRate || 0) / 100);
+      }
+      
+      subtotal += lineTaxableBeforeDisc;
+      totalDiscount += lineDiscTaxable;
+      taxableAmount += lineTaxable;
       taxTotal += lineTax;
       cgstTotal += (lineTax / 2);
       sgstTotal += (lineTax / 2);
     });
     
     const grandTotal = taxableAmount + taxTotal;
-    return { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal };
+    return { 
+      subtotal: Number(subtotal.toFixed(2)), 
+      totalDiscount: Number(totalDiscount.toFixed(2)), 
+      taxableAmount: Number(taxableAmount.toFixed(2)), 
+      taxTotal: Number(taxTotal.toFixed(2)), 
+      cgstTotal: Number(cgstTotal.toFixed(2)), 
+      sgstTotal: Number(sgstTotal.toFixed(2)), 
+      grandTotal: Math.round(grandTotal) // Grand Total rounded to nearest Rupee
+    };
   };
 
   const updateCartTotalsUI = () => {
@@ -360,56 +497,132 @@ export function onMount(rootElement) {
     if (taxEl) taxEl.textContent = `+ ₹${taxTotal.toFixed(2)}`;
     
     rootElement.querySelector('#summary-total').textContent = `₹${grandTotal.toFixed(2)}`;
+    
+    const splitInput = rootElement.querySelector('#split-amount-input');
+    const splitCredit = rootElement.querySelector('#split-credit-amount');
+    if (splitInput && splitCredit) {
+      const received = Number(splitInput.value) || 0;
+      const balance = Math.max(0, grandTotal - received);
+      splitCredit.textContent = `₹${balance.toFixed(2)}`;
+    }
+
     savePosDraft();
+  };
+
+  const renderCartItemHTML = (item) => {
+    const mode = item.pricingMode || 'inclusive';
+    const rawBase = item.price * item.qty;
+    const rawDisc = rawBase * ((item.discountPercent || 0) / 100);
+    const rawAfterDisc = rawBase - rawDisc;
+    const gstFactor = 1 + ((item.taxRate || 0) / 100);
+    
+    let lineTaxable = 0, lineTax = 0;
+    if (mode === 'inclusive') {
+      lineTaxable = rawAfterDisc / gstFactor;
+      lineTax = rawAfterDisc - lineTaxable;
+    } else {
+      lineTaxable = rawAfterDisc;
+      lineTax = lineTaxable * ((item.taxRate || 0) / 100);
+    }
+    const itemTotal = (lineTaxable + lineTax).toFixed(2);
+
+    return `
+      <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${escapeHtml(item.id)}">
+        <div class="flex items-center justify-between">
+           <div class="flex-1 min-w-0">
+             <p class="text-xs font-semibold text-text truncate">${escapeHtml(item.name)}</p>
+             <p class="text-[10px] text-gray-400">₹${item.price} @ ${item.taxRate || 0}% GST (${mode})</p>
+           </div>
+           <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
+             <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+           </button>
+        </div>
+        
+        <div class="flex items-center justify-between gap-2 mt-1">
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[10px] text-gray-400">Qty:</span>
+            <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.qty)}" min="1" max="${productById.get(item.id) ? productById.get(item.id).stock : ''}">
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[10px] text-gray-400">Disc %:</span>
+            <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.discountPercent || 0)}" min="0" max="100">
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-bold text-text row-total">₹${itemTotal}</p>
+          </div>
+        </div>
+      </div>`;
   };
 
   const renderCart = () => {
     const container = rootElement.querySelector('#cart-container');
     if (cart.length === 0) {
       container.innerHTML = `
-        <div class="p-8 text-center text-gray-400 text-sm flex flex-col items-center gap-2">
-          <i data-lucide="shopping-cart" class="w-8 h-8 text-gray-200"></i>
-          <span>Cart is empty. Click a product to add.</span>
+        <div class="p-8 text-center text-gray-400 text-sm flex flex-col items-center gap-3" id="empty-cart-msg">
+          <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-1">
+             <i data-lucide="shopping-cart" class="w-8 h-8 text-gray-300"></i>
+          </div>
+          <span class="font-medium text-gray-500">Cart is empty</span>
+          <span class="text-xs text-gray-400">Scan barcode or click a product to add.</span>
         </div>`;
     } else {
-      container.innerHTML = cart.map(item => {
-        const lineBase = item.price * item.qty;
-        const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
-        const itemTotal = (lineBase - lineDisc).toFixed(2);
-        return `
-          <div class="cart-item flex flex-col gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors" data-id="${escapeHtml(item.id)}">
-            <div class="flex items-center justify-between">
-               <div class="flex-1 min-w-0">
-                 <p class="text-xs font-semibold text-text truncate">${escapeHtml(item.name)}</p>
-                 <p class="text-[10px] text-gray-400">₹${item.price} @ ${item.taxRate || 0}% GST</p>
-               </div>
-               <button class="cart-del-btn text-gray-300 hover:text-danger transition-colors ml-1">
-                 <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
-               </button>
-            </div>
-            
-            <div class="flex items-center justify-between gap-2 mt-1">
-              <div class="flex items-center gap-1 shrink-0">
-                <span class="text-[10px] text-gray-400">Qty:</span>
-                <input type="number" class="pos-qty-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.qty)}" min="1">
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <span class="text-[10px] text-gray-400">Disc %:</span>
-                <input type="number" class="pos-disc-input w-12 h-6 px-1 text-center text-xs border border-border rounded bg-white focus:border-primary focus:outline-none" value="${escapeHtml(item.discountPercent || 0)}" min="0" max="100">
-              </div>
-              <div class="text-right shrink-0">
-                <p class="text-sm font-bold text-text row-total">₹${itemTotal}</p>
-              </div>
-            </div>
-          </div>`;
-      }).join('');
+      container.innerHTML = cart.map(renderCartItemHTML).join('');
     }
     if (window.lucide) window.lucide.createIcons({ nodes: [container] });
     updateCartTotalsUI();
   };
 
+  const updateProductBadgeDOM = (productId, qty) => {
+    const productCard = rootElement.querySelector(`.pos-product[data-id="${productId}"]`);
+    if (!productCard) return;
+    let badge = productCard.querySelector('.cart-badge');
+    if (qty > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'cart-badge absolute top-1 right-1 w-5 h-5 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center';
+        productCard.appendChild(badge);
+      }
+      badge.textContent = qty;
+    } else if (badge) {
+      badge.remove();
+    }
+  };
+
+  const addCartItemDOM = (item) => {
+    const container = rootElement.querySelector('#cart-container');
+    const emptyMsg = container.querySelector('#empty-cart-msg');
+    if (emptyMsg) emptyMsg.remove();
+    container.insertAdjacentHTML('afterbegin', renderCartItemHTML(item));
+    if (window.lucide) window.lucide.createIcons({ nodes: [container.firstElementChild] });
+    updateCartTotalsUI();
+    updateProductBadgeDOM(item.id, item.qty);
+  };
+
+  const updateCartItemDOM = (item) => {
+    const container = rootElement.querySelector('#cart-container');
+    const row = container.querySelector(`.cart-item[data-id="${item.id}"]`);
+    if (row) {
+      const qtyInput = row.querySelector('.pos-qty-input');
+      if (qtyInput) qtyInput.value = item.qty;
+      const lineBase = item.price * item.qty;
+      const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
+      row.querySelector('.row-total').textContent = `₹${(lineBase - lineDisc).toFixed(2)}`;
+    }
+    updateCartTotalsUI();
+    updateProductBadgeDOM(item.id, item.qty);
+  };
+
+  const removeCartItemDOM = (productId) => {
+    const container = rootElement.querySelector('#cart-container');
+    const row = container.querySelector(`.cart-item[data-id="${productId}"]`);
+    if (row) row.remove();
+    if (cart.length === 0) renderCart(); // show empty state
+    else updateCartTotalsUI();
+    updateProductBadgeDOM(productId, 0);
+  };
+
   // Delegate input events without re-rendering to prevent cursor jump
-  rootElement.querySelector('#cart-container').addEventListener('input', (e) => {
+  addListener(rootElement.querySelector('#cart-container'), 'input', (e) => {
      const cartItemEl = e.target.closest('.cart-item');
      if (!cartItemEl) return;
      const id = cartItemEl.getAttribute('data-id');
@@ -417,18 +630,44 @@ export function onMount(rootElement) {
      if (!item) return;
 
      if (e.target.classList.contains('pos-qty-input')) {
-        item.qty = Number(e.target.value) || 1;
+        // AUDIT-H01: manual qty must never exceed available stock
+        const product = productById.get(id);
+        const maxQty = product ? Number(product.stock) : Infinity;
+        let qty = Number(e.target.value) || 1;
+        if (qty > maxQty) {
+          qty = maxQty;
+          e.target.value = maxQty;
+          if (maxQty <= 0) {
+            NotificationService.error(`${product?.name || 'Product'} is out of stock`);
+          } else {
+            NotificationService.warning(`Only ${maxQty} ${product?.unit || 'units'} available`);
+          }
+        }
+        item.qty = qty;
      } else if (e.target.classList.contains('pos-disc-input')) {
         item.discountPercent = Number(e.target.value) || 0;
      }
 
      // Update specific row total text
-     const lineBase = item.price * item.qty;
-     const lineDisc = lineBase * ((item.discountPercent || 0) / 100);
-     const itemTotal = (lineBase - lineDisc).toFixed(2);
+     const mode = item.pricingMode || 'inclusive';
+     const rawBase = item.price * item.qty;
+     const rawDisc = rawBase * ((item.discountPercent || 0) / 100);
+     const rawAfterDisc = rawBase - rawDisc;
+     const gstFactor = 1 + ((item.taxRate || 0) / 100);
+     
+     let lineTaxable = 0, lineTax = 0;
+     if (mode === 'inclusive') {
+       lineTaxable = rawAfterDisc / gstFactor;
+       lineTax = rawAfterDisc - lineTaxable;
+     } else {
+       lineTaxable = rawAfterDisc;
+       lineTax = lineTaxable * ((item.taxRate || 0) / 100);
+     }
+     const itemTotal = (lineTaxable + lineTax).toFixed(2);
      cartItemEl.querySelector('.row-total').textContent = `₹${itemTotal}`;
 
      updateCartTotalsUI();
+     updateProductBadgeDOM(item.id, item.qty);
   });
 
   // =====================
@@ -449,17 +688,20 @@ export function onMount(rootElement) {
         return;
       }
       existing.qty += 1;
+      updateCartItemDOM(existing);
     } else {
-      cart.push({
+      const newItem = {
         id: product.id,
         name: product.name,
         price: product.price,
         taxRate: product.gst || product.taxRate || 0,
-        qty: 1
-      });
+        pricingMode: product.sellingPricingMode || 'inclusive',
+        qty: 1,
+        discountPercent: 0
+      };
+      cart.unshift(newItem); // use unshift to add to top so user sees it
+      addCartItemDOM(newItem);
     }
-    renderCart();
-    renderProducts(); // refresh cart badges
   };
 
   const updateCartQty = (productId, delta) => {
@@ -475,10 +717,34 @@ export function onMount(rootElement) {
     }
     
     item.qty += delta;
-    if (item.qty <= 0) cart = cart.filter(i => i.id !== productId);
-    renderCart();
-    renderProducts();
+    if (item.qty <= 0) {
+      cart = cart.filter(i => i.id !== productId);
+      removeCartItemDOM(productId);
+    } else {
+      updateCartItemDOM(item);
+    }
   };
+
+  // Delegate cart delete
+  addListener(rootElement.querySelector('#cart-container'), 'click', (e) => {
+    const delBtn = e.target.closest('.cart-del-btn');
+    if (delBtn) {
+      const row = delBtn.closest('.cart-item');
+      if (row) {
+        const id = row.getAttribute('data-id');
+        cart = cart.filter(i => i.id !== id);
+        removeCartItemDOM(id);
+      }
+    }
+  });
+
+  // Delegate add to cart click
+  addListener(rootElement.querySelector('#product-grid'), 'click', (e) => {
+    const card = e.target.closest('.pos-product');
+    if (card && !card.classList.contains('cursor-not-allowed')) {
+      addToCart(card.getAttribute('data-id'));
+    }
+  });
 
   // =====================
   // CUSTOMER MODAL
@@ -537,12 +803,21 @@ export function onMount(rootElement) {
 
   const printReceipt = (invoice) => {
     if (!invoice) return;
+    // AUDIT-H02: legacy invoices may lack subtotal/taxableAmount/cgstTotal/sgstTotal.
+    // Normalize every numeric read so a reprint never throws on undefined.
+    const num = (v) => Number(v || 0);
     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
     const shopName = settings.shopName || 'Senthil Enterprises';
     const shopAddress = settings.address || '';
     const shopPhone = settings.phone || '';
     const gstin = settings.gstin || '';
     const date = new Date(invoice.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const subtotal = num(invoice.subtotal);
+    const discount = num(invoice.discount);
+    const taxableAmount = num(invoice.taxableAmount);
+    const cgstTotal = num(invoice.cgstTotal);
+    const sgstTotal = num(invoice.sgstTotal);
+    const totalAmount = num(invoice.totalAmount || invoice.total);
 
     const receiptArea = document.getElementById('print-receipt-area');
     receiptArea.innerHTML = `
@@ -557,26 +832,50 @@ export function onMount(rootElement) {
       <div style="font-size:11px;"><b>Payment:</b> ${escapeHtml(invoice.paymentMode)}</div>
       <div class="receipt-divider"></div>
       <table style="width: 100%; font-size: 10px;">
-        <tr><th style="text-align:left">Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr>
+        <tr><th style="text-align:left">Item</th><th style="text-align:right">Rate</th><th style="text-align:center">Qty</th><th style="text-align:center">CGST</th><th style="text-align:center">SGST</th><th style="text-align:right">Amount</th></tr>
         ${(invoice.items || []).map(item => {
-           const disc = item.discountAmount > 0 ? `<br><small style="color:#666">(-₹${item.discountAmount.toFixed(2)})</small>` : '';
+           const mode = item.pricingMode || 'inclusive';
+           const qty = num(item.qty);
+           const price = num(item.price);
+           const gstPercent = num(item.taxRate);
+           const gstFactor = 1 + (gstPercent / 100);
+           const rawLineTotal = qty * price;
+           const discountAmt = rawLineTotal * (num(item.discountPercent) / 100);
+           const rawAfterDisc = rawLineTotal - discountAmt;
+           let taxableAmount = 0, lineTax = 0, finalAmount = 0;
+
+           if (mode === 'inclusive') {
+             taxableAmount = rawAfterDisc / gstFactor;
+             lineTax = rawAfterDisc - taxableAmount;
+             finalAmount = rawAfterDisc;
+           } else {
+             taxableAmount = rawAfterDisc;
+             lineTax = taxableAmount * (gstPercent / 100);
+             finalAmount = taxableAmount + lineTax;
+           }
+           const rate = qty > 0 ? (taxableAmount / qty) : 0;
+           const halfGst = (gstPercent / 2).toFixed(1) + '%';
+           
+           const discHtml = discountAmt > 0 ? `<br><small style="color:#666">(-₹${discountAmt.toFixed(2)})</small>` : '';
            return `
           <tr>
-            <td style="font-size:10px;">${escapeHtml(item.name)}${disc}</td>
-            <td style="text-align:center">${item.qty}</td>
-            <td style="text-align:right">₹${item.price}</td>
-            <td style="text-align:right">₹${item.total.toFixed(2)}</td>
+            <td style="font-size:10px;">${escapeHtml(item.name)}${discHtml}</td>
+            <td style="text-align:right">₹${rate.toFixed(2)}</td>
+            <td style="text-align:center">${qty}</td>
+            <td style="text-align:center">${halfGst}</td>
+            <td style="text-align:center">${halfGst}</td>
+            <td style="text-align:right">₹${finalAmount.toFixed(2)}</td>
           </tr>`;
         }).join('')}
       </table>
       <div class="receipt-divider"></div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Subtotal</span><span>₹${invoice.subtotal.toFixed(2)}</span></div>
-      ${invoice.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${invoice.discount.toFixed(2)}</span></div>` : ''}
-      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${invoice.taxableAmount.toFixed(2)}</span></div>
-      ${invoice.cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${invoice.cgstTotal.toFixed(2)}</span></div>` : ''}
-      ${invoice.sgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>SGST</span><span>+ ₹${invoice.sgstTotal.toFixed(2)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Product Value</span><span>₹${subtotal.toFixed(2)}</span></div>
+      ${discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Item Discounts</span><span>- ₹${discount.toFixed(2)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Taxable Amount</span><span>₹${taxableAmount.toFixed(2)}</span></div>
+      ${cgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>CGST</span><span>+ ₹${cgstTotal.toFixed(2)}</span></div>` : ''}
+      ${sgstTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px;"><span>SGST</span><span>+ ₹${sgstTotal.toFixed(2)}</span></div>` : ''}
       <div class="receipt-divider"></div>
-      <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>GRAND TOTAL</span><span>₹${invoice.totalAmount.toFixed(2)}</span></div>
+      <div class="receipt-total" style="display:flex;justify-content:space-between;"><span>GRAND TOTAL</span><span>₹${totalAmount.toFixed(2)}</span></div>
       <div class="receipt-divider"></div>
       <div style="text-align:center;font-size:10px;margin-top:8px;">Thank you for shopping with us!</div>
       <div style="text-align:center;font-size:10px;">Please visit again.</div>`;
@@ -584,38 +883,244 @@ export function onMount(rootElement) {
     window.print();
   };
 
+  const getReceiptHtml = (invoice) => {
+    if (!invoice) return '';
+    const num = (v) => Number(v || 0);
+    const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+    const shopName = settings.shopName || 'Senthil Enterprises';
+    const shopAddress = settings.address || '';
+    const shopPhone = settings.phone || '';
+    const gstin = settings.gstin || '';
+    const date = new Date(invoice.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const subtotal = num(invoice.subtotal);
+    const discount = num(invoice.discount);
+    const totalAmount = num(invoice.totalAmount || invoice.total);
+    
+    // Fallback ID if not provided, though it shouldn't happen anymore
+    const invoiceId = invoice.id || 'DRAFT';
+
+    const showGstin = settings.showGstinOnInvoice !== false;
+    const showHsn = settings.showHsnCodeOnInvoice !== false;
+    const showPhone = settings.showCustomerPhoneOnInvoice !== false;
+    const showPayMode = settings.showPaymentModeOnInvoice !== false;
+    const showDiscount = settings.showDiscountOnInvoice !== false;
+
+    let hsnHeader = showHsn ? '<th style="text-align:center; padding: 4px; border-bottom: 1px dashed #ccc;">HSN</th>' : '';
+
+    const itemsHtml = (invoice.items || []).map((item, i) => {
+        const mode = item.pricingMode || 'inclusive';
+        const qty = num(item.qty);
+        const price = num(item.price);
+        const gstPercent = num(item.taxRate);
+        const gstFactor = 1 + (gstPercent / 100);
+        const rawLineTotal = qty * price;
+        const discountAmt = rawLineTotal * (num(item.discountPercent) / 100);
+        const rawAfterDisc = rawLineTotal - discountAmt;
+        
+        let itemTaxable = 0, lineTax = 0, finalAmount = 0;
+        if (mode === 'inclusive') {
+            itemTaxable = rawAfterDisc / gstFactor;
+            lineTax = rawAfterDisc - itemTaxable;
+            finalAmount = rawAfterDisc;
+        } else {
+            itemTaxable = rawAfterDisc;
+            lineTax = itemTaxable * (gstPercent / 100);
+            finalAmount = itemTaxable + lineTax;
+        }
+        
+        const rate = qty > 0 ? (itemTaxable / qty) : 0;
+        const discHtml = (showDiscount && discountAmt > 0) ? `<br><span style="font-size:9px;color:#555">(-₹${discountAmt.toFixed(2)})</span>` : '';
+        const hsnCell = showHsn ? `<td style="text-align:center; padding: 4px; border-bottom: 1px dashed #eee;">${escapeHtml(item.hsnCode || '-')}</td>` : '';
+
+        return `
+        <tr>
+            <td style="text-align:left; padding: 4px; border-bottom: 1px dashed #eee;">${i+1}</td>
+            <td style="text-align:left; padding: 4px; border-bottom: 1px dashed #eee;">${escapeHtml(item.name)}${discHtml}</td>
+            ${hsnCell}
+            <td style="text-align:right; padding: 4px; border-bottom: 1px dashed #eee;">₹${rate.toFixed(2)}</td>
+            <td style="text-align:center; padding: 4px; border-bottom: 1px dashed #eee;">${qty}</td>
+            <td style="text-align:center; padding: 4px; border-bottom: 1px dashed #eee;">${gstPercent}%</td>
+            <td style="text-align:right; padding: 4px; border-bottom: 1px dashed #eee;">₹${finalAmount.toFixed(2)}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 100%; margin: 0 auto; color: #000;">
+        <!-- Header -->
+        <div style="text-align:center; margin-bottom: 15px;">
+            ${settings.showLogoOnInvoice && settings.logoUrl ? `<img src="${settings.logoUrl}" style="max-height:60px; margin-bottom:5px;" />` : ''}
+            <h2 style="margin:0; font-size: 18px; font-weight: bold; text-transform: uppercase;">${escapeHtml(shopName)}</h2>
+            ${shopAddress ? `<div style="font-size: 12px; margin-top: 2px;">${escapeHtml(shopAddress)}</div>` : ''}
+            ${shopPhone ? `<div style="font-size: 12px; margin-top: 2px;">Ph: ${escapeHtml(shopPhone)}</div>` : ''}
+            ${(showGstin && gstin) ? `<div style="font-size: 12px; margin-top: 2px;"><b>GSTIN:</b> ${escapeHtml(gstin)}</div>` : ''}
+        </div>
+        
+        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 10px; font-size: 12px;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="vertical-align: top; width: 50%;">
+                        <div><b>Invoice No:</b> ${escapeHtml(invoiceId)}</div>
+                        <div><b>Date:</b> ${escapeHtml(date)}</div>
+                    </td>
+                    <td style="vertical-align: top; width: 50%; text-align: right;">
+                        <div><b>Customer:</b> ${escapeHtml(invoice.customerName || 'Walk-in')}</div>
+                        ${(showPhone && invoice.customerPhone) ? `<div><b>Phone:</b> ${escapeHtml(invoice.customerPhone)}</div>` : ''}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; padding: 4px; border-bottom: 1px dashed #ccc;">S.No</th>
+                    <th style="text-align:left; padding: 4px; border-bottom: 1px dashed #ccc;">Item Description</th>
+                    ${hsnHeader}
+                    <th style="text-align:right; padding: 4px; border-bottom: 1px dashed #ccc;">Rate</th>
+                    <th style="text-align:center; padding: 4px; border-bottom: 1px dashed #ccc;">Qty</th>
+                    <th style="text-align:center; padding: 4px; border-bottom: 1px dashed #ccc;">GST</th>
+                    <th style="text-align:right; padding: 4px; border-bottom: 1px dashed #ccc;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsHtml}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div style="border-top: 1px dashed #000; padding-top: 10px; font-size: 12px; margin-left: auto; width: 60%; min-width: 150px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;">
+                <span>Product Value:</span>
+                <span>₹${subtotal.toFixed(2)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;color:#d97706;">
+                <span>Discount:</span>
+                <span>- ₹${discount.toFixed(2)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:5px;">
+                <span>Total GST:</span>
+                <span>+ ₹${(cgstTotal + sgstTotal).toFixed(2)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;">
+                <span>Round Off:</span>
+                <span>₹${(totalAmount - (subtotal - discount + cgstTotal + sgstTotal)).toFixed(2)}</span>
+              </div>
+            
+            <div style="display:flex; justify-content:space-between; margin-top: 5px; padding-top: 5px; border-top: 1px solid #000; font-weight: bold; font-size: 14px;">
+                <span>Grand Total:</span>
+                <span>₹${totalAmount.toFixed(2)}</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-size: 11px; text-align: center;">
+            ${showPayMode ? `<div style="margin-bottom: 5px;">Payment Mode: <b>${escapeHtml(invoice.paymentMode)}</b></div>` : ''}
+            <div>Prepared By: <b>Cashier</b></div>
+            ${settings.footerMessage ? `<div style="margin-top: 10px;">${escapeHtml(settings.footerMessage)}</div>` : ''}
+            <div style="margin-top: 5px;">Thank You! Please visit again.</div>
+        </div>
+    </div>`;
+  };
+
+  
+  const openPrintPreview = (invoiceToPreview = null) => {
+    let invoice = invoiceToPreview;
+    if (!invoice) {
+       if (cart.length === 0) {
+         NotificationService.warning('Cart is empty. Nothing to preview.');
+         return;
+       }
+       invoice = buildInvoiceObject(true);
+    }
+    const html = getReceiptHtml(invoice);
+    const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+    
+    if (window.electronAPI && window.electronAPI.printPreview) {
+      window.electronAPI.printPreview(html, { paperSize: settings.paperSize || 'A4' });
+    } else {
+      // Fallback for browsers
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+  };
+
+  const closePrintPreview = () => { /* No-op, managed by electron */ };
+
+  const handleSaveAndPrint = () => {
+     const saved = saveInvoice();
+     if (saved) {
+       openPrintPreview(saved);
+     }
+  };
+
+  const reprintLastInvoice = () => {
+    if (lastSavedInvoice) {
+      openPrintPreview(lastSavedInvoice);
+    } else {
+      const invoices = DataProvider.getAll('invoices');
+      if (invoices && invoices.length > 0) {
+        const sorted = invoices.sort((a, b) => new Date(b.date) - new Date(a.date));
+        openPrintPreview(sorted[0]);
+      } else {
+        NotificationService.warning('No invoice available to reprint.');
+      }
+    }
+  };
+
+
   // =====================
   // SAVE INVOICE
   // =====================
 
-  const saveInvoice = () => {
-    if (cart.length === 0) {
-      NotificationService.warning('Cart is empty! Add products first.');
-      return;
-    }
-    if (paymentMode === 'Credit' && !selectedCustomer) {
-      NotificationService.warning('Please select a customer for Credit sale!');
-      return;
-    }
-
+  const buildInvoiceObject = (isDraft = false) => {
+    const state = JSON.parse(localStorage.getItem('erp_system_state') || '{}');
+    const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+    const prefix = settings.invoicePrefix || 'INV-';
+    const nextCount = (state.lastINVNumber || 0) + 1;
+    const mockId = `${prefix}${new Date().getFullYear()}-${String(nextCount).padStart(6, '0')}`;
     const { subtotal, totalDiscount, taxableAmount, taxTotal, cgstTotal, sgstTotal, grandTotal } = getCartTotals();
 
-    const invoice = {
+    let parsedAmountPaid = grandTotal;
+    if (paymentMode !== 'Credit') {
+      const isSplit = rootElement.querySelector('#enable-split-payment')?.checked;
+      if (isSplit) {
+        parsedAmountPaid = Number(rootElement.querySelector('#split-amount-input')?.value || 0);
+      }
+    }
+
+    return {
+      id: isDraft ? mockId : undefined,
       date: new Date().toISOString(),
       customerId: selectedCustomer ? selectedCustomer.id : null,
       customerName: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
       items: cart.map(i => {
-         const lineBase = i.price * i.qty;
-         const lineDisc = lineBase * ((i.discountPercent || 0) / 100);
+         const mode = i.pricingMode || 'inclusive';
+         const rawBase = i.price * i.qty;
+         const rawDisc = rawBase * ((i.discountPercent || 0) / 100);
+         const rawAfterDisc = rawBase - rawDisc;
+         const gstFactor = 1 + ((i.taxRate || 0) / 100);
+         let lineTaxable = 0, lineTax = 0;
+         if (mode === 'inclusive') {
+           lineTaxable = rawAfterDisc / gstFactor;
+           lineTax = rawAfterDisc - lineTaxable;
+         } else {
+           lineTaxable = rawAfterDisc;
+           lineTax = lineTaxable * ((i.taxRate || 0) / 100);
+         }
          return {
            productId: i.id,
            name: i.name,
            qty: i.qty,
            price: i.price,
            taxRate: i.taxRate,
+           pricingMode: i.pricingMode,
            discountPercent: i.discountPercent || 0,
-           discountAmount: lineDisc,
-           total: lineBase - lineDisc
+           discountAmount: rawDisc,
+           total: lineTaxable + lineTax
          };
       }),
       subtotal,
@@ -626,43 +1131,108 @@ export function onMount(rootElement) {
       sgstTotal,
       totalAmount: grandTotal,
       paymentMode,
-      paymentStatus: paymentMode === 'Credit' ? 'Pending' : 'Paid Full',
-      amountPaid: paymentMode === 'Credit' ? 0 : grandTotal,
-      status: paymentMode === 'Credit' ? 'Pending' : 'Paid'
+      paymentStatus: paymentMode === 'Credit' ? 'Pending' : (parsedAmountPaid < grandTotal ? 'Partial' : (isDraft ? 'Paid' : 'Paid Full')),
+      amountPaid: paymentMode === 'Credit' ? 0 : parsedAmountPaid,
+      status: paymentMode === 'Credit' ? 'Pending' : (parsedAmountPaid < grandTotal ? 'Partial' : 'Paid')
     };
+  };
+
+  const saveInvoice = () => {
+    if (cart.length === 0) {
+      NotificationService.warning('Cart is empty! Add products first.');
+      return null;
+    }
+    if (paymentMode === 'Credit' && !selectedCustomer) {
+      NotificationService.warning('Please select a customer for Credit sale!');
+      return null;
+    }
+
+    const { grandTotal } = getCartTotals();
+    if (paymentMode !== 'Credit') {
+      const isSplit = rootElement.querySelector('#enable-split-payment')?.checked;
+      if (isSplit) {
+        const parsedAmountPaid = Number(rootElement.querySelector('#split-amount-input')?.value || 0);
+        if (parsedAmountPaid < grandTotal && !selectedCustomer) {
+           NotificationService.warning('Please select a customer for Partial Payments!');
+           return null;
+        }
+      }
+    }
+
+    const invalidItem = cart.find(i => Number(i.qty) < 1 || Number(i.discountPercent) < 0 || Number(i.discountPercent) > 100);
+    if (invalidItem) {
+      NotificationService.error(`Invalid quantity or discount for ${invalidItem.name}.`);
+      return null;
+    }
+
+    // AUDIT-H01: final guard so a stale/forged qty can never sell more than stock
+    const overStockItem = cart.find(i => {
+      const product = productById.get(i.id);
+      return product && Number(i.qty) > Number(product.stock);
+    });
+    if (overStockItem) {
+      const available = productById.get(overStockItem.id)?.stock || 0;
+      NotificationService.error(`Insufficient stock for ${overStockItem.name}. Available: ${available}.`);
+      return null;
+    }
+
+    const invoice = buildInvoiceObject(false);
 
     try {
       const saved = DataProvider.saveSalesInvoice(invoice);
       lastSavedInvoice = saved;
+      
+      // Update Estimation Status if this was converted from an estimation
+      if (activeEstimateId) {
+        const estimations = DataProvider.getEstimations();
+        const est = estimations.find(e => e.id === activeEstimateId);
+        if (est) {
+           est.status = 'Converted';
+           DataProvider.saveEstimation(est);
+        }
+        activeEstimateId = null;
+      }
+      
       DraftManager.clearDraft('pos');
       
       cart = [];    // Reset state in-place — NO page reload
       paymentMode = 'Cash';
       
+      const splitCheckbox = rootElement.querySelector('#enable-split-payment');
+      if (splitCheckbox) {
+         splitCheckbox.checked = false;
+         rootElement.querySelector('#split-amount-wrapper')?.classList.add('hidden');
+         rootElement.querySelector('#split-amount-input').value = '';
+      }
+      
       // Reset payment mode UI
       rootElement.querySelectorAll('.payment-btn').forEach(btn => {
         btn.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
         btn.classList.add('border', 'border-border', 'bg-white', 'text-gray-500');
-        btn.querySelector('i')?.classList.remove('text-primary');
         btn.querySelector('span')?.classList.remove('text-primary', 'font-bold');
+        const icon = btn.querySelector('i, svg');
+        if (icon) icon.classList.remove('text-primary');
       });
       const cashBtn = rootElement.querySelector('.payment-btn[data-mode="Cash"]');
       if (cashBtn) {
         cashBtn.classList.remove('border', 'border-border', 'bg-white', 'text-gray-500');
         cashBtn.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
-        cashBtn.querySelector('i')?.classList.add('text-primary');
         cashBtn.querySelector('span')?.classList.add('text-primary', 'font-bold');
+        const cIcon = cashBtn.querySelector('i, svg');
+        if (cIcon) cIcon.classList.add('text-primary');
       }
       
       renderCart();
       renderProducts();
       
       NotificationService.success(`Invoice ${saved.id} saved successfully!`);
-      
+      return saved;
     } catch (err) {
       NotificationService.error(err.message);
+      return null;
     }
   };
+
 
   // =====================
   // INITIALIZE
@@ -673,13 +1243,13 @@ export function onMount(rootElement) {
   renderCart();
 
   // Search & Category
-  rootElement.querySelector('#pos-search-input').addEventListener('input', (e) => {
+  addListener(rootElement.querySelector('#pos-search-input'), 'input', (e) => {
     searchQuery = e.target.value.trim();
     savePosDraft();
     renderProducts();
   });
 
-  rootElement.querySelector('#pos-barcode-input').addEventListener('keydown', (e) => {
+  addListener(rootElement.querySelector('#pos-barcode-input'), 'keydown', (e) => {
     if (e.key === 'Enter') {
       const barcode = e.target.value.trim();
       if (!barcode) return;
@@ -695,7 +1265,7 @@ export function onMount(rootElement) {
   });
 
   rootElement.querySelectorAll('.category-pill').forEach(pill => {
-    pill.addEventListener('click', (e) => {
+    addListener(pill, 'click', (e) => {
       rootElement.querySelectorAll('.category-pill').forEach(p => {
         p.classList.remove('active', 'text-white', 'border-primary', 'bg-primary');
         p.classList.add('bg-white', 'text-gray-600', 'border-border');
@@ -708,44 +1278,8 @@ export function onMount(rootElement) {
     });
   });
 
-  // Product clicks
-  const productGrid = rootElement.querySelector('#product-grid');
-  const handleImageError = (e) => {
-    if (e.target && e.target.classList && e.target.classList.contains('pos-product-img')) {
-      e.target.style.display = 'none';
-      const next = e.target.nextElementSibling;
-      if (next) next.style.display = 'flex';
-    }
-  };
-  if (productGrid) productGrid.addEventListener('error', handleImageError, true);
-  productGrid.addEventListener('click', (e) => {
-    const card = e.target.closest('.pos-product');
-    if (card && !card.classList.contains('cursor-not-allowed')) {
-      addToCart(card.getAttribute('data-id'));
-    }
-  });
 
-  // Cart actions
-  rootElement.querySelector('#cart-container').addEventListener('click', (e) => {
-    const itemEl = e.target.closest('.cart-item');
-    if (!itemEl) return;
-    const id = itemEl.getAttribute('data-id');
-
-    const deltaBtn = e.target.closest('.qty-btn');
-    if (deltaBtn) {
-      const delta = parseInt(deltaBtn.getAttribute('data-delta'));
-      updateCartQty(id, delta);
-      return;
-    }
-    if (e.target.closest('.cart-del-btn')) {
-      cart = cart.filter(i => i.id !== id);
-      savePosDraft();
-      renderCart();
-      renderProducts();
-    }
-  });
-
-  rootElement.querySelector('#clear-cart-btn').addEventListener('click', () => {
+  addListener(rootElement.querySelector('#clear-cart-btn'), 'click', () => {
     if (cart.length === 0) return;
     cart = [];
     savePosDraft();
@@ -765,35 +1299,58 @@ export function onMount(rootElement) {
   });
 
   rootElement.querySelectorAll('.payment-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    addListener(btn, 'click', (e) => {
       const b = e.target.closest('.payment-btn');
       rootElement.querySelectorAll('.payment-btn').forEach(x => {
         x.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'active');
         x.classList.add('border-border', 'bg-white', 'text-gray-500');
         x.querySelector('span').classList.remove('text-primary');
         x.querySelector('span').classList.add('text-gray-500');
-        x.querySelector('i').classList.remove('text-primary');
+        const icon = x.querySelector('i, svg');
+        if (icon) icon.classList.remove('text-primary');
       });
       b.classList.remove('border-border', 'bg-white', 'text-gray-500');
       b.classList.add('border-2', 'border-primary', 'bg-primary/5', 'active');
       b.querySelector('span').classList.remove('text-gray-500');
       b.querySelector('span').classList.add('text-primary');
-      b.querySelector('i').classList.add('text-primary');
+      const bIcon = b.querySelector('i, svg');
+      if (bIcon) bIcon.classList.add('text-primary');
       paymentMode = b.getAttribute('data-mode');
+      
+      const splitContainer = rootElement.querySelector('#split-payment-container');
+      if (splitContainer) {
+         if (paymentMode === 'Credit') splitContainer.classList.add('hidden', 'opacity-0');
+         else splitContainer.classList.remove('hidden', 'opacity-0');
+      }
       savePosDraft();
     });
   });
 
-  // Customer modal
-  rootElement.querySelector('#btn-change-customer').addEventListener('click', openCustomerModal);
-  rootElement.querySelector('#close-customer-modal').addEventListener('click', closeCustomerModal);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCustomerModal(); });
+  addListener(rootElement.querySelector('#enable-split-payment'), 'change', (e) => {
+     const wrapper = rootElement.querySelector('#split-amount-wrapper');
+     if (e.target.checked) {
+       wrapper.classList.remove('hidden');
+       rootElement.querySelector('#split-amount-input')?.focus();
+     } else {
+       wrapper.classList.add('hidden');
+     }
+     updateCartTotalsUI();
+  });
+  
+  addListener(rootElement.querySelector('#split-amount-input'), 'input', () => {
+     updateCartTotalsUI();
+  });
 
-  rootElement.querySelector('#customer-search').addEventListener('input', (e) => {
+  // Customer modal
+  addListener(rootElement.querySelector('#btn-change-customer'), 'click', openCustomerModal);
+  addListener(rootElement.querySelector('#close-customer-modal'), 'click', closeCustomerModal);
+  if (overlay) addListener(overlay, 'click', (e) => { if (e.target === overlay) closeCustomerModal(); });
+
+  addListener(rootElement.querySelector('#customer-search'), 'input', (e) => {
     renderCustomerList(e.target.value);
   });
 
-  rootElement.querySelector('#customer-list').addEventListener('click', (e) => {
+  addListener(rootElement.querySelector('#customer-list'), 'click', (e) => {
     const row = e.target.closest('.customer-select-row');
     if (row) {
       selectedCustomer = allCustomers.find(c => c.id === row.getAttribute('data-id'));
@@ -802,36 +1359,80 @@ export function onMount(rootElement) {
     }
   });
 
-  rootElement.querySelector('#btn-walkin-customer').addEventListener('click', () => {
+  addListener(rootElement.querySelector('#btn-walkin-customer'), 'click', () => {
     selectedCustomer = null;
     renderCustomerBar();
     closeCustomerModal();
   });
 
   // Save invoice
-  rootElement.querySelector('#btn-save-invoice').addEventListener('click', saveInvoice);
+  addListener(rootElement.querySelector('#btn-save-invoice'), 'click', saveInvoice);
+  
+  // Save & Print invoice
+  addListener(rootElement.querySelector('#btn-save-print'), 'click', handleSaveAndPrint);
 
-  // Print Last Invoice
-  rootElement.querySelector('#btn-print-last').addEventListener('click', () => {
-    if (lastSavedInvoice) {
-      printReceipt(lastSavedInvoice);
-    } else {
-      NotificationService.warning('No invoice saved in this session.');
-    }
-  });
+  // Print Preview
+  addListener(rootElement.querySelector('#btn-print-preview'), 'click', () => openPrintPreview(null));
+
+  const isInputFocused = () => {
+    const active = document.activeElement;
+    if (!active) return false;
+    const tag = active.tagName.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select';
+  };
+
+  const isModalOpen = () => {
+    const customerOverlay = rootElement.querySelector('#customer-modal-overlay');
+    const previewOverlay = rootElement.querySelector('#print-preview-modal-overlay');
+    return (!customerOverlay.classList.contains('pointer-events-none') || 
+            !previewOverlay.classList.contains('pointer-events-none'));
+  };
 
   // Keyboard shortcuts
   const keyHandler = (e) => {
-    if (e.key === 'F2') { e.preventDefault(); saveInvoice(); }
-    if (e.key === 'Escape') closeCustomerModal();
+    // Save: F2 or Ctrl+S
+    if (e.key === 'F2' || (e.ctrlKey && e.key.toLowerCase() === 's')) { 
+      e.preventDefault(); 
+      saveInvoice(); 
+      return;
+    }
+    
+    // Reprint Last Invoice: Ctrl+Shift+P
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      reprintLastInvoice();
+      return;
+    }
+
+    // Print Preview: Ctrl+P
+    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      openPrintPreview();
+      return;
+    }
+
+    // Save & Print: Enter
+    if (e.key === 'Enter') {
+      if (cart.length > 0 && !isInputFocused() && !isModalOpen()) {
+        e.preventDefault();
+        handleSaveAndPrint();
+      }
+    }
+
+    if (e.key === 'Escape') {
+      closeCustomerModal();
+      if (typeof closePrintPreview === 'function') closePrintPreview();
+    }
   };
-  window.addEventListener('keydown', keyHandler);
+  addListener(window, 'keydown', keyHandler);
 
   if (window.lucide) window.lucide.createIcons();
 
   // Return cleanup
   return function cleanup() {
-    window.removeEventListener('keydown', keyHandler);
-    if (productGrid) productGrid.removeEventListener('error', handleImageError, true);
+    __listeners.forEach(l => {
+      if (l.el) l.el.removeEventListener(l.evt, l.handler, l.options);
+    });
+    __listeners.length = 0;
   };
 }

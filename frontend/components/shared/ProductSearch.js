@@ -1,6 +1,7 @@
 import { PurchaseState } from './PurchaseState.js';
 import { PurchaseUtils } from './utils.js';
 import { DataProvider } from '../../services/dataProvider.js';
+import { escapeHtml } from '../../utils/escapeHtml.js';
 
 export const ProductSearch = {
   render() {
@@ -48,8 +49,8 @@ export const ProductSearch = {
         searchResults.innerHTML = matches.map((p, index) => `
           <div class="p-3 border-b border-border hover:bg-gray-50 cursor-pointer po-search-item flex justify-between items-center ${index === 0 ? 'bg-gray-50' : ''}" data-id="${p.id}" tabindex="0">
             <div>
-              <div class="text-sm font-medium text-text">${p.name}</div>
-              <div class="text-xs text-gray-500 mt-0.5">${p.sku ? 'SKU: ' + p.sku : ''} ${p.barcode ? '| Barcode: ' + p.barcode : ''}</div>
+              <div class="text-sm font-medium text-text">${escapeHtml(p.name)}</div>
+              <div class="text-xs text-gray-500 mt-0.5">${p.sku ? 'SKU: ' + escapeHtml(p.sku) : ''} ${p.barcode ? '| Barcode: ' + escapeHtml(p.barcode) : ''}</div>
             </div>
             <div class="text-right">
               <div class="text-sm font-semibold text-primary">₹${(p.purchasePrice || p.avgCost || p.price * 0.8 || 0).toFixed(2)}</div>

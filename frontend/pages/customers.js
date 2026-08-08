@@ -8,6 +8,7 @@ import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
 import { DraftManager } from '../services/draftManager.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
+import { validateForm, rules } from '../utils/validate.js';
 
 export async function render() {
   const customers = DataProvider.getCustomers() || [];
@@ -126,7 +127,7 @@ export async function render() {
               </tr>
             </thead>
             <tbody id="customers-tbody" class="divide-y divide-border">
-              ${customers.length ? customers.map(c => renderRow(c)).join('') : '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers found.</p></div></td></tr>'}
+              ${customers.length ? customers.slice(0, 50).map(c => renderRow(c)).join('') : '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers found.</p></div></td></tr>'}
             </tbody>
           </table>
         </div>
@@ -304,7 +305,22 @@ export async function render() {
   `;
 }
 
-export function onMount() {
+export function onMount(rootElement) {
+  const __listeners = [];
+  const safeRootAdd = (type, listener, options) => {
+    __listeners.push({ target: rootElement, type, listener, options });
+    rootElement.addEventListener(type, listener, options);
+  };
+  const trackedWindowDoc = [];
+  const safeWindowAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: window, type, listener, options });
+    window.addEventListener(type, listener, options);
+  };
+  const safeDocAdd = (type, listener, options) => {
+    trackedWindowDoc.push({ target: document, type, listener, options });
+    document.addEventListener(type, listener, options);
+  };
+  
   if (window.lucide) window.lucide.createIcons();
 
   const allCustomers = DataProvider.getCustomers() || [];
@@ -396,6 +412,23 @@ export function onMount() {
   const tbody = document.getElementById('customers-tbody');
   const countLabel = document.getElementById('cust-count-label');
 
+  // Chunked Rendering Engine
+  let renderQueue = [];
+  let isRendering = false;
+  
+  const processRenderQueue = () => {
+    if (renderQueue.length === 0) {
+      isRendering = false;
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+      return;
+    }
+    
+    const chunk = renderQueue.splice(0, 50);
+    tbody.insertAdjacentHTML('beforeend', chunk.map(renderRow).join(''));
+    
+    requestAnimationFrame(processRenderQueue);
+  };
+
   const applyFilter = () => {
     const q = (searchInput?.value || '').toLowerCase().trim();
     const type = typeFilter?.value || '';
@@ -411,12 +444,21 @@ export function onMount() {
     });
 
     if (countLabel) countLabel.textContent = `Showing ${filtered.length} of ${allCustomers.length} customers`;
+    
     if (tbody) {
-      tbody.innerHTML = filtered.length > 0
-        ? filtered.map(renderRow).join('')
-        : '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers match your search</p></div></td></tr>';
-      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-      attachDeleteListeners();
+      tbody.innerHTML = ''; // clear existing
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i data-lucide="users"></i><p>No customers match your search</p></div></td></tr>';
+        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+        renderQueue = [];
+        isRendering = false;
+      } else {
+        renderQueue = [...filtered];
+        if (!isRendering) {
+          isRendering = true;
+          processRenderQueue();
+        }
+      }
     }
   };
 
@@ -545,7 +587,7 @@ export function onMount() {
   const handleNewCustomer = () => openForm();
   const handleOpenCustomerDrawer = (e) => openForm(e.detail);
   document.getElementById('btn-add-new-customer')?.addEventListener('click', handleNewCustomer);
-  window.addEventListener('openCustomerDrawer', handleOpenCustomerDrawer);
+  safeWindowAdd('openCustomerDrawer', handleOpenCustomerDrawer);
   
   // Initialize Draft Recovery
   const formEl = document.getElementById('customer-form');
@@ -554,12 +596,29 @@ export function onMount() {
   document.querySelectorAll('.close-customer-drawer').forEach(b => b.addEventListener('click', handleCloseClick));
   if (overlay) overlay.addEventListener('click', handleCloseClick);
   const handleKeydown = (e) => { if (e.key === 'Escape') closeAll(); };
-  document.addEventListener('keydown', handleKeydown);
+  safeDocAdd('keydown', handleKeydown);
 
   // --- SAVE ---
   const handleSaveCustomer = () => {
     const form = document.getElementById('customer-form');
     if (!form.reportValidity()) return;
+
+    const field = (id) => document.getElementById(id);
+    const validationError = validateForm([
+      { el: field('c-name'), check: (v) => rules.required(v, 'Name') || rules.maxLength(v, 100, 'Name') },
+      { el: field('c-phone'), check: (v) => rules.required(v, 'Phone') || rules.phone(v, 'Phone') },
+      { el: field('c-whatsapp'), check: (v) => rules.phone(v, 'WhatsApp number') },
+      { el: field('c-gst'), check: (v) => rules.gstin(v) },
+      { el: field('c-pin'), check: (v) => rules.pin(v) },
+      { el: field('c-credit-limit'), check: (v) => rules.number(v, 'Credit limit') || rules.nonNegative(v, 'Credit limit') },
+      { el: field('c-address'), check: (v) => rules.maxLength(v, 200, 'Address') },
+      { el: field('c-area'), check: (v) => rules.maxLength(v, 100, 'Area') },
+      { el: field('c-notes'), check: (v) => rules.maxLength(v, 500, 'Notes') }
+    ]);
+    if (validationError) {
+      NotificationService.error(validationError);
+      return;
+    }
 
     const customer = {
       id: document.getElementById('c-id').value || null,
@@ -601,6 +660,14 @@ export function onMount() {
   document.getElementById('save-c-btn')?.addEventListener('click', handleSaveCustomer);
 
   return function cleanup() {
+    __listeners.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    trackedWindowDoc.forEach(({target, type, listener, options}) => {
+      target.removeEventListener(type, listener, options);
+    });
+    
+
     window.removeEventListener('openCustomerDrawer', handleOpenCustomerDrawer);
     document.removeEventListener('keydown', handleKeydown);
     document.querySelectorAll('.cust-tab-btn').forEach(b => b.removeEventListener('click', handleTabClick));
