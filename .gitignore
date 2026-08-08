@@ -45,3 +45,20 @@ backend/alembic.ini
 # Logs
 logs/
 *.log
+
+# QA artifacts & local scratch
+QA_Screenshots/
+*_REPORT.md
+ROUTE_STATUS.md
+TASK_TRACKER.md
+check.mjs
+debug.html
+err.txt
+find_forms.js
+out.js
+
+# Firebase cache
+.firebase/*.cache
+
+# Local backups
+frontend_rc3.1_backup/

@@ -1,8 +1,10 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Dynamic Reports Management
  */
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const invoices = DataProvider.getSalesInvoices() || [];
@@ -44,7 +46,7 @@ export async function render() {
 
   const renderRow = (title, val1, val2) => `
     <tr class="row-hover border-b border-border">
-      <td class="px-4 py-3 text-sm font-medium text-text">${title}</td>
+      <td class="px-4 py-3 text-sm font-medium text-text">${escapeHtml(title)}</td>
       <td class="px-4 py-3 text-right text-sm text-gray-600">${val1}</td>
       <td class="px-4 py-3 text-right text-sm font-semibold text-text">₹${val2.toLocaleString('en-IN')}</td>
     </tr>
@@ -140,7 +142,7 @@ export function onMount(rootElement) {
   const dateFilter = rootElement.querySelector('#report-date-filter');
   if (dateFilter) {
     dateFilter.addEventListener('change', (e) => {
-       window.showToast('Date filtering applied (visual demo). Detailed filtering requires backend/state sync.', 'primary');
+       NotificationService.info();
        // In a full SPA without a reactive framework, re-rendering with filtered data requires a re-fetch and DOM replace.
        // For Pass 1, we acknowledge the filter interaction.
     });

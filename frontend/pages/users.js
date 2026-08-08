@@ -1,7 +1,9 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - User Management
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const users = DataProvider.getUsers() || [];
@@ -12,17 +14,18 @@ export async function render() {
     if (usr.status === 'Suspended') badge = 'danger';
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${usr.id}" onclick="window.dispatchEvent(new CustomEvent('openUserDrawer', {detail: '${usr.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${usr.id || '-'}</td>
+    <tr class="row-hover cursor-pointer" data-user-row="${escapeHtml(usr.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(usr.id || '-')}</td>
       <td class="px-4 py-3.5">
-        <p class="text-sm font-medium text-text">${usr.name || '-'}</p>
-        <p class="text-[10px] text-gray-400">@${usr.username || '-'}</p>
+        <p class="text-sm font-medium text-text">${escapeHtml(usr.name || '-')}</p>
+        <p class="text-[10px] text-gray-400">@${escapeHtml(usr.username || '-')}</p>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${usr.role || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(usr.role || '-')}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${usr.status || 'Active'}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${escapeHtml(usr.status || 'Active')}</span>
       </td>
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openUserDrawer', {detail: '${usr.id}'}))">
+      <td class="px-4 py-3.5 text-right">
+        <button class="edit-user-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(usr.id)}">
           <i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -38,7 +41,7 @@ export async function render() {
           <p class="text-sm text-gray-400 mt-1">Manage system access, user roles, and login credentials.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="window.dispatchEvent(new CustomEvent('openUserDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <button data-user-new class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <i data-lucide="plus" class="w-4 h-4"></i>
             Add System User
           </button>
@@ -138,24 +141,26 @@ export function onMount(rootElement) {
   const renderRow = (usr) => {
     let badge = 'success';
     if (usr.status === 'Suspended') badge = 'danger';
-    return `<tr class="row-hover cursor-pointer" data-id="${usr.id}" onclick="window.dispatchEvent(new CustomEvent('openUserDrawer', {detail: '${usr.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${usr.id || '-'}</td>
-      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${usr.name || '-'}</p><p class="text-[10px] text-gray-400">@${usr.username || '-'}</p></td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${usr.role || '-'}</td>
-      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${usr.status || 'Active'}</span></td>
-      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openUserDrawer', {detail: '${usr.id}'}))"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
+    return `<tr class="row-hover cursor-pointer" data-user-row="${escapeHtml(usr.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(usr.id || '-')}</td>
+      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${escapeHtml(usr.name || '-')}</p><p class="text-[10px] text-gray-400">@${escapeHtml(usr.username || '-')}</p></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(usr.role || '-')}</td>
+      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${badge}/10 text-${badge} uppercase tracking-wider">${escapeHtml(usr.status || 'Active')}</span></td>
+      <td class="px-4 py-3.5 text-right"><button class="edit-user-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(usr.id)}"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
+  const handleSearch = () => {
+    const q = searchInput.value.toLowerCase();
+    const filtered = allUsers.filter(u => (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q));
+    if (tbody) {
+      tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No users match your search</td></tr>';
+      if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
+    }
+  };
+
   if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase();
-      const filtered = allUsers.filter(u => (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q));
-      if (tbody) {
-        tbody.innerHTML = filtered.length > 0 ? filtered.map(renderRow).join('') : '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No users match your search</td></tr>';
-        if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
-      }
-    });
+    searchInput.addEventListener('input', handleSearch);
   }
 
   const closeAll = () => {
@@ -191,15 +196,25 @@ export function onMount(rootElement) {
   };
 
   window.addEventListener('openUserDrawer', openForm);
+  const handleNewUser = () => openForm({ detail: null });
+  rootElement.querySelector('[data-user-new]')?.addEventListener('click', handleNewUser);
 
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
 
+  const handleRowClick = (e) => {
+    const editBtn = e.target.closest('.edit-user-btn');
+    const row = editBtn ? editBtn.closest('tr') : e.target.closest('[data-user-row]');
+    if (!row) return;
+    const id = editBtn ? editBtn.getAttribute('data-id') : row.getAttribute('data-user-row');
+    if (id) openForm({ detail: id });
+  };
+  if (tbody) tbody.addEventListener('click', handleRowClick);
+
   const saveBtn = rootElement.querySelector('#save-users-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      const form = rootElement.querySelector('#user-form');
-      if (!form.reportValidity()) return;
+  const handleSave = () => {
+    const form = rootElement.querySelector('#user-form');
+    if (!form.reportValidity()) return;
 
       const usr = {
         id: rootElement.querySelector('#usr-id').value || null,
@@ -220,15 +235,23 @@ export function onMount(rootElement) {
           tbody.innerHTML = allUsers.map(renderRow).join('');
           if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
         }
-        window.showToast('User saved successfully!', 'success');
+        NotificationService.success('User saved successfully!');
       } catch (err) {
-        window.showToast(err.message, 'danger');
+        NotificationService.error(err.message);
       }
-    });
+  };
+  if (saveBtn) {
+    saveBtn.addEventListener('click', handleSave);
   }
 
   return function cleanup() {
     window.removeEventListener('openUserDrawer', openForm);
+    if (searchInput) searchInput.removeEventListener('input', handleSearch);
+    if (tbody) tbody.removeEventListener('click', handleRowClick);
+    rootElement.querySelector('[data-user-new]')?.removeEventListener('click', handleNewUser);
+    closeBtns.forEach(btn => btn.removeEventListener('click', closeAll));
+    overlay.removeEventListener('click', closeAll);
+    if (saveBtn) saveBtn.removeEventListener('click', handleSave);
   };
 }
 

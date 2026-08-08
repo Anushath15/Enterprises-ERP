@@ -41,6 +41,17 @@ export const OfflineDataProvider = {
     
     return `${prefix}-${countStr}`;
   },
+
+  getNextSequence(type) {
+    const state = LocalStorageService.get('erp_system_state') || {};
+    let counterKey = `sequence_${type}`;
+    if (state[counterKey] === undefined) {
+      state[counterKey] = 0;
+    }
+    state[counterKey]++;
+    LocalStorageService.set('erp_system_state', state);
+    return state[counterKey];
+  },
   
   getBaseMetadata() {
     return {
@@ -127,6 +138,42 @@ export const OfflineDataProvider = {
   },
 
   // ==========================================
+  // EXPENSE CATEGORIES
+  // ==========================================
+  getExpenseCategories() {
+    const cats = this._getAll('erp_expense_categories');
+    if (cats.length === 0) {
+      // Default fallback if none exists
+      return [
+        { id: 'CAT-1', name: 'Electricity', isActive: true },
+        { id: 'CAT-2', name: 'Water', isActive: true },
+        { id: 'CAT-3', name: 'Internet', isActive: true },
+        { id: 'CAT-4', name: 'Staff Salary', isActive: true },
+        { id: 'CAT-5', name: 'Labour', isActive: true },
+        { id: 'CAT-6', name: 'Transport', isActive: true },
+        { id: 'CAT-7', name: 'Loading/Unloading', isActive: true },
+        { id: 'CAT-8', name: 'Tea & Snacks', isActive: true },
+        { id: 'CAT-9', name: 'Stationery', isActive: true },
+        { id: 'CAT-10', name: 'Rent', isActive: true },
+        { id: 'CAT-11', name: 'Maintenance', isActive: true },
+        { id: 'CAT-12', name: 'Marketing', isActive: true }
+      ];
+    }
+    return cats;
+  },
+  saveExpenseCategory(category) {
+    const existing = this.getExpenseCategories();
+    // Prevent duplicates
+    if (existing.some(c => c.name.toLowerCase() === category.name.toLowerCase() && c.id !== category.id)) {
+      throw new Error('Expense category with this name already exists.');
+    }
+    return this._save('erp_expense_categories', category, 'ECAT');
+  },
+  deleteExpenseCategory(id) {
+    return this._softDelete('erp_expense_categories', id);
+  },
+
+  // ==========================================
   // PRODUCTS
   // ==========================================
   getProducts() {
@@ -160,11 +207,63 @@ export const OfflineDataProvider = {
       product.statusBadge = 'success';
     }
 
-    return this._save('erp_products', product, 'PRD');
+    const saved = this._save('erp_products', product, 'PRD');
+
+    // Price History Logging
+    if (product.id) {
+      const oldProduct = existing.find(p => p.id === product.id);
+      if (oldProduct) {
+        const priceChanged = oldProduct.price !== product.price;
+        const buyPriceChanged = oldProduct.buyingPrice !== product.buyingPrice;
+        const avgCostChanged = oldProduct.avgCost !== product.avgCost;
+
+        if (priceChanged || buyPriceChanged || avgCostChanged) {
+          const history = LocalStorageService.get('erp_product_price_history') || [];
+          history.push({
+            id: `PPH-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+            productId: product.id,
+            date: new Date().toISOString(),
+            oldPrice: oldProduct.price,
+            newPrice: product.price,
+            oldBuyingPrice: oldProduct.buyingPrice,
+            newBuyingPrice: product.buyingPrice,
+            oldAvgCost: oldProduct.avgCost,
+            newAvgCost: product.avgCost,
+            reason: 'Manual Update / Purchase'
+          });
+          LocalStorageService.set('erp_product_price_history', history);
+        }
+      }
+    }
+
+    return saved;
   },
   deleteProduct(id) {
     return this._softDelete('erp_products', id);
   },
+
+  // ==========================================
+  // STOCK ADJUSTMENTS
+  // ==========================================
+  getStockAdjustments() {
+    return this._getAll('erp_stock_adjustments').sort((a, b) => new Date(b.date) - new Date(a.date));
+  },
+  saveStockAdjustment(adj) {
+    const saved = this._save('erp_stock_adjustments', adj, 'ADJ');
+    
+    // Actually update the stock
+    const product = this.getProductById(adj.productId);
+    if (product) {
+      if (adj.type === 'Add') {
+        product.stock += Number(adj.qty);
+      } else if (adj.type === 'Remove') {
+        product.stock -= Number(adj.qty);
+      }
+      this.saveProduct(product);
+    }
+    return saved;
+  },
+
   updateStock(id, qtyChange) {
     const product = this.getProductById(id);
     if (product) {
@@ -176,6 +275,26 @@ export const OfflineDataProvider = {
         this.createNotification('warning', 'Low Stock Alert', `${product.name} is running low (${product.stock} left).`);
       }
     }
+  },
+
+  // ==========================================
+  // CATEGORIES
+  // ==========================================
+  getCategories() {
+    return this._getAll('erp_categories');
+  },
+  getCategoryById(id) {
+    return this._getById('erp_categories', id);
+  },
+  saveCategory(category) {
+    const existing = this.getCategories();
+    if (existing.some(c => c.name.toLowerCase() === category.name.toLowerCase() && c.id !== category.id)) {
+      throw new Error('Category with this name already exists.');
+    }
+    return this._save('erp_categories', category, 'CAT');
+  },
+  deleteCategory(id) {
+    return this._softDelete('erp_categories', id);
   },
 
   // ==========================================
@@ -493,6 +612,44 @@ export const OfflineDataProvider = {
       return true;
     }
     return false;
+  },
+
+  // ==========================================
+  // RC3 - HISTORICAL RECORDS & ADJUSTMENTS
+  // ==========================================
+  getStockAdjustments() {
+    return this._getAll('erp_stock_adjustments');
+  },
+  saveStockAdjustment(adjustment) {
+    const saved = this._save('erp_stock_adjustments', adjustment, 'ADJ');
+    
+    // Auto-update inventory stock
+    const product = this.getProductById(saved.productId);
+    if (product) {
+      if (saved.adjustmentType === 'Manual Correction' || saved.adjustmentType === 'Found') {
+        product.stock = Number(saved.adjustedQuantity);
+      } else {
+        // Damaged, Broken, Lost, Expired all REDUCE stock. (Unless adjustedQuantity is treated as the new absolute total. The specs say "Current Stock, Adjusted Quantity, Reason". Usually this implies setting the new stock value).
+        product.stock = Number(saved.adjustedQuantity);
+      }
+      this.saveProduct(product);
+    }
+    return saved;
+  },
+
+  getDailyClosingHistory() {
+    return this._getAll('erp_daily_closing_history');
+  },
+  saveDailyClosingHistory(closing) {
+    return this._save('erp_daily_closing_history', closing, 'DCH');
+  },
+
+  getProductPriceHistory(productId) {
+    const all = this._getAll('erp_product_price_history');
+    return productId ? all.filter(p => p.productId === productId) : all;
+  },
+  logProductPriceChange(historyRecord) {
+    return this._save('erp_product_price_history', historyRecord, 'PPH');
   }
 };
 

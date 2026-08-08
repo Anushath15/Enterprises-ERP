@@ -55,19 +55,22 @@ export class Router {
   }
 
   _updateSidebarActive(path) {
-    const sidebarLinks = document.querySelectorAll('#sidebar-root .sidebar-link');
-    sidebarLinks.forEach(link => {
-      const href = link.getAttribute('href') || '';
-      // href is like "#/pos", path is like "/pos" — normalize both
-      const linkPath = href.replace(/^#/, '') || '/';
-      const currentPath = path || '/';
-      const isActive = linkPath === currentPath;
+    const currentRoute = window.location.hash || '#/dashboard';
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+      const route = link.getAttribute('data-route') || link.getAttribute('href');
+      if (!route) return;
+      
+      const isActive = route === currentRoute;
+      
+      // Toggle parent link classes
       link.classList.toggle('active', isActive);
       link.classList.toggle('text-primary', isActive);
-      link.classList.toggle('bg-primary/10', isActive);
+      link.classList.toggle('bg-blue-50', isActive);
       link.classList.toggle('text-gray-500', !isActive);
       link.classList.toggle('hover:text-text', !isActive);
-      // Icon inside the link
+      link.classList.toggle('hover:bg-gray-50', !isActive);
+      
+      // Toggle icon classes
       const icon = link.querySelector('div');
       if (icon) {
         icon.classList.toggle('text-primary', isActive);
@@ -77,7 +80,7 @@ export class Router {
   }
 
   _updateNavbarTitle(title) {
-    const navTitle = document.querySelector('#navbar-root h2');
+    const navTitle = document.getElementById('navbar-title');
     if (navTitle) navTitle.textContent = title;
   }
 
@@ -85,8 +88,9 @@ export class Router {
     try {
       // Run page cleanup before leaving current page
       if (this._pageCleanup && typeof this._pageCleanup === 'function') {
-        this._pageCleanup();
+        const cleanup = this._pageCleanup;
         this._pageCleanup = null;
+        cleanup();
       }
 
       // Lazy load the page module

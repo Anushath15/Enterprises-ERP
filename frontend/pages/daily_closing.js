@@ -1,7 +1,9 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Daily Closing (Accounting View)
  */
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
 
 export async function render() {
   const currentDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -30,12 +32,25 @@ export async function render() {
       <div class="bg-white erp-card p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center border-t-4 border-t-primary">
         <div>
           <h1 class="text-2xl font-bold text-text mb-1">Day Book & Cash Reconciliation</h1>
-          <p class="text-sm text-gray-500">Senthil Enterprises • Statement for ${currentDate}</p>
+          <p class="text-sm text-gray-500 flex items-center gap-2">
+            <span>Senthil Enterprises • Statement for ${currentDate}</span>
+            <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+            <span id="live-clock" class="font-mono text-primary font-medium"></span>
+          </p>
         </div>
         <div class="mt-4 md:mt-0 flex gap-3">
           <button id="dc-print-btn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg flex items-center gap-2">
             <i data-lucide="printer" class="w-4 h-4"></i> Print Statement
           </button>
+        </div>
+      </div>
+
+      <!-- Closing Banner -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm">
+        <i data-lucide="info" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5"></i>
+        <div>
+          <h4 class="text-sm font-bold text-blue-900">End of Day Procedure</h4>
+          <p class="text-sm text-blue-700 mt-1">Please verify all physical cash in the till matches the System Expected Cash. Any difference must be logged with remarks before closing the day.</p>
         </div>
       </div>
 
@@ -136,10 +151,24 @@ export async function render() {
               </h3>
             </div>
             
-            <div class="p-6 space-y-5">
+            <form id="daily-closing-form" class="p-6 space-y-5">
               <div class="bg-gray-50 p-4 rounded-lg border border-border text-center">
                 <p class="text-sm text-gray-500 font-medium mb-1">Expected Cash</p>
                 <p class="text-3xl font-bold text-gray-800" id="system-expected-cash" data-value="${expectedCash}">₹${expectedCash.toLocaleString('en-IN')}</p>
+              </div>
+
+              <div class="bg-white p-4 rounded-lg border border-border">
+                <p class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i> Business Session</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs text-gray-500">Open Time</label>
+                    <input type="time" id="session-open" class="w-full px-3 py-2 border rounded-lg text-sm focus:border-primary focus:outline-none">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-500">Close Time</label>
+                    <input type="time" id="session-close" class="w-full px-3 py-2 border rounded-lg text-sm focus:border-primary focus:outline-none">
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -159,7 +188,7 @@ export async function render() {
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Closing Remarks</label>
                 <textarea id="closing-remarks" rows="2" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Note any short/excess reasons..."></textarea>
               </div>
-            </div>
+            </form>
             
             <div class="px-6 py-4 bg-gray-50 border-t border-border">
               <button id="close-day-btn" class="w-full py-3 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
@@ -177,12 +206,33 @@ export async function render() {
 export function onMount(rootElement) {
   if (window.lucide) window.lucide.createIcons();
 
+  const clockEl = document.getElementById('live-clock');
+  let clockInterval;
+  if (clockEl) {
+    const updateClock = () => {
+      clockEl.textContent = new Date().toLocaleTimeString('en-IN');
+    };
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+  }
+
   const expectedCashEl = document.getElementById('system-expected-cash');
   const actualCashInput = document.getElementById('actual-cash');
   const differenceEl = document.getElementById('cash-difference');
   const diffContainer = document.getElementById('difference-container');
   const closeBtn = document.getElementById('close-day-btn');
   const printBtn = document.getElementById('dc-print-btn');
+
+  const formEl = document.getElementById('daily-closing-form');
+  if (formEl) DraftManager.init('dailyClosing', formEl);
+
+  const sessionOpenEl = document.getElementById('session-open');
+  const sessionCloseEl = document.getElementById('session-close');
+  if (sessionOpenEl && sessionCloseEl) {
+     const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+     sessionOpenEl.value = settings.sessionOpen || '09:00';
+     sessionCloseEl.value = settings.sessionClose || '21:00';
+  }
 
   if (printBtn) {
     printBtn.addEventListener('click', () => window.print());
@@ -216,7 +266,7 @@ export function onMount(rootElement) {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
        if(!actualCashInput.value) {
-         window.showToast("Please enter the Actual Cash Counted before closing.", 'danger');
+         NotificationService.error("Please enter the Actual Cash Counted before closing.");
          actualCashInput.focus();
          return;
        }
@@ -224,12 +274,26 @@ export function onMount(rootElement) {
        const nextOpeningCash = actualCashInput.value;
        
        if(window.confirm(`Are you sure you want to close the day? The Opening Cash for tomorrow will be set to ₹${nextOpeningCash}.`)) {
-          localStorage.setItem('erp_opening_cash', nextOpeningCash);
-          window.showToast("Day successfully closed! Generating summary...", 'success');
+           localStorage.setItem('erp_opening_cash', nextOpeningCash);
+           localStorage.setItem('erp_last_closed_date', new Date().toISOString().split('T')[0]);
+           
+           if (sessionOpenEl && sessionCloseEl) {
+             const settings = JSON.parse(localStorage.getItem('erp_settings') || '{}');
+             settings.sessionOpen = sessionOpenEl.value;
+             settings.sessionClose = sessionCloseEl.value;
+             localStorage.setItem('erp_settings', JSON.stringify(settings));
+           }
+
+           DraftManager.clearDraft('dailyClosing');
+           NotificationService.success("Day Closed Successfully. System is locked until tomorrow.");
           setTimeout(() => {
             window.location.hash = '#/';
           }, 1500);
        }
     });
   }
+
+  return function cleanup() {
+    if (clockInterval) clearInterval(clockInterval);
+  };
 }

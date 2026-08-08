@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Delivery Management
  * FIXES: D-001 real save (DataProvider.saveDelivery), D-002 fake data removed,
@@ -5,6 +6,7 @@
  */
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const deliveries = DataProvider.getDeliveries() || [];
@@ -17,21 +19,21 @@ export async function render() {
     if (del.status === 'Failed' || del.status === 'Returned') statusColor = 'danger';
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${del.id}" onclick="window.dispatchEvent(new CustomEvent('openDeliveryDrawer', {detail: '${del.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${del.id || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${del.invoice || '-'}</td>
+    <tr class="row-hover cursor-pointer" data-delivery-row="${escapeHtml(del.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(del.id || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(del.invoice || '-')}</td>
       <td class="px-4 py-3.5">
-        <p class="text-sm font-medium text-text">${del.customer || '-'}</p>
-        <p class="text-[10px] text-gray-400">${del.phone || '-'}</p>
+        <p class="text-sm font-medium text-text">${escapeHtml(del.customer || '-')}</p>
+        <p class="text-[10px] text-gray-400">${escapeHtml(del.phone || '-')}</p>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500 max-w-[200px] truncate" title="${del.address || '-'}">${del.address || '-'}</td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${del.person || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500 max-w-[200px] truncate" title="${escapeHtml(del.address || '-')}">${escapeHtml(del.address || '-')}</td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(del.person || '-')}</td>
       <td class="px-4 py-3.5 text-right font-semibold text-text">₹${(del.charge || 0).toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${statusColor}/10 text-${statusColor} uppercase tracking-wider">${del.status || 'Pending'}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${statusColor}/10 text-${statusColor} uppercase tracking-wider">${escapeHtml(del.status || 'Pending')}</span>
       </td>
       <td class="px-4 py-3.5 text-right">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openDeliveryDrawer', {detail: '${del.id}'}))">
+        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100">
           <i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -45,7 +47,7 @@ export async function render() {
           <h1 class="text-2xl font-bold text-text">Delivery Management</h1>
           <p class="text-sm text-gray-400 mt-0.5">Manage product deliveries, assign delivery personnel, and track logistics.</p>
         </div>
-        <button onclick="window.dispatchEvent(new CustomEvent('openDeliveryDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+        <button data-delivery-new class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
           <i data-lucide="plus" class="w-4 h-4"></i> New Delivery
         </button>
       </div>
@@ -213,15 +215,15 @@ export function onMount(rootElement) {
     if (del.status === 'Pending') sc = 'warning';
     if (del.status === 'Completed') sc = 'success';
     if (del.status === 'Failed' || del.status === 'Returned') sc = 'danger';
-    return `<tr class="row-hover cursor-pointer" data-id="${del.id}" onclick="window.dispatchEvent(new CustomEvent('openDeliveryDrawer', {detail: '${del.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${del.id || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${del.invoice || '-'}</td>
-      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${del.customer || '-'}</p><p class="text-[10px] text-gray-400">${del.phone || '-'}</p></td>
-      <td class="px-4 py-3.5 text-sm text-gray-500 max-w-[200px] truncate">${del.address || '-'}</td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${del.person || '-'}</td>
+    return `<tr class="row-hover cursor-pointer" data-delivery-row="${escapeHtml(del.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(del.id || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(del.invoice || '-')}</td>
+      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${escapeHtml(del.customer || '-')}</p><p class="text-[10px] text-gray-400">${escapeHtml(del.phone || '-')}</p></td>
+      <td class="px-4 py-3.5 text-sm text-gray-500 max-w-[200px] truncate">${escapeHtml(del.address || '-')}</td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(del.person || '-')}</td>
       <td class="px-4 py-3.5 text-right font-semibold text-text">₹${(del.charge || 0).toLocaleString('en-IN')}</td>
-      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${sc}/10 text-${sc} uppercase tracking-wider">${del.status || 'Pending'}</span></td>
-      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openDeliveryDrawer', {detail: '${del.id}'}))"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
+      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${sc}/10 text-${sc} uppercase tracking-wider">${escapeHtml(del.status || 'Pending')}</span></td>
+      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
@@ -242,19 +244,21 @@ export function onMount(rootElement) {
   };
 
   // Tab filter buttons
-  rootElement.querySelectorAll('.del-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      activeStatus = btn.getAttribute('data-status');
-      rootElement.querySelectorAll('.del-tab-btn').forEach(b => {
-        b.classList.remove('bg-primary', 'text-white');
-        b.classList.add('text-gray-600');
-      });
-      btn.classList.add('bg-primary', 'text-white');
-      btn.classList.remove('text-gray-600');
-      applyFilter();
+  const handleTabClick = (e) => {
+    const btn = e.currentTarget;
+    activeStatus = btn.getAttribute('data-status');
+    rootElement.querySelectorAll('.del-tab-btn').forEach(b => {
+      b.classList.remove('bg-primary', 'text-white');
+      b.classList.add('text-gray-600');
     });
-  });
-  if (delSearch) delSearch.addEventListener('input', applyFilter);
+    btn.classList.add('bg-primary', 'text-white');
+    btn.classList.remove('text-gray-600');
+    applyFilter();
+  };
+  const tabBtns = rootElement.querySelectorAll('.del-tab-btn');
+  tabBtns.forEach(btn => btn.addEventListener('click', handleTabClick));
+  const handleSearchInput = () => applyFilter();
+  if (delSearch) delSearch.addEventListener('input', handleSearchInput);
 
   const openForm = (e) => {
     const id = e.detail;
@@ -289,12 +293,27 @@ export function onMount(rootElement) {
     formDrawer.classList.remove('translate-x-full');
   };
 
+  const handleRowClick = (e) => {
+    const row = e.target.closest('[data-delivery-row]');
+    if (!row) return;
+    const id = row.getAttribute('data-delivery-row');
+    if (id) window.dispatchEvent(new CustomEvent('openDeliveryDrawer', { detail: id }));
+  };
+  if (tbody) tbody.addEventListener('click', handleRowClick);
+
+  const handleNewDelivery = () => {
+    window.dispatchEvent(new CustomEvent('openDeliveryDrawer', { detail: null }));
+  };
+  const newBtn = rootElement.querySelector('[data-delivery-new]');
+  if (newBtn) newBtn.addEventListener('click', handleNewDelivery);
+
   window.addEventListener('openDeliveryDrawer', openForm);
-  closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
+  const handleCloseClick = () => closeAll();
+  closeBtns.forEach(btn => btn.addEventListener('click', handleCloseClick));
+  overlay.addEventListener('click', handleCloseClick);
 
   // Real save (D-001)
-  rootElement.querySelector('#save-delivery-btn')?.addEventListener('click', () => {
+  const handleSaveDelivery = () => {
     const form = rootElement.querySelector('#delivery-form');
     if (!form.reportValidity()) return;
 
@@ -319,13 +338,22 @@ export function onMount(rootElement) {
 
       closeAll();
       applyFilter();
-      window.showToast('Delivery saved!', 'success');
+      NotificationService.success('Delivery saved!');
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
-  });
+  };
+  rootElement.querySelector('#save-delivery-btn')?.addEventListener('click', handleSaveDelivery);
 
   return function cleanup() {
     window.removeEventListener('openDeliveryDrawer', openForm);
+    tabBtns.forEach(btn => btn.removeEventListener('click', handleTabClick));
+    if (delSearch) delSearch.removeEventListener('input', handleSearchInput);
+    if (tbody) tbody.removeEventListener('click', handleRowClick);
+    if (newBtn) newBtn.removeEventListener('click', handleNewDelivery);
+    closeBtns.forEach(btn => btn.removeEventListener('click', handleCloseClick));
+    overlay.removeEventListener('click', handleCloseClick);
+    const saveBtn = rootElement.querySelector('#save-delivery-btn');
+    if (saveBtn) saveBtn.removeEventListener('click', handleSaveDelivery);
   };
 }

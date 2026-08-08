@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Customers Module
  * FIXES: C-001 Search bar, C-002 no reload, C-003 showToast, C-004 no confirm, C-007 totalSpent computed
@@ -5,6 +6,8 @@
 import { PrimaryButton } from '../components/ui/buttons.js';
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 export async function render() {
   const customers = DataProvider.getCustomers() || [];
@@ -25,34 +28,34 @@ export async function render() {
     const statusLabel = c.isActive === false ? 'Inactive' : (isOverLimit ? 'Over Limit' : 'Active');
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${c.id}" onclick="window.dispatchEvent(new CustomEvent('openCustomerDrawer', {detail: '${c.id}'}))">
-      <td class="px-4 py-3.5 text-left" onclick="event.stopPropagation()">
+    <tr class="row-hover cursor-pointer" data-customer-row="${escapeHtml(c.id)}">
+      <td class="px-4 py-3.5 text-left">
         <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary">
       </td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase">
-            ${c.name.substring(0, 2)}
+            ${escapeHtml(c.name.substring(0, 2))}
           </div>
           <div>
-            <p class="text-sm font-semibold text-text">${c.name}</p>
-            <p class="text-[10px] text-gray-500">${c.id}${c.gst ? ` • ${c.gst}` : ''}</p>
+            <p class="text-sm font-semibold text-text">${escapeHtml(c.name)}</p>
+            <p class="text-[10px] text-gray-500">${escapeHtml(c.id)}${c.gst ? ` • ${escapeHtml(c.gst)}` : ''}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${c.type || 'Retail'}</td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${c.phone || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${c.area || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(c.type || 'Retail')}</td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(c.phone || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(c.area || '-')}</td>
       <td class="px-4 py-3.5 text-right font-semibold text-text">₹${totalSpent.toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5 text-right">
         <span class="font-semibold ${c.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(c.outstanding || 0).toLocaleString('en-IN')}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${c.lastPurchaseDate || 'Never'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(c.lastPurchaseDate || 'Never')}</td>
       <td class="px-4 py-3.5 text-center">
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold status-${statusColor === 'gray' ? 'gray' : statusColor === 'danger' ? 'danger' : 'success'}">${statusLabel}</span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold status-${statusColor === 'gray' ? 'gray' : statusColor === 'danger' ? 'danger' : 'success'}">${escapeHtml(statusLabel)}</span>
       </td>
-      <td class="px-4 py-3.5 text-center" onclick="event.stopPropagation()">
-        <button class="cust-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${c.id}">
+      <td class="px-4 py-3.5 text-center">
+        <button class="cust-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${escapeHtml(c.id)}">
           <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -342,8 +345,9 @@ export function onMount() {
     if (content) content.classList.remove('hidden');
   };
 
+  const handleTabClick = (e) => switchTab(e.currentTarget.getAttribute('data-tab'));
   document.querySelectorAll('.cust-tab-btn').forEach(b => {
-    b.addEventListener('click', () => switchTab(b.getAttribute('data-tab')));
+    b.addEventListener('click', handleTabClick);
   });
 
   // Render row helper (for in-place refresh)
@@ -353,32 +357,32 @@ export function onMount() {
     const statusColor = c.isActive === false ? 'gray' : (isOverLimit ? 'danger' : 'success');
     const statusLabel = c.isActive === false ? 'Inactive' : (isOverLimit ? 'Over Limit' : 'Active');
     return `
-    <tr class="row-hover cursor-pointer" data-id="${c.id}" onclick="window.dispatchEvent(new CustomEvent('openCustomerDrawer', {detail: '${c.id}'}))">
-      <td class="px-4 py-3.5 text-left" onclick="event.stopPropagation()">
+    <tr class="row-hover cursor-pointer" data-customer-row="${escapeHtml(c.id)}">
+      <td class="px-4 py-3.5 text-left">
         <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
       </td>
       <td class="px-4 py-3.5">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase">${c.name.substring(0, 2)}</div>
+          <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase">${escapeHtml(c.name.substring(0, 2))}</div>
           <div>
-            <p class="text-sm font-semibold text-text">${c.name}</p>
-            <p class="text-[10px] text-gray-500">${c.id}${c.gst ? ` • ${c.gst}` : ''}</p>
+            <p class="text-sm font-semibold text-text">${escapeHtml(c.name)}</p>
+            <p class="text-[10px] text-gray-500">${escapeHtml(c.id)}${c.gst ? ` • ${escapeHtml(c.gst)}` : ''}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${c.type || 'Retail'}</td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${c.phone || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${c.area || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(c.type || 'Retail')}</td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(c.phone || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(c.area || '-')}</td>
       <td class="px-4 py-3.5 text-right font-semibold text-text">₹${totalSpent.toLocaleString('en-IN')}</td>
       <td class="px-4 py-3.5 text-right">
         <span class="font-semibold ${c.outstanding > 0 ? 'text-danger' : 'text-success'}">₹${(c.outstanding || 0).toLocaleString('en-IN')}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${c.lastPurchaseDate || 'Never'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(c.lastPurchaseDate || 'Never')}</td>
       <td class="px-4 py-3.5 text-center">
-        <span class="status-badge status-${statusColor === 'gray' ? 'gray' : statusColor === 'danger' ? 'danger' : 'success'}">${statusLabel}</span>
+        <span class="status-badge status-${statusColor === 'gray' ? 'gray' : statusColor === 'danger' ? 'danger' : 'success'}">${escapeHtml(statusLabel)}</span>
       </td>
-      <td class="px-4 py-3.5 text-center" onclick="event.stopPropagation()">
-        <button class="cust-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${c.id}">
+      <td class="px-4 py-3.5 text-center">
+        <button class="cust-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${escapeHtml(c.id)}">
           <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -426,16 +430,16 @@ export function onMount() {
     // Use a simple inline confirmation via toast-style approach
     if (!window.confirm('Delete this customer? This cannot be undone.')) return;
     DataProvider.deleteCustomer(id);
-    const row = document.querySelector(`tr[data-id="${id}"]`);
+    const row = document.querySelector(`tr[data-customer-row="${id}"]`);
     if (row) {
       row.style.transition = 'opacity 0.3s, transform 0.3s';
       row.style.opacity = '0';
       row.style.transform = 'translateX(20px)';
       setTimeout(() => row.remove(), 300);
     }
-    window.showToast('Customer deleted', 'success');
+    NotificationService.success('Customer deleted');
     if (countLabel) {
-      const remaining = tbody ? tbody.querySelectorAll('tr[data-id]').length - 1 : 0;
+      const remaining = tbody ? tbody.querySelectorAll('tr[data-customer-row]').length - 1 : 0;
       countLabel.textContent = `Showing ${remaining} customers`;
     }
   };
@@ -490,11 +494,11 @@ export function onMount() {
         if (histTbody) {
           histTbody.innerHTML = custInvs.map(i => `
             <tr class="border-t border-border hover:bg-gray-50">
-              <td class="p-3 text-gray-600">${(i.date || '').split('T')[0]}</td>
-              <td class="p-3 text-primary font-semibold">${i.id}</td>
+              <td class="p-3 text-gray-600">${escapeHtml((i.date || '').split('T')[0])}</td>
+              <td class="p-3 text-primary font-semibold">${escapeHtml(i.id)}</td>
               <td class="p-3 text-right font-semibold text-text">₹${Number(i.totalAmount || 0).toLocaleString('en-IN')}</td>
               <td class="p-3 text-center">
-                <span class="status-badge ${i.paymentStatus === 'Paid Full' ? 'status-success' : 'status-warning'}">${i.paymentStatus === 'Paid Full' ? 'Paid' : 'Pending'}</span>
+                <span class="status-badge ${i.paymentStatus === 'Paid Full' ? 'status-success' : 'status-warning'}">${escapeHtml(i.paymentStatus === 'Paid Full' ? 'Paid' : 'Pending')}</span>
               </td>
             </tr>
           `).join('') || '<tr><td colspan="4" class="p-6 text-center text-gray-400">No purchases yet</td></tr>';
@@ -507,10 +511,10 @@ export function onMount() {
         if (retTbody) {
           retTbody.innerHTML = custReturns.map(r => `
             <tr class="border-t border-border hover:bg-gray-50">
-              <td class="p-3 text-gray-600">${(r.date || '').split('T')[0]}</td>
-              <td class="p-3 text-warning font-semibold">${r.id}</td>
+              <td class="p-3 text-gray-600">${escapeHtml((r.date || '').split('T')[0])}</td>
+              <td class="p-3 text-warning font-semibold">${escapeHtml(r.id)}</td>
               <td class="p-3 text-right font-semibold text-danger">₹${Number(r.amount || 0).toLocaleString('en-IN')}</td>
-              <td class="p-3 text-gray-600">${r.reason || '-'}</td>
+              <td class="p-3 text-gray-600">${escapeHtml(r.reason || '-')}</td>
             </tr>
           `).join('') || '<tr><td colspan="4" class="p-4 text-center text-gray-400">No returns yet</td></tr>';
         }
@@ -528,14 +532,32 @@ export function onMount() {
     openDrawer();
   };
 
-  document.getElementById('btn-add-new-customer')?.addEventListener('click', () => openForm());
-  window.addEventListener('openCustomerDrawer', (e) => openForm(e.detail));
-  document.querySelectorAll('.close-customer-drawer').forEach(b => b.addEventListener('click', closeAll));
-  overlay.addEventListener('click', closeAll);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
+  // Delegated row click -> open customer drawer
+  const handleRowClick = (e) => {
+    if (e.target.closest('.cust-delete-btn') || e.target.closest('input[type="checkbox"]')) return;
+    const row = e.target.closest('[data-customer-row]');
+    if (!row) return;
+    const id = row.getAttribute('data-customer-row');
+    if (id) window.dispatchEvent(new CustomEvent('openCustomerDrawer', { detail: id }));
+  };
+  if (tbody) tbody.addEventListener('click', handleRowClick);
+
+  const handleNewCustomer = () => openForm();
+  const handleOpenCustomerDrawer = (e) => openForm(e.detail);
+  document.getElementById('btn-add-new-customer')?.addEventListener('click', handleNewCustomer);
+  window.addEventListener('openCustomerDrawer', handleOpenCustomerDrawer);
+  
+  // Initialize Draft Recovery
+  const formEl = document.getElementById('customer-form');
+  if (formEl) DraftManager.init('customer', formEl);
+  const handleCloseClick = () => closeAll();
+  document.querySelectorAll('.close-customer-drawer').forEach(b => b.addEventListener('click', handleCloseClick));
+  if (overlay) overlay.addEventListener('click', handleCloseClick);
+  const handleKeydown = (e) => { if (e.key === 'Escape') closeAll(); };
+  document.addEventListener('keydown', handleKeydown);
 
   // --- SAVE ---
-  document.getElementById('save-c-btn')?.addEventListener('click', () => {
+  const handleSaveCustomer = () => {
     const form = document.getElementById('customer-form');
     if (!form.reportValidity()) return;
 
@@ -556,6 +578,7 @@ export function onMount() {
 
     try {
       DataProvider.saveCustomer(customer);
+      DraftManager.clearDraft('customer');
       closeAll();
       // In-place refresh
       const fresh = DataProvider.getCustomers();
@@ -570,13 +593,27 @@ export function onMount() {
         attachDeleteListeners();
       }
       if (countLabel) countLabel.textContent = `Showing ${fresh.length} customers`;
-      window.showToast('Customer saved successfully!', 'success');
+      NotificationService.success('Customer saved successfully!');
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
-  });
+  };
+  document.getElementById('save-c-btn')?.addEventListener('click', handleSaveCustomer);
 
   return function cleanup() {
-    window.removeEventListener('openCustomerDrawer', openForm);
+    window.removeEventListener('openCustomerDrawer', handleOpenCustomerDrawer);
+    document.removeEventListener('keydown', handleKeydown);
+    document.querySelectorAll('.cust-tab-btn').forEach(b => b.removeEventListener('click', handleTabClick));
+    if (searchInput) searchInput.removeEventListener('input', applyFilter);
+    if (typeFilter) typeFilter.removeEventListener('change', applyFilter);
+    if (statusFilter) statusFilter.removeEventListener('change', applyFilter);
+    if (tbody) tbody.removeEventListener('click', handleRowClick);
+    document.querySelectorAll('.cust-delete-btn').forEach(btn => btn.removeEventListener('click', handleDelete));
+    const addBtn = document.getElementById('btn-add-new-customer');
+    if (addBtn) addBtn.removeEventListener('click', handleNewCustomer);
+    const saveBtn = document.getElementById('save-c-btn');
+    if (saveBtn) saveBtn.removeEventListener('click', handleSaveCustomer);
+    document.querySelectorAll('.close-customer-drawer').forEach(b => b.removeEventListener('click', handleCloseClick));
+    if (overlay) overlay.removeEventListener('click', handleCloseClick);
   };
 }

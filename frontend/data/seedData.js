@@ -7,13 +7,13 @@ export const SeedData = {
   erp_settings: {
     shopName: 'Senthil Enterprises',
     tagline: 'Hardware, Electrical, Plumbing, Sanitary and Construction Materials',
-    address: 'No. 123, Main Road, Chennai, Tamil Nadu - 600001',
+    address: 'Chukkuparai Eherivezhai, College Road, Kanniyakumari, Tamil Nadu - 629702',
     phone: '+91 9876543210',
     email: 'contact@senthilenterprises.com',
     gstin: '33AAAAA0000A1Z5',
     defaultTaxType: 'Exclusive',
     invoicePrefix: 'INV-',
-    terms: '1. Goods once sold cannot be returned.\n2. Subject to Chennai jurisdiction.'
+    terms: '1. Goods once sold cannot be returned.\n2. Subject to Kanniyakumari jurisdiction.'
   },
   erp_products: MasterProducts,
   erp_customers: [],

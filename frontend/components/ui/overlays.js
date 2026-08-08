@@ -22,7 +22,7 @@ export function Modal({ id, title, content, footerActions = '' }) {
             <!-- Header -->
             <div class="bg-white px-6 py-4 border-b border-border flex items-center justify-between">
               <h3 class="text-base font-semibold leading-6 text-text" id="modal-title">${title}</h3>
-              <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none" onclick="document.getElementById('${id}').classList.add('hidden')">
+              <button type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none" data-close-modal="${id}">
                 <span class="sr-only">Close</span>
                 <i data-lucide="x" class="h-5 w-5"></i>
               </button>
@@ -45,4 +45,12 @@ export function Modal({ id, title, content, footerActions = '' }) {
     </div>
   `;
 }
+
+document.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('[data-close-modal]');
+  if (closeBtn) {
+    const modal = document.getElementById(closeBtn.getAttribute('data-close-modal'));
+    if (modal) modal.classList.add('hidden');
+  }
+});
 

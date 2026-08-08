@@ -1,6 +1,6 @@
 # Senthil Enterprises ERP
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0--rc3-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)
@@ -95,7 +95,15 @@ root/
 - PostgreSQL 15+
 - Node.js (Optional, for running a local static server)
 
-### 1. Database Setup
+### 1. Local Development Setup (Recommended)
+This project uses a rigorous Local-First development workflow powered by Node.js.
+```bash
+npm install
+npm run dev     # Starts live-server at http://127.0.0.1:5173
+npm run qa      # Runs automated Puppeteer tests
+```
+
+### 2. Database Setup (Optional/Online Mode only)
 ```bash
 createdb senthil_erp
 ```
@@ -112,13 +120,10 @@ alembic upgrade head
 python init_db.py  # Creates default admin user
 ```
 
-### 3. Frontend Setup
-The frontend is Vanilla JS. Simply serve the root directory.
+### 4. Frontend Setup
+The frontend is Vanilla JS. We use `live-server` for hot reloading.
 ```bash
-# Using Python
-python -m http.server 5500
-# Using Node
-npx serve . -p 5500
+npm run dev
 ```
 
 ## Running the Application
@@ -128,9 +133,10 @@ npx serve . -p 5500
 2. Start the backend: `uvicorn app.main:app --reload --port 8000`
 3. Serve the frontend: `http://localhost:5500`
 
-### Offline Mode (Development/Fallback)
+### Offline Mode (Primary Development)
 1. Ensure `frontend/config/env.js` has `API_MODE = 'offline'`.
-2. Serve the frontend. The backend is not required. Data persists in LocalStorage.
+2. Run `npm run dev` to serve the frontend. The backend is not required. Data persists in LocalStorage.
+3. Every feature must pass `npm run qa` before committing.
 
 ## API & Database
 Read the detailed `API_DOCUMENTATION.md` and `DATABASE_ER_DIAGRAM.md` for deep technical integrations.

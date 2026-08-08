@@ -1,14 +1,18 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Expense Management
  * FIXES: E-001 no reload, E-002 showToast, E-003 no confirm, E-004 filters wired, E-005 dynamic largest category
  */
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
-const EXPENSE_CATEGORIES = ['Tea & Snacks', 'Transport', 'Utilities', 'Maintenance', 'Salary/Wages', 'Rent', 'Stationary', 'Other'];
-
+const DEFAULT_EXPENSE_CATEGORIES = ['Electricity', 'Water', 'Internet', 'Staff Salary', 'Labour', 'Transport', 'Loading & Unloading', 'Tea & Snacks', 'Office Expense', 'Cleaning', 'Maintenance', 'Stationery', 'Fuel', 'Packing', 'Miscellaneous'];
 export async function render() {
   const expenses = DataProvider.getExpenses() || [];
+  const customCategories = DataProvider.getExpenseCategories ? DataProvider.getExpenseCategories() : [];
+  const EXPENSE_CATEGORIES = customCategories.length > 0 ? customCategories.map(c => c.name) : DEFAULT_EXPENSE_CATEGORIES;
 
   // Compute largest category (fix E-005)
   const catTotals = {};
@@ -23,18 +27,18 @@ export async function render() {
     if (exp.method === 'UPI') methodBadge = 'warning';
     if (exp.method === 'Bank') methodBadge = 'success';
     return `
-    <tr class="row-hover" data-id="${exp.id}">
-      <td class="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap">${exp.date || '-'}</td>
+    <tr class="row-hover" data-id="${escapeHtml(exp.id)}">
+      <td class="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap">${escapeHtml(exp.date || '-')}</td>
       <td class="px-4 py-3.5">
-        <span class="font-semibold text-text text-sm">${exp.category || '-'}</span>
+        <span class="font-semibold text-text text-sm">${escapeHtml(exp.category || '-')}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600 max-w-xs truncate">${exp.description || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600 max-w-xs truncate">${escapeHtml(exp.description || '-')}</td>
       <td class="px-4 py-3.5 text-center">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-${methodBadge}/10 text-${methodBadge} uppercase tracking-wider">${exp.method || 'Cash'}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-${methodBadge}/10 text-${methodBadge} uppercase tracking-wider">${escapeHtml(exp.method || 'Cash')}</span>
       </td>
       <td class="px-4 py-3.5 text-right font-bold text-danger">₹${Number(exp.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-      <td class="px-4 py-3.5 text-right" onclick="event.stopPropagation()">
-        <button class="exp-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${exp.id}">
+      <td class="px-4 py-3.5 text-right">
+        <button class="exp-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${escapeHtml(exp.id)}" title="Delete Expense">
           <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -48,9 +52,14 @@ export async function render() {
           <h1 class="text-2xl font-bold text-text">Expense Management</h1>
           <p class="text-sm text-gray-400 mt-0.5">Record, categorize, and track all business expenses.</p>
         </div>
-        <button id="btn-open-expense-drawer" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
-          <i data-lucide="plus" class="w-4 h-4"></i> Add Expense
-        </button>
+        <div class="flex items-center gap-3">
+          <button id="btn-manage-categories" class="flex items-center gap-1.5 px-4 py-2 bg-white border border-border text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+            <i data-lucide="settings-2" class="w-4 h-4"></i> Manage Categories
+          </button>
+          <button id="btn-open-expense-drawer" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Expense
+          </button>
+        </div>
       </div>
 
       <!-- KPI Cards -->
@@ -70,7 +79,7 @@ export async function render() {
         </div>
         <select id="exp-cat-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
           <option value="">All Categories</option>
-          ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+          ${EXPENSE_CATEGORIES.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
         </select>
         <select id="exp-method-filter" class="px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors">
           <option value="">All Methods</option>
@@ -113,21 +122,16 @@ export async function render() {
     <div id="expense-drawer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
     <!-- Add Expense Drawer -->
-    <aside id="expense-form-drawer" class="fixed top-0 right-0 h-screen w-[480px] bg-white border-l border-border z-[70] shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-white">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-danger/10 rounded-lg text-danger">
-            <i data-lucide="receipt" class="w-4 h-4"></i>
-          </div>
-          <h3 class="text-base font-bold text-text">Record Expense</h3>
+      <div id="expense-form-drawer" class="fixed right-0 top-0 h-full w-[400px] bg-white shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
+          <h3 class="text-lg font-bold text-text flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i> Add Expense
+          </h3>
+          <button class="close-expense-drawer text-gray-400 hover:text-danger hover:bg-danger/10 p-1.5 rounded-lg transition-colors">
+            <i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>
+          </button>
         </div>
-        <button class="close-expense-drawer p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div class="p-6 flex-1 overflow-y-auto space-y-5">
-        <form id="expense-form" class="space-y-4">
+        <form id="expense-form" class="flex-1 overflow-y-auto p-6 space-y-5">
           <div>
             <label class="text-xs font-semibold text-gray-600 block mb-1.5">Date *</label>
             <input type="date" id="exp-date" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
@@ -135,7 +139,7 @@ export async function render() {
           <div>
             <label class="text-xs font-semibold text-gray-600 block mb-1.5">Category *</label>
             <select id="exp-category" required class="w-full px-3 py-2.5 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
-              ${EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+              ${EXPENSE_CATEGORIES.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
             </select>
           </div>
           <div>
@@ -177,7 +181,31 @@ export async function render() {
           <i data-lucide="save" class="w-4 h-4"></i> Save Expense
         </button>
       </div>
-    </aside>
+    </div>
+
+    <!-- Manage Categories Drawer -->
+    <div id="manage-categories-drawer" class="fixed right-0 top-0 h-full w-[400px] bg-white shadow-2xl z-[70] transform translate-x-full transition-transform duration-300 flex flex-col">
+      <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
+        <h3 class="text-lg font-bold text-text flex items-center gap-2">
+          <i data-lucide="settings-2" class="w-5 h-5 text-primary"></i> Manage Categories
+        </h3>
+        <button class="close-expense-drawer text-gray-400 hover:text-danger hover:bg-danger/10 p-1.5 rounded-lg transition-colors">
+          <i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>
+        </button>
+      </div>
+      <div class="p-6 border-b border-border">
+        <label class="text-xs font-semibold text-gray-600 block mb-1.5">Add New Category</label>
+        <div class="flex gap-2">
+          <input type="text" id="new-cat-name" placeholder="e.g. Marketing" class="flex-1 px-3 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+          <button id="btn-add-category" class="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">Add</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4 bg-gray-50/50">
+        <ul id="category-list" class="space-y-2">
+          <!-- Categories rendered here -->
+        </ul>
+      </div>
+    </div>
   `;
 }
 
@@ -189,6 +217,7 @@ export function onMount(rootElement) {
 
   const overlay = rootElement.querySelector('#expense-drawer-overlay');
   const formDrawer = rootElement.querySelector('#expense-form-drawer');
+  const catDrawer = rootElement.querySelector('#manage-categories-drawer');
   const tbody = rootElement.querySelector('#expenses-tbody');
   const countLabel = rootElement.querySelector('#exp-count-label');
 
@@ -200,22 +229,34 @@ export function onMount(rootElement) {
     overlay.classList.add('opacity-0', 'pointer-events-none');
     overlay.classList.remove('opacity-100');
     formDrawer.classList.add('translate-x-full');
+    catDrawer.classList.add('translate-x-full');
   };
 
   const openForm = () => {
     const form = rootElement.querySelector('#expense-form');
     if (form) form.reset();
     if (dateInput) dateInput.value = today;
+    closeAll();
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100');
     formDrawer.classList.remove('translate-x-full');
   };
 
+  const openCatDrawer = () => {
+    closeAll();
+    renderCatList();
+    overlay.classList.remove('opacity-0', 'pointer-events-none');
+    overlay.classList.add('opacity-100');
+    catDrawer.classList.remove('translate-x-full');
+  };
+
   rootElement.querySelector('#btn-open-expense-drawer')?.addEventListener('click', openForm);
+  rootElement.querySelector('#btn-manage-categories')?.addEventListener('click', openCatDrawer);
   window.addEventListener('openExpenseDrawer', openForm);
   rootElement.querySelectorAll('.close-expense-drawer').forEach(b => b.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
+  const keyHandler = (e) => { if (e.key === 'Escape') closeAll(); };
+  document.addEventListener('keydown', keyHandler);
 
   // Render row helper
   const renderRow = (exp) => {
@@ -223,16 +264,16 @@ export function onMount(rootElement) {
     if (exp.method === 'UPI') mb = 'warning';
     if (exp.method === 'Bank') mb = 'success';
     return `
-    <tr class="row-hover" data-id="${exp.id}">
-      <td class="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap">${exp.date || '-'}</td>
-      <td class="px-4 py-3.5"><span class="font-semibold text-text text-sm">${exp.category || '-'}</span></td>
-      <td class="px-4 py-3.5 text-sm text-gray-600 max-w-xs truncate">${exp.description || '-'}</td>
+    <tr class="row-hover" data-id="${escapeHtml(exp.id)}">
+      <td class="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap">${escapeHtml(exp.date || '-')}</td>
+      <td class="px-4 py-3.5"><span class="font-semibold text-text text-sm">${escapeHtml(exp.category || '-')}</span></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600 max-w-xs truncate">${escapeHtml(exp.description || '-')}</td>
       <td class="px-4 py-3.5 text-center">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-${mb}/10 text-${mb} uppercase tracking-wider">${exp.method || 'Cash'}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-${mb}/10 text-${mb} uppercase tracking-wider">${escapeHtml(exp.method || 'Cash')}</span>
       </td>
       <td class="px-4 py-3.5 text-right font-bold text-danger">₹${Number(exp.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
       <td class="px-4 py-3.5 text-right">
-        <button class="exp-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${exp.id}">
+        <button class="exp-delete-btn p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/10 transition-colors" data-id="${escapeHtml(exp.id)}" title="Delete Expense">
           <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -290,7 +331,7 @@ export function onMount(rootElement) {
       row.style.opacity = '0';
       setTimeout(() => row.remove(), 300);
     }
-    window.showToast('Expense deleted', 'success');
+    NotificationService.success('Expense deleted');
   };
 
   const attachDeleteListeners = () => {
@@ -300,6 +341,10 @@ export function onMount(rootElement) {
     });
   };
   attachDeleteListeners();
+
+  // Initialize Draft Recovery
+  const formEl = rootElement.querySelector('#expense-form');
+  if (formEl) DraftManager.init('expense', formEl);
 
   // Save (fix E-001 no reload, E-002 showToast)
   rootElement.querySelector('#btn-save-expense')?.addEventListener('click', () => {
@@ -317,6 +362,7 @@ export function onMount(rootElement) {
 
     try {
       const saved = DataProvider.saveExpense(expense);
+      DraftManager.clearDraft('expense');
       allExpenses.unshift(saved); // Add to front for in-place update
       closeAll();
 
@@ -327,13 +373,78 @@ export function onMount(rootElement) {
         attachDeleteListeners();
       }
       if (countLabel) countLabel.textContent = `Showing ${allExpenses.length} expenses`;
-      window.showToast('Expense saved!', 'success');
+      NotificationService.success('Expense saved!');
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
   });
 
+  // =====================================
+  // Manage Categories Logic
+  // =====================================
+  let currentCategories = [];
+  const catListEl = rootElement.querySelector('#category-list');
+  const catSelectEl = rootElement.querySelector('#exp-category');
+  const catFilterEl = rootElement.querySelector('#exp-cat-filter');
+
+  const updateDropdowns = () => {
+    const optionsHtml = currentCategories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+    if (catSelectEl) catSelectEl.innerHTML = optionsHtml;
+    if (catFilterEl) catFilterEl.innerHTML = `<option value="">All Categories</option>${optionsHtml}`;
+  };
+
+  const renderCatList = () => {
+    currentCategories = DataProvider.getExpenseCategories ? DataProvider.getExpenseCategories() : [];
+    if (!catListEl) return;
+    catListEl.innerHTML = currentCategories.map(c => `
+      <li class="bg-white p-3 rounded-lg border border-border shadow-sm flex items-center justify-between">
+        <span class="text-sm font-medium text-gray-700">${escapeHtml(c.name)}</span>
+        <button class="btn-del-cat text-gray-400 hover:text-danger hover:bg-danger/10 p-1.5 rounded-md transition-colors" data-id="${escapeHtml(c.id)}">
+          <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+        </button>
+      </li>
+    `).join('');
+    if (window.lucide) window.lucide.createIcons({ nodes: [catListEl] });
+    updateDropdowns();
+  };
+
+  rootElement.querySelector('#btn-add-category')?.addEventListener('click', () => {
+    const input = rootElement.querySelector('#new-cat-name');
+    const name = input.value.trim();
+    if (!name) {
+      NotificationService.warning('Please enter a category name');
+      return;
+    }
+    try {
+      if (DataProvider.saveExpenseCategory) {
+        DataProvider.saveExpenseCategory({ name, isActive: true });
+        input.value = '';
+        renderCatList();
+        NotificationService.success('Category added');
+      }
+    } catch (e) {
+      NotificationService.error(e.message);
+    }
+  });
+
+  catListEl?.addEventListener('click', (e) => {
+    if (e.target.closest('.btn-del-cat')) {
+      const id = e.target.closest('.btn-del-cat').getAttribute('data-id');
+      if (window.confirm('Delete this expense category?')) {
+        if (DataProvider.deleteExpenseCategory) {
+          DataProvider.deleteExpenseCategory(id);
+          renderCatList();
+          NotificationService.success('Category deleted');
+        }
+      }
+    }
+  });
+
+  // Initial render
+  currentCategories = DataProvider.getExpenseCategories ? DataProvider.getExpenseCategories() : [];
+
   return function cleanup() {
     window.removeEventListener('openExpenseDrawer', openForm);
+    document.removeEventListener('keydown', keyHandler);
   };
 }

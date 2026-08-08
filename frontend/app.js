@@ -1,3 +1,4 @@
+import { NotificationService } from './services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Application Entry Point
  * Purpose: Initializes the SPA, loads the router, sets up global state.
@@ -5,7 +6,8 @@
  */
 
 import { Router } from './router/router.js';
-import { Sidebar, Navbar } from './components/layout/layout.js';
+import { AppLayout, initNavbarResizeLogic } from './components/ui/designSystem.js';
+import { MigrationRC3 } from './services/migration_rc3.js';
 import { DataProvider } from './services/dataProvider.js';
 
 const App = {
@@ -14,61 +16,62 @@ const App = {
    * Renders the base shell (Sidebar, Navbar) and triggers the initial route.
    */
   async init() {
+    // Run schema migrations first
+    MigrationRC3.run();
+
     // Initialize Offline Data Layer
     DataProvider.init();
     
-    // Future Phase: Load global state (store.js)
-    // The injection points defined in Phase 2 are in index.html.
-    // The router will target #page-root for dynamic page loading.
-    const appRouter = new Router('page-root');
-    
+    // Mount the Application Shell (Phase 4 Step 1 & 2)
     this.renderShell();
+
+    // Initialize Router after shell is mounted so #page-root exists
+    const appRouter = new Router('page-root');
   },
 
   /**
-   * Mounts the static shell components.
-   * In Phase 3, this will call the Sidebar and Navbar component constructors.
+   * Mounts the static shell components using the new Global Design System.
    */
   renderShell() {
-    const sidebarRoot = document.getElementById('sidebar-root');
-    const navbarRoot = document.getElementById('navbar-root');
-    const pageRoot = document.getElementById('page-root');
+    const appRoot = document.getElementById('app-root');
 
-    // Load the Sidebar and Navbar from our component library
-    sidebarRoot.innerHTML = Sidebar({ 
-      links: [
-        { path: '#/', label: 'Dashboard', icon: '<i data-lucide="layout-dashboard" class="w-5 h-5"></i>' },
-        { path: '#/pos', label: 'POS Billing', icon: '<i data-lucide="shopping-cart" class="w-5 h-5"></i>' },
-        { path: '#/sales', label: 'Sales Register', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>' },
-        { path: '#/purchases', label: 'Purchases', icon: '<i data-lucide="shopping-bag" class="w-5 h-5"></i>' },
-        { path: '#/inventory', label: 'Products', icon: '<i data-lucide="package" class="w-5 h-5"></i>' },
-        { path: '#/customers', label: 'Customers', icon: '<i data-lucide="users" class="w-5 h-5"></i>' },
-        { path: '#/dealers', label: 'Dealers', icon: '<i data-lucide="building-2" class="w-5 h-5"></i>' },
-        { path: '#/delivery', label: 'Delivery', icon: '<i data-lucide="truck" class="w-5 h-5"></i>' },
-        { path: '#/sales-returns', label: 'Sales Returns', icon: '<i data-lucide="corner-up-left" class="w-5 h-5"></i>' },
-        { path: '#/purchase-returns', label: 'Purchase Returns', icon: '<i data-lucide="corner-down-right" class="w-5 h-5"></i>' },
-        { path: '#/warranty', label: 'Warranty', icon: '<i data-lucide="shield-check" class="w-5 h-5"></i>' },
-        { path: '#/expenses', label: 'Expenses', icon: '<i data-lucide="receipt" class="w-5 h-5"></i>' },
-        { path: '#/house-projects', label: 'House Projects', icon: '<i data-lucide="home" class="w-5 h-5"></i>' },
-        { path: '#/reports', label: 'Reports', icon: '<i data-lucide="bar-chart-2" class="w-5 h-5"></i>' },
-        { path: '#/daily-closing', label: 'Daily Closing', icon: '<i data-lucide="calendar-check" class="w-5 h-5"></i>' },
-        { path: '#/credit-management', label: 'Credit', icon: '<i data-lucide="credit-card" class="w-5 h-5"></i>' },
-        { path: '#/users', label: 'Users', icon: '<i data-lucide="user-cog" class="w-5 h-5"></i>' },
-        { path: '#/staff', label: 'Staff', icon: '<i data-lucide="user-circle" class="w-5 h-5"></i>' },
-        { path: '#/settings', label: 'Settings', icon: '<i data-lucide="settings" class="w-5 h-5"></i>' }
-      ],
-      currentRoute: window.location.hash || '#/'
+    const sidebarLinks = [
+      { path: '#/', label: 'Dashboard', icon: '<i data-lucide="layout-dashboard" class="w-5 h-5"></i>' },
+      { path: '#/pos', label: 'POS Billing', icon: '<i data-lucide="shopping-cart" class="w-5 h-5"></i>' },
+      { path: '#/sales', label: 'Sales Register', icon: '<i data-lucide="file-text" class="w-5 h-5"></i>' },
+      { path: '#/purchases', label: 'Purchases', icon: '<i data-lucide="shopping-bag" class="w-5 h-5"></i>' },
+      { path: '#/inventory', label: 'Inventory', icon: '<i data-lucide="bar-chart-2" class="w-5 h-5"></i>' },
+      { path: '#/products', label: 'Products', icon: '<i data-lucide="package" class="w-5 h-5"></i>' },
+      { path: '#/categories', label: 'Categories', icon: '<i data-lucide="folder" class="w-5 h-5"></i>' },
+      { path: '#/stock-adjustments', label: 'Stock Adj.', icon: '<i data-lucide="sliders" class="w-5 h-5"></i>' },
+      { path: '#/customers', label: 'Customers', icon: '<i data-lucide="users" class="w-5 h-5"></i>' },
+      { path: '#/dealers', label: 'Dealers', icon: '<i data-lucide="building-2" class="w-5 h-5"></i>' },
+      { path: '#/delivery', label: 'Delivery', icon: '<i data-lucide="truck" class="w-5 h-5"></i>' },
+      { path: '#/sales-returns', label: 'Sales Returns', icon: '<i data-lucide="corner-up-left" class="w-5 h-5"></i>' },
+      { path: '#/purchase-returns', label: 'Purchase Returns', icon: '<i data-lucide="corner-down-right" class="w-5 h-5"></i>' },
+      { path: '#/warranty', label: 'Warranty', icon: '<i data-lucide="shield-check" class="w-5 h-5"></i>' },
+      { path: '#/expenses', label: 'Expenses', icon: '<i data-lucide="receipt" class="w-5 h-5"></i>' },
+      { path: '#/house-projects', label: 'House Projects', icon: '<i data-lucide="home" class="w-5 h-5"></i>' },
+      { path: '#/reports', label: 'Reports', icon: '<i data-lucide="bar-chart-2" class="w-5 h-5"></i>' },
+      { path: '#/daily-closing', label: 'Daily Closing', icon: '<i data-lucide="calendar-check" class="w-5 h-5"></i>' },
+      { path: '#/credit-management', label: 'Credit', icon: '<i data-lucide="credit-card" class="w-5 h-5"></i>' },
+      { path: '#/users', label: 'Users', icon: '<i data-lucide="user-cog" class="w-5 h-5"></i>' },
+      { path: '#/staff', label: 'Staff', icon: '<i data-lucide="user-circle" class="w-5 h-5"></i>' },
+      { path: '#/settings', label: 'Settings', icon: '<i data-lucide="settings" class="w-5 h-5"></i>' }
+    ];
+
+    appRoot.innerHTML = AppLayout({
+      sidebarLinks,
+      currentRoute: window.location.hash || '#/',
+      user: { initials: 'SK', name: 'Senthil Kumar', role: 'Admin' }
     });
 
-    navbarRoot.innerHTML = Navbar({ 
-      title: 'Dashboard', 
-      userInitials: 'SK', 
-      userName: 'Senthil Kumar', 
-      role: 'Admin' 
-    });
-
-    // The router handles pageRoot.innerHTML
-
+    // Initialize layout behavior
+    initNavbarResizeLogic();
+    // Re-initialize icons since new DOM elements were added
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
   }
 };
 
@@ -112,5 +115,28 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 300);
     }, 3000);
   };
+
+  // Global Keyboard Shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F4') { e.preventDefault(); window.location.hash = '#/purchases'; }
+    if (e.key === 'F6') { e.preventDefault(); window.location.hash = '#/settings'; }
+    
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      // Find a button that looks like a save button and click it
+      const saveBtn = document.querySelector('button[id^="save-"], button[id*="-save-"], button[id$="-save"], button[id="btn-save-po"]');
+      if (saveBtn) saveBtn.click();
+      else NotificationService.info();
+    }
+    
+    if (e.ctrlKey && e.key === 'p') {
+      // Browsers handle Ctrl+P natively, but we can override it if a specific print button exists
+      const printBtn = document.querySelector('button[id^="print-"], button[id*="-print"], .print-btn');
+      if (printBtn) {
+        e.preventDefault();
+        printBtn.click();
+      }
+    }
+  });
 });
 

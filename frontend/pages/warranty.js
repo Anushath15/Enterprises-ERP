@@ -1,3 +1,4 @@
+import { NotificationService } from '../services/notificationService.js';
 /**
  * Senthil Enterprises ERP - Warranty Management
  * FIXES: W-001 alert() removed, W-002 real DataProvider.saveWarranty(), W-003 search wired,
@@ -5,6 +6,8 @@
  */
 import { KPICard } from '../components/ui/cards.js';
 import { DataProvider } from '../services/dataProvider.js';
+import { DraftManager } from '../services/draftManager.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 
 const CLAIM_STATUSES = ['No Claim', 'Active Claim', 'Sent to Company', 'Resolved', 'Rejected'];
 const REPLACEMENT_STATUSES = ['-', 'Pending', 'Repaired', 'Replaced (New Item)'];
@@ -21,20 +24,20 @@ export async function render() {
     if (wrt.claimStatus === 'Rejected') statusColor = 'danger';
 
     return `
-    <tr class="row-hover cursor-pointer" data-id="${wrt.id}" onclick="window.dispatchEvent(new CustomEvent('openWarrantyDrawer', {detail: '${wrt.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${wrt.id || '-'}</td>
+    <tr class="row-hover cursor-pointer" data-warranty-row="${escapeHtml(wrt.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(wrt.id || '-')}</td>
       <td class="px-4 py-3.5">
-        <p class="text-sm font-medium text-text">${wrt.product || '-'}</p>
-        <p class="text-[10px] text-gray-400">${wrt.customer || '-'}</p>
+        <p class="text-sm font-medium text-text">${escapeHtml(wrt.product || '-')}</p>
+        <p class="text-[10px] text-gray-400">${escapeHtml(wrt.customer || '-')}</p>
       </td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${wrt.invoice || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${wrt.expiry || '-'}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(wrt.invoice || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(wrt.expiry || '-')}</td>
       <td class="px-4 py-3.5">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${statusColor}/10 text-${statusColor} uppercase tracking-wider">${wrt.claimStatus || 'No Claim'}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${statusColor}/10 text-${statusColor} uppercase tracking-wider">${escapeHtml(wrt.claimStatus || 'No Claim')}</span>
       </td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${wrt.replacement || '-'}</td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(wrt.replacement || '-')}</td>
       <td class="px-4 py-3.5 text-right">
-        <button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openWarrantyDrawer', {detail: '${wrt.id}'}))">
+        <button class="edit-warranty-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(wrt.id)}">
           <i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i>
         </button>
       </td>
@@ -48,7 +51,7 @@ export async function render() {
           <h1 class="text-2xl font-bold text-text">Warranty Management</h1>
           <p class="text-sm text-gray-400 mt-0.5">Track product warranties, customer claims, and company replacements.</p>
         </div>
-        <button onclick="window.dispatchEvent(new CustomEvent('openWarrantyDrawer', {detail: null}))" class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+        <button data-warranty-new class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
           <i data-lucide="plus" class="w-4 h-4"></i> Register Warranty / Claim
         </button>
       </div>
@@ -196,14 +199,14 @@ export function onMount(rootElement) {
     if (wrt.claimStatus === 'Resolved') sc = 'success';
     if (wrt.claimStatus === 'Rejected') sc = 'danger';
     return `
-    <tr class="row-hover cursor-pointer" data-id="${wrt.id}" onclick="window.dispatchEvent(new CustomEvent('openWarrantyDrawer', {detail: '${wrt.id}'}))">
-      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${wrt.id || '-'}</td>
-      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${wrt.product || '-'}</p><p class="text-[10px] text-gray-400">${wrt.customer || '-'}</p></td>
-      <td class="px-4 py-3.5 text-sm text-gray-600">${wrt.invoice || '-'}</td>
-      <td class="px-4 py-3.5 text-sm text-gray-500">${wrt.expiry || '-'}</td>
-      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${sc}/10 text-${sc} uppercase tracking-wider">${wrt.claimStatus || 'No Claim'}</span></td>
-      <td class="px-4 py-3.5 text-sm font-medium text-text">${wrt.replacement || '-'}</td>
-      <td class="px-4 py-3.5 text-right"><button class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openWarrantyDrawer', {detail: '${wrt.id}'}))"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
+    <tr class="row-hover cursor-pointer" data-warranty-row="${escapeHtml(wrt.id)}">
+      <td class="px-4 py-3.5 font-semibold text-primary text-sm">${escapeHtml(wrt.id || '-')}</td>
+      <td class="px-4 py-3.5"><p class="text-sm font-medium text-text">${escapeHtml(wrt.product || '-')}</p><p class="text-[10px] text-gray-400">${escapeHtml(wrt.customer || '-')}</p></td>
+      <td class="px-4 py-3.5 text-sm text-gray-600">${escapeHtml(wrt.invoice || '-')}</td>
+      <td class="px-4 py-3.5 text-sm text-gray-500">${escapeHtml(wrt.expiry || '-')}</td>
+      <td class="px-4 py-3.5"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-${sc}/10 text-${sc} uppercase tracking-wider">${escapeHtml(wrt.claimStatus || 'No Claim')}</span></td>
+      <td class="px-4 py-3.5 text-sm font-medium text-text">${escapeHtml(wrt.replacement || '-')}</td>
+      <td class="px-4 py-3.5 text-right"><button class="edit-warranty-btn p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100" data-id="${escapeHtml(wrt.id)}"><i data-lucide="edit-3" class="w-4 h-4 pointer-events-none"></i></button></td>
     </tr>`;
   };
 
@@ -256,11 +259,27 @@ export function onMount(rootElement) {
   };
 
   window.addEventListener('openWarrantyDrawer', openForm);
+  const handleNewWarranty = () => openForm({ detail: null });
+  rootElement.querySelector('[data-warranty-new]')?.addEventListener('click', handleNewWarranty);
   closeBtns.forEach(btn => btn.addEventListener('click', closeAll));
   overlay.addEventListener('click', closeAll);
 
+  const handleRowClick = (e) => {
+    const editBtn = e.target.closest('.edit-warranty-btn');
+    const row = editBtn ? editBtn.closest('tr') : e.target.closest('[data-warranty-row]');
+    if (!row) return;
+    const id = editBtn ? editBtn.getAttribute('data-id') : row.getAttribute('data-warranty-row');
+    if (id) openForm({ detail: id });
+  };
+  if (tbody) tbody.addEventListener('click', handleRowClick);
+
+  // Initialize Draft Recovery
+  const formEl = rootElement.querySelector('#warranty-form');
+  if (formEl) DraftManager.init('warranty', formEl);
+
   // Save (W-001, W-002) — real DataProvider call, no alert(), no reload
-  rootElement.querySelector('#save-warranty-btn')?.addEventListener('click', () => {
+  const saveBtn = rootElement.querySelector('#save-warranty-btn');
+  const handleSave = () => {
     const form = rootElement.querySelector('#warranty-form');
     if (!form.reportValidity()) return;
 
@@ -277,6 +296,7 @@ export function onMount(rootElement) {
 
     try {
       const saved = DataProvider.saveWarranty(warranty);
+      DraftManager.clearDraft('warranty');
       const existingIdx = allWarranties.findIndex(w => w.id === saved.id);
       if (existingIdx > -1) allWarranties[existingIdx] = saved;
       else allWarranties.unshift(saved);
@@ -287,13 +307,23 @@ export function onMount(rootElement) {
         if (window.lucide) window.lucide.createIcons({ nodes: [tbody] });
       }
       if (countLabel) countLabel.textContent = `Showing ${allWarranties.length} records`;
-      window.showToast('Warranty record saved!', 'success');
+      NotificationService.success('Warranty record saved!');
     } catch (err) {
-      window.showToast(err.message, 'danger');
+      NotificationService.error(err.message);
     }
-  });
+  };
+  if (saveBtn) {
+    saveBtn.addEventListener('click', handleSave);
+  }
 
   return function cleanup() {
     window.removeEventListener('openWarrantyDrawer', openForm);
+    if (wrtSearch) wrtSearch.removeEventListener('input', applyFilter);
+    if (wrtStatusFilter) wrtStatusFilter.removeEventListener('change', applyFilter);
+    if (tbody) tbody.removeEventListener('click', handleRowClick);
+    rootElement.querySelector('[data-warranty-new]')?.removeEventListener('click', handleNewWarranty);
+    closeBtns.forEach(btn => btn.removeEventListener('click', closeAll));
+    overlay.removeEventListener('click', closeAll);
+    if (saveBtn) saveBtn.removeEventListener('click', handleSave);
   };
 }
