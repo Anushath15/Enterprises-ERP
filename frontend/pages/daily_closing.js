@@ -23,9 +23,21 @@ export async function render() {
   
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   // AUDIT-H03: a corrupt/empty stored value must never produce NaN expected cash
-  const rawOpeningCash = localStorage.getItem('erp_opening_cash');
+  let rawOpeningCash = localStorage.getItem('erp_opening_cash');
   
+  // If not set, try to get from the last closing
   if (rawOpeningCash === null || rawOpeningCash === '') {
+    const closings = DataProvider.getDailyClosings ? DataProvider.getDailyClosings() : JSON.parse(localStorage.getItem('erp_daily_closings') || '[]');
+    if (closings && closings.length > 0) {
+      const lastClosing = closings[closings.length - 1];
+      rawOpeningCash = String(lastClosing.actualCash || lastClosing.closingCash || 0);
+      localStorage.setItem('erp_opening_cash', rawOpeningCash);
+    } else {
+      rawOpeningCash = '';
+    }
+  }
+
+  if (rawOpeningCash === '') {
     return `
       <div class="p-4 max-w-[500px] mx-auto fade-in mt-10" id="missing-cash-view">
         <div class="bg-white erp-card p-6 border-t-4 border-t-primary shadow-sm text-center">
@@ -190,7 +202,15 @@ export function onMount(rootElement) {
     missingCashBtn.addEventListener('click', () => {
       const inputVal = document.getElementById('opening-cash-input').value;
       const num = Number(inputVal);
-      if (!inputVal || !Number.isFinite(num) || num < 0) {
+      if (!inputVal || inputVal.trim() === '') {
+        if (window.showToast) {
+          window.showToast('Opening Cash Required', 'danger');
+        } else {
+          NotificationService.error('Opening Cash Required');
+        }
+        return;
+      }
+      if (!Number.isFinite(num) || num < 0) {
         NotificationService.error('Please enter a valid positive amount.');
         return;
       }
