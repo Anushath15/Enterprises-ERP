@@ -1094,6 +1094,19 @@ export function onMount(rootElement) {
       }
     }
 
+    // FIX-04: Calculate cartDiscountRatio to prorate global cart discount onto line items
+    let cartTotalBeforeDiscount = 0;
+    cart.forEach(item => { cartTotalBeforeDiscount += (item.qty * item.price); });
+    let globalCartDiscount = 0;
+    if (discountVal > 0 && cartTotalBeforeDiscount > 0) {
+       if (discountType === 'percent') {
+          globalCartDiscount = cartTotalBeforeDiscount * (discountVal / 100);
+       } else {
+          globalCartDiscount = Math.min(discountVal, cartTotalBeforeDiscount);
+       }
+    }
+    let cartDiscountRatio = cartTotalBeforeDiscount > 0 ? (globalCartDiscount / cartTotalBeforeDiscount) : 0;
+
     return {
       id: isDraft ? mockId : undefined,
       date: new Date().toISOString(),
@@ -1102,8 +1115,10 @@ export function onMount(rootElement) {
       items: cart.map(i => {
          const mode = i.pricingMode || 'inclusive';
          const rawBase = i.price * i.qty;
-         const rawDisc = rawBase * ((i.discountPercent || 0) / 100);
-         const rawAfterDisc = rawBase - rawDisc;
+         const itemDisc = rawBase * ((i.discountPercent || 0) / 100);
+         const globalDiscShare = rawBase * cartDiscountRatio;
+         const totalItemDisc = itemDisc + globalDiscShare;
+         const rawAfterDisc = rawBase - totalItemDisc;
          const gstFactor = 1 + ((i.taxRate || 0) / 100);
          let lineTaxable = 0, lineTax = 0;
          if (mode === 'inclusive') {
@@ -1121,7 +1136,7 @@ export function onMount(rootElement) {
            taxRate: i.taxRate,
            pricingMode: i.pricingMode,
            discountPercent: i.discountPercent || 0,
-           discountAmount: rawDisc,
+           discountAmount: totalItemDisc,
            total: lineTaxable + lineTax
          };
       }),
