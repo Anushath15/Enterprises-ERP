@@ -765,7 +765,7 @@ export function onMount(rootElement) {
       <div class="receipt-divider"></div>
       <table style="width: 100%; font-size: 10px;">
         <tr><th style="text-align:left">Item</th><th style="text-align:right">Rate</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr>
-        ${(estimation.items || []).map(item => {
+        ${(invoice.items || []).map(item => {
            const mode = item.pricingMode || 'inclusive';
            const qty = num(item.qty);
            const price = num(item.price);

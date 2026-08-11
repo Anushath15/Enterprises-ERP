@@ -11,6 +11,27 @@ import { todayISO } from '../utils/dateUtils.js';
 export async function render() {
   const currentDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const todayStr = todayISO(); // DC-VAR-SHADOW FIX: renamed to todayStr so it does not shadow the imported fn
+
+  // FIX-01: Duplicate-closing guard — if the day is already closed, show a
+  // read-only confirmation screen and prevent a second submission.
+  const lastClosedDate = localStorage.getItem('erp_last_closed_date');
+  if (lastClosedDate === todayStr) {
+    return `
+      <div class="p-4 max-w-[500px] mx-auto fade-in mt-10" id="already-closed-view">
+        <div class="bg-white erp-card p-8 border-t-4 border-t-success shadow-sm text-center">
+          <div class="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+          </div>
+          <h2 class="text-xl font-bold text-text mb-2">Day Already Closed</h2>
+          <p class="text-gray-500 mb-2">Today's closing (<strong>${todayStr}</strong>) has already been submitted.</p>
+          <p class="text-sm text-gray-400 mb-6">Opening cash for tomorrow is set. No further action needed.</p>
+          <a href="#/" class="inline-flex items-center gap-2 bg-primary text-white py-2.5 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Return to Dashboard
+          </a>
+        </div>
+      </div>
+    `;
+  }
   const invoices = (DataProvider.getSalesInvoices() || []).filter(i => (i.date || '').startsWith(todayStr));
   const expenses = (DataProvider.getExpenses() || []).filter(e => (e.date || '').startsWith(todayStr));
   
@@ -336,7 +357,8 @@ export function onMount(rootElement) {
              actualCash: actualCashNum,
              difference: actualCashNum - expectedAmount,
              remarks: remarks,
-             closedBy: 'admin',
+             // FIX-03: record the actual logged-in user, not hardcoded 'admin'
+             closedBy: (() => { try { const s = localStorage.getItem('auth_user'); return s ? JSON.parse(s).username : 'admin'; } catch(e) { return 'admin'; } })(),
              createdAt: new Date().toISOString()
            };
            

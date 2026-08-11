@@ -205,7 +205,8 @@ export const OfflineDataProvider = {
         entity = { ...prev, ...entity };
         // Trust boundary: caller-supplied data must not forge metadata
         entity.updatedAt = new Date().toISOString();
-        entity.updatedBy = 'USR-01';
+        // FIX-02: record the actual logged-in user, not hardcoded 'USR-01'
+        entity.updatedBy = (() => { try { const s = localStorage.getItem('auth_user'); return s ? JSON.parse(s).id : 'SYSTEM'; } catch(e) { return 'SYSTEM'; } })();
         entity.version = (Number(prev.version) || 1) + 1;
         entity.isDeleted = prev.isDeleted === true;
         entity.createdAt = prev.createdAt;
@@ -232,7 +233,8 @@ export const OfflineDataProvider = {
         ...prev,
         isDeleted: true,
         updatedAt: new Date().toISOString(),
-        updatedBy: 'USR-01',
+        // FIX-02: record the actual logged-in user, not hardcoded 'USR-01'
+        updatedBy: (() => { try { const s = localStorage.getItem('auth_user'); return s ? JSON.parse(s).id : 'SYSTEM'; } catch(e) { return 'SYSTEM'; } })(),
         version: (Number(prev.version) || 1) + 1
       };
       LocalStorageService.set(collectionKey, list);

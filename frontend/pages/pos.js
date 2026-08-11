@@ -895,6 +895,8 @@ export function onMount(rootElement) {
     const subtotal = num(invoice.subtotal);
     const discount = num(invoice.discount);
     const totalAmount = num(invoice.totalAmount || invoice.total);
+    const cgstTotal = num(invoice.cgstTotal || invoice.taxTotal / 2);
+    const sgstTotal = num(invoice.sgstTotal || invoice.taxTotal / 2);
     
     // Fallback ID if not provided, though it shouldn't happen anymore
     const invoiceId = invoice.id || 'DRAFT';
