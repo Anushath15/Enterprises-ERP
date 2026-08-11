@@ -65,7 +65,7 @@ export async function render() {
         <!-- RIGHT: Cart + Summary (2 cols) -->
         <div class="lg:col-span-2 flex flex-col gap-4 h-full">
           <!-- Cart -->
-          <div class="bg-white rounded-xl border border-border flex-1 flex flex-col overflow-hidden shadow-sm">
+          <div class="bg-white rounded-xl border border-border flex-initial flex flex-col overflow-hidden shadow-sm">
             <div class="px-4 py-3 border-b border-border flex items-center justify-between bg-gray-50/50">
               <div class="flex items-center gap-2">
                 <i data-lucide="shopping-cart" class="w-4 h-4 text-primary"></i>
