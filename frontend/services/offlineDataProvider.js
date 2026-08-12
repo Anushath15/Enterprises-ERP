@@ -4,7 +4,7 @@
  */
 import { LocalStorageService } from './storage/localStorageService.js';
 import { SeedData } from '../data/seedData.js';
-import { verifyPassword, hashPassword, DEFAULT_PASSWORD_SALT } from '../utils/password.js';
+import { verifyPassword, hashPassword, DEFAULT_PASSWORD_SALT, DEFAULT_PIN_HASH } from '../utils/password.js';
 
 export const OfflineDataProvider = {
   
@@ -20,16 +20,13 @@ export const OfflineDataProvider = {
     }
 
     if (!LocalStorageService.has('erp_auth_users')) {
-      // Seed default accounts
-      const pinSalt = DEFAULT_PASSWORD_SALT;
-      const defaultPin = '1234';
-      const defaultHash = await hashPassword(defaultPin, pinSalt);
-
+      // Seed default accounts with PIN "1234" (pre-computed hash — no async needed).
+      // All accounts have requiresPinChange: true so users must set a new PIN on first login.
       LocalStorageService.set('erp_auth_users', [
-        { id: 'USR-01', username: 'admin', pinHash: defaultHash, role: 'admin', requiresPinChange: true },
-        { id: 'USR-02', username: 'cashier', pinHash: defaultHash, role: 'cashier', requiresPinChange: true },
-        { id: 'USR-03', username: 'accountant', pinHash: defaultHash, role: 'accountant', requiresPinChange: true },
-        { id: 'USR-04', username: 'storekeeper', pinHash: defaultHash, role: 'storekeeper', requiresPinChange: true }
+        { id: 'USR-01', username: 'admin',       pinHash: DEFAULT_PIN_HASH, role: 'admin',       requiresPinChange: true },
+        { id: 'USR-02', username: 'cashier',     pinHash: DEFAULT_PIN_HASH, role: 'cashier',     requiresPinChange: true },
+        { id: 'USR-03', username: 'accountant',  pinHash: DEFAULT_PIN_HASH, role: 'accountant',  requiresPinChange: true },
+        { id: 'USR-04', username: 'storekeeper', pinHash: DEFAULT_PIN_HASH, role: 'storekeeper', requiresPinChange: true }
       ]);
     }
   },
