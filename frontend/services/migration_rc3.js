@@ -3,7 +3,7 @@
  * Safely upgrades LocalStorage schema for RC3 features without data loss.
  */
 import { LocalStorageService } from './storage/localStorageService.js';
-import { DEFAULT_PASSWORD_SALT, DEFAULT_PASSWORD_HASH } from '../utils/password.js';
+import { DEFAULT_PASSWORD_SALT, DEFAULT_PIN_HASH } from '../utils/password.js';
 
 const ROLE_NORMALIZE = {
   'Administrator': 'admin',
@@ -113,7 +113,7 @@ export const MigrationRC3 = {
       }
       if (!u.passwordHash) {
         u.passwordSalt = DEFAULT_PASSWORD_SALT;
-        u.passwordHash = DEFAULT_PASSWORD_HASH;
+        u.passwordHash = DEFAULT_PIN_HASH;
         usersModified = true;
       }
       return u;

@@ -699,7 +699,7 @@ export const OfflineDataProvider = {
   saveUser(user) {
     if (!user.id && !user.passwordHash) {
       user.passwordSalt = DEFAULT_PASSWORD_SALT;
-      user.passwordHash = DEFAULT_PASSWORD_HASH;
+      user.passwordHash = DEFAULT_PIN_HASH;
     }
     return this._save('erp_users', user, 'USR');
   },
