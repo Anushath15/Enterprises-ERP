@@ -24,6 +24,8 @@ const App = {
 
     // Initialize Offline Data Layer
     await DataProvider.init();
+    // Expose globally so pages (login.js, pos.js, etc.) can call window.DataProvider.*
+    window.DataProvider = DataProvider;
     
     // Daily automatic backup (once per day; boot + hourly + tab-return checks)
     BackupService.init();
