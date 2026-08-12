@@ -139,18 +139,22 @@ function renderSectionBackup(settings) {
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-4 pt-4 mt-2">
-        <button type="button" id="btn-create-backup" class="btn btn-primary">
-          Create Backup Now
+      <div class="grid grid-cols-2 gap-3 pt-4 mt-2">
+        <button type="button" id="btn-create-backup"
+          class="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+          <i data-lucide="database" class="w-4 h-4"></i> Create Backup Now
         </button>
-        <button type="button" id="btn-restore-backup" class="btn btn-secondary">
-          Restore Backup…
+        <button type="button" id="btn-restore-backup"
+          class="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-border text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+          <i data-lucide="upload" class="w-4 h-4"></i> Restore Backup…
         </button>
-        <button type="button" id="btn-export-center" class="btn btn-outline">
-          Open Export Center
+        <button type="button" id="btn-export-center"
+          class="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-border text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+          <i data-lucide="download" class="w-4 h-4"></i> Open Export Center
         </button>
-        <button type="button" id="btn-db-maintenance" class="btn btn-outline">
-          Database Maintenance
+        <button type="button" id="btn-db-maintenance"
+          class="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-border text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+          <i data-lucide="settings-2" class="w-4 h-4"></i> Database Maintenance
         </button>
       </div>
     </section>
@@ -278,10 +282,14 @@ export function render() {
         ${renderSectionAbout()}
       </form>
 
-      <div class="mt-8 flex justify-end gap-3">
-        <button type="button" id="btn-reset-settings" class="btn btn-outline">Reset to Defaults</button>
-        <button type="submit" form="settings-form" id="btn-save-settings" class="btn btn-primary">
-          Save Settings
+      <div class="mt-8 pt-6 border-t border-border flex justify-end gap-3">
+        <button type="button" id="btn-reset-settings"
+          class="flex items-center gap-2 px-5 py-2.5 bg-white border border-border text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset to Defaults
+        </button>
+        <button type="submit" form="settings-form" id="btn-save-settings"
+          class="flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Settings
         </button>
       </div>
     </div>
