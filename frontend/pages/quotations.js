@@ -120,7 +120,6 @@ export async function render() {
               </select>
             </div>
 
-            <!-- Payment Mode -->
             <!-- Action Buttons -->
             <div class="grid grid-cols-3 gap-2">
               <button id="btn-save-estimation" class="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-white border border-border text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm" title="Save (F2 or Ctrl+S)">
@@ -136,6 +135,10 @@ export async function render() {
                 <i data-lucide="eye" class="w-4 h-4"></i> Preview
               </button>
             </div>
+            <!-- Saved Estimations Button -->
+            <button id="btn-view-saved-estimations" class="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-2 bg-white border border-border text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+              <i data-lucide="list" class="w-4 h-4"></i> Saved Estimations
+            </button>
           </div>
         </div>
       </div>
@@ -192,6 +195,29 @@ export async function render() {
            <button id="btn-preview-print" class="flex-1 px-3 py-2 text-sm text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 font-medium">
              <i data-lucide="printer" class="w-4 h-4"></i> Print Receipt
            </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Estimations Modal -->
+    <div id="saved-est-modal-overlay" class="fixed inset-0 bg-black/40 z-[80] opacity-0 pointer-events-none transition-opacity duration-200 flex items-center justify-center">
+      <div class="bg-white rounded-xl shadow-2xl w-[720px] max-w-[95vw] flex flex-col max-h-[85vh]" id="saved-est-modal">
+        <div class="p-4 border-b border-border flex items-center justify-between shrink-0">
+          <h3 class="text-base font-semibold text-text flex items-center gap-2">
+            <i data-lucide="list" class="w-4 h-4 text-primary"></i> Saved Estimations
+          </h3>
+          <button id="close-saved-est-modal" class="text-gray-400 hover:text-danger hover:bg-danger/10 p-1 rounded transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="p-3 border-b border-border shrink-0">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="saved-est-search" placeholder="Search by ID or customer name..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary">
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto" id="saved-est-list">
+          <!-- Rows rendered dynamically -->
         </div>
       </div>
     </div>
@@ -855,16 +881,26 @@ export function onMount(rootElement) {
         </tr>`;
     }).join('');
 
-    return `
-    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 100%; margin: 0 auto; color: #000;">
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estimation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #fff; color: #000; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  @media print { body { margin: 0; } }
+</style>
+</head>
+<body>
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 100%; margin: 0 auto; color: #000; padding: 15px;">
         <!-- Header -->
         <div style="text-align:center; margin-bottom: 15px;">
             ${settings.showLogoOnInvoice && settings.logoUrl ? `<img src="${settings.logoUrl}" style="max-height:60px; margin-bottom:5px;" />` : ''}
             <h2 style="margin:0; font-size: 18px; font-weight: bold; text-transform: uppercase;">${escapeHtml(shopName)}</h2>
    <div style="font-size: 14px; font-weight: bold; margin-top: 5px;">ESTIMATION</div>
    <div style="font-size: 10px; font-weight: bold; margin-top: 2px;">( NOT A TAX INVOICE )</div>
-            ${shopAddress ? `<div style="font-size: 12px; margin-top: 2px;">${escapeHtml(shopAddress)}</div>` : ''}
-            ${shopPhone ? `<div style="font-size: 12px; margin-top: 2px;">Ph: ${escapeHtml(shopPhone)}</div>` : ''}
         </div>
         
         <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 10px; font-size: 12px;">
@@ -923,12 +959,12 @@ export function onMount(rootElement) {
 
         <!-- Footer -->
         <div style="margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-size: 11px; text-align: center;">
-            ${showPayMode ? `<div style="margin-bottom: 5px;">Payment Mode: <b>${escapeHtml(invoice.paymentMode)}</b></div>` : ''}
-            <div>Prepared By: <b>Cashier</b></div>
-            ${settings.footerMessage ? `<div style="margin-top: 10px;">${escapeHtml(settings.footerMessage)}</div>` : ''}
+            ${settings.footerMessage ? `<div style="margin-bottom: 8px;">${escapeHtml(settings.footerMessage)}</div>` : ''}
             <div style="margin-top: 5px;">Thank You! Please visit again.</div>
         </div>
-    </div>`;
+    </div>
+</body>
+</html>`;
   };
 
   
@@ -1264,6 +1300,124 @@ export function onMount(rootElement) {
   // Print Preview
   addListener(rootElement.querySelector('#btn-print-preview'), 'click', () => openPrintPreview(null));
 
+  // =====================
+  // SAVED ESTIMATIONS MODAL
+  // =====================
+  const savedEstOverlay = rootElement.querySelector('#saved-est-modal-overlay');
+  const savedEstList = rootElement.querySelector('#saved-est-list');
+  const savedEstSearch = rootElement.querySelector('#saved-est-search');
+
+  const renderSavedEstimations = (query = '') => {
+    const estimations = (DataProvider.getEstimations ? DataProvider.getEstimations() : [])
+      .filter(e => !e._deleted)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const q = query.toLowerCase().trim();
+    const filtered = q
+      ? estimations.filter(e =>
+          (e.id || '').toLowerCase().includes(q) ||
+          (e.customerName || '').toLowerCase().includes(q))
+      : estimations;
+
+    if (filtered.length === 0) {
+      savedEstList.innerHTML = `<div class="p-8 text-center text-gray-400 text-sm">No saved estimations found.</div>`;
+      return;
+    }
+
+    savedEstList.innerHTML = `
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase sticky top-0">
+          <tr>
+            <th class="px-4 py-3 text-left">ID</th>
+            <th class="px-4 py-3 text-left">Date</th>
+            <th class="px-4 py-3 text-left">Customer</th>
+            <th class="px-4 py-3 text-right">Amount</th>
+            <th class="px-4 py-3 text-center">Status</th>
+            <th class="px-4 py-3 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(est => {
+            const d = new Date(est.date);
+            const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            const amt = Number(est.totalAmount || est.total || 0);
+            const statusColors = {
+              Draft: 'bg-gray-100 text-gray-600',
+              Sent: 'bg-blue-100 text-blue-700',
+              Confirmed: 'bg-green-100 text-green-700',
+              Converted: 'bg-purple-100 text-purple-700',
+              Cancelled: 'bg-red-100 text-red-600',
+              Expired: 'bg-amber-100 text-amber-700'
+            };
+            const sc = statusColors[est.status] || 'bg-gray-100 text-gray-600';
+            return `<tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors" data-est-id="${escapeHtml(est.id)}">
+              <td class="px-4 py-3 font-mono text-xs text-primary font-semibold">${escapeHtml(est.id)}</td>
+              <td class="px-4 py-3 text-gray-600">${dateStr}</td>
+              <td class="px-4 py-3 text-gray-700">${escapeHtml(est.customerName || 'Walk-in')}</td>
+              <td class="px-4 py-3 text-right font-semibold text-gray-800">₹${amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+              <td class="px-4 py-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium ${sc}">${escapeHtml(est.status || 'Draft')}</span>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <button class="est-action-print p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" data-id="${escapeHtml(est.id)}" title="Print">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                  </button>
+                  ${(est.status !== 'Converted' && est.status !== 'Cancelled') ? `<button class="est-action-convert p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors" data-id="${escapeHtml(est.id)}" title="Convert to Invoice">
+                    <i data-lucide="file-check-2" class="w-4 h-4"></i>
+                  </button>` : ''}
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    if (window.lucide) window.lucide.createIcons({ attrs: { class: ['w-4', 'h-4'] } });
+  };
+
+  const openSavedEstModal = () => {
+    if (!savedEstOverlay) return;
+    renderSavedEstimations('');
+    if (savedEstSearch) savedEstSearch.value = '';
+    savedEstOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  const closeSavedEstModal = () => {
+    if (!savedEstOverlay) return;
+    savedEstOverlay.classList.add('opacity-0', 'pointer-events-none');
+  };
+
+  addListener(rootElement.querySelector('#btn-view-saved-estimations'), 'click', openSavedEstModal);
+  addListener(rootElement.querySelector('#close-saved-est-modal'), 'click', closeSavedEstModal);
+  addListener(savedEstOverlay, 'click', (e) => { if (e.target === savedEstOverlay) closeSavedEstModal(); });
+
+  addListener(savedEstSearch, 'input', (e) => {
+    renderSavedEstimations(e.target.value);
+  });
+
+  addListener(savedEstList, 'click', (e) => {
+    const printBtn = e.target.closest('.est-action-print');
+    const convertBtn = e.target.closest('.est-action-convert');
+
+    if (printBtn) {
+      const id = printBtn.getAttribute('data-id');
+      const estimations = DataProvider.getEstimations ? DataProvider.getEstimations() : [];
+      const est = estimations.find(x => x.id === id);
+      if (est) {
+        closeSavedEstModal();
+        openPrintPreview(est);
+      }
+      return;
+    }
+
+    if (convertBtn) {
+      const id = convertBtn.getAttribute('data-id');
+      closeSavedEstModal();
+      window.location.hash = '#/pos?estimateId=' + id;
+      return;
+    }
+  });
+
   const isInputFocused = () => {
     const active = document.activeElement;
     if (!active) return false;
@@ -1274,8 +1428,10 @@ export function onMount(rootElement) {
   const isModalOpen = () => {
     const customerOverlay = rootElement.querySelector('#customer-modal-overlay');
     const previewOverlay = rootElement.querySelector('#print-preview-modal-overlay');
+    const estOverlay = rootElement.querySelector('#saved-est-modal-overlay');
     return (!customerOverlay.classList.contains('pointer-events-none') || 
-            !previewOverlay.classList.contains('pointer-events-none'));
+            !previewOverlay.classList.contains('pointer-events-none') ||
+            (estOverlay && !estOverlay.classList.contains('pointer-events-none')));
   };
 
   // Keyboard shortcuts
@@ -1311,6 +1467,7 @@ export function onMount(rootElement) {
 
     if (e.key === 'Escape') {
       closeCustomerModal();
+      closeSavedEstModal();
       if (typeof closePrintPreview === 'function') closePrintPreview();
     }
   };

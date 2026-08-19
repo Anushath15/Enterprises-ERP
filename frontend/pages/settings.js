@@ -124,7 +124,6 @@ function renderSectionBackup(settings) {
           { value: 'weekly', label: 'Weekly' },
           { value: 'monthly', label: 'Monthly' }
         ])}
-        ${textInput('Admin Password (DB Reset)', 'adminPassword', settings.adminPassword, { type: 'password' })}
         ${toggleInput('Auto Backup Enabled', 'autoBackupEnabled', settings.autoBackupEnabled)}
       </div>
 

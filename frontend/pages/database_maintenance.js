@@ -12,7 +12,6 @@
  */
 import { MaintenanceService } from '../services/maintenanceService.js';
 import { NotificationService } from '../services/notificationService.js';
-import { settingsService } from '../services/settingsService.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
 import { formatCurrency, formatDate } from '../utils/exportUtils.js';
 
@@ -181,13 +180,20 @@ function renderCleanup(c) {
 }
 
 function renderReset() {
+  // Resolve currently logged-in username for display
+  let currentUsername = 'your account';
+  try {
+    const s = localStorage.getItem('auth_user');
+    if (s) currentUsername = JSON.parse(s).username || 'your account';
+  } catch (_) {}
+
   return `
     <div class='bg-red-50 border border-red-200 rounded-lg p-4 space-y-4'>
       <h3 class='font-bold text-red-800 flex items-center gap-2'>${icon('alert-triangle')} Permanent Database Reset</h3>
       <p class='text-sm text-red-800'>This completely wipes ALL ERP data (products, customers, dealers, invoices, expenses, settings, daily closings, stock adjustments and every erp_* collection). This action cannot be undone. After completion the application reloads to a fresh install state.</p>
       <p class='text-sm text-red-800'>A backup is strongly recommended before resetting.</p>
       <label class='flex items-center gap-2 text-sm'><input type='checkbox' id='reset-backup-got-it' class='rounded border-red-300 text-red-600' /> <span>I have created a backup (or understand the risk)</span></label>
-      <label class='flex items-center gap-2 text-sm'><input type='password' id='reset-admin-pwd' class='font-mono border border-red-300 rounded px-2 py-1 w-40' placeholder='Admin Password' /> <span class='text-xs text-red-700'>Required authentication</span></label>
+      <label class='flex items-center gap-2 text-sm'><input type='password' id='reset-admin-pwd' class='font-mono border border-red-300 rounded px-2 py-1 w-56' placeholder='Enter your PIN (${escapeHtml(currentUsername)})' /> <span class='text-xs text-red-700'>Confirm your own login PIN to authorise</span></label>
       <label class='flex items-center gap-2 text-sm'><input type='text' id='reset-confirmation' class='font-mono border border-red-300 rounded px-2 py-1 w-40' placeholder='Type ERASE' /> <span class='text-xs text-red-700'>Type <b>ERASE</b> to enable reset</span></label>
       <div class='flex gap-3'><button id='reset-run' type='button' class='btn bg-red-600 hover:bg-red-700 text-white' disabled>${icon('power')} Reset Database</button><span id='reset-result' class='text-sm text-gray-500'></span></div>
     </div>
@@ -302,14 +308,19 @@ export function onMount(rootElement) {
         updateBtn();
         addListener(btn, 'click', async () => {
           if (!chk.checked || input.value !== 'ERASE') { out.textContent = 'Confirm via checkbox and typing ERASE.'; return; }
-          const settings = settingsService.load();
-          if (pwd.value !== settings.adminPassword) {
-            out.textContent = 'Authentication failed. Incorrect admin password.';
+          // SEC-03 fix: verify the logged-in user's own PIN via the real auth path (async WebCrypto SHA-256)
+          let currentUsername = null;
+          try { const s = localStorage.getItem('auth_user'); if (s) currentUsername = JSON.parse(s).username; } catch (_) {}
+          if (!currentUsername) { out.textContent = 'Authentication error: no active session.'; return; }
+          out.textContent = 'Verifying PIN…';
+          const pinOk = await window.DataProvider.login(currentUsername, pwd.value);
+          if (!pinOk) {
+            out.textContent = 'Authentication failed. Incorrect PIN.';
             return;
           }
           const c1 = await window.confirm('FINAL WARNING: you are about to destroy ALL ERP data and reload.');
           if (!c1) { out.textContent = 'Reset cancelled.'; return; }
-          const c2 = await window.confirm('Type ERASE to confirm this final dialog. All data will be lost.');
+          const c2 = await window.confirm('Are you absolutely sure? All data will be permanently lost.');
           if (!c2) { out.textContent = 'Reset cancelled.'; return; }
           out.textContent = 'Resetting database…';
           const r = await MaintenanceService.resetDatabase({ confirmed: true, confirmationText: 'ERASE' });

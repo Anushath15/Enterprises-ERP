@@ -123,12 +123,12 @@ export const OfflineDataProvider = {
     const userIndex = users.findIndex(u => u.username === username);
     if (userIndex === -1) throw new Error('User not found');
     
-    const pinHash = await hashPassword(newPin, DEFAULT_PASSWORD_SALT);
-    users[userIndex].pinHash = pinHash;
+    const hashed = await hashForReset(newPin);
+    users[userIndex].passwordSalt = hashed.passwordSalt;
+    users[userIndex].pinHash = hashed.passwordHash;
     users[userIndex].requiresPinChange = false;
     LocalStorageService.set('erp_auth_users', users);
-    
-    // Update active session if changing own PIN
+
     const authStr = localStorage.getItem('auth_user');
     if (authStr) {
       const authUser = JSON.parse(authStr);
@@ -138,6 +138,10 @@ export const OfflineDataProvider = {
       }
     }
     return true;
+  },
+
+  getAuthUsers() {
+    return LocalStorageService.get('erp_auth_users') || [];
   },
 
   async getMe() {
@@ -697,10 +701,6 @@ export const OfflineDataProvider = {
     return this._getAll('erp_users');
   },
   saveUser(user) {
-    if (!user.id && !user.passwordHash) {
-      user.passwordSalt = DEFAULT_PASSWORD_SALT;
-      user.passwordHash = DEFAULT_PIN_HASH;
-    }
     return this._save('erp_users', user, 'USR');
   },
   saveSalesReturn(ret) {
@@ -760,18 +760,7 @@ export const OfflineDataProvider = {
   submitDailyClosing(closingData) {
     return this._save('erp_daily_closings', closingData, 'CLS');
   },
-  async resetUserPassword(userId, newPassword) {
-    const users = this._getAll('erp_users');
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      const hashed = await hashForReset(newPassword);
-      user.passwordSalt = hashed.passwordSalt;
-      user.passwordHash = hashed.passwordHash;
-      LocalStorageService.set('erp_users', users);
-      return true;
-    }
-    return false;
-  },
+
   updateWarrantyClaim(id, status, details) {
     const warranty = this._getAll('erp_warranties').find(w => w.id === id);
     if (warranty) {

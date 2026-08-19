@@ -201,11 +201,6 @@ app.whenReady().then(() => {
   ipcMain.handle('open-print-preview', async (event, html, options = {}) => {
     return new Promise((resolve, reject) => {
       try {
-        const hiddenWin = new BrowserWindow({ 
-          show: false, 
-          webPreferences: { nodeIntegration: false, contextIsolation: true } 
-        });
-
         const paperSize = options.paperSize || 'A4';
         let pageSize;
         if (paperSize === 'A4') {
@@ -216,7 +211,16 @@ app.whenReady().then(() => {
           pageSize = { width: 58000, height: 297000 }; // 58mm
         }
 
-        hiddenWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+        // Write HTML to a temp file to avoid data: URL size limits
+        const tempHtmlPath = path.join(app.getPath('temp'), `erp_print_${Date.now()}.html`);
+        fs.writeFileSync(tempHtmlPath, html, 'utf8');
+
+        const hiddenWin = new BrowserWindow({ 
+          show: false, 
+          webPreferences: { nodeIntegration: false, contextIsolation: true } 
+        });
+
+        hiddenWin.loadFile(tempHtmlPath);
 
         hiddenWin.webContents.on('did-finish-load', async () => {
           try {
@@ -226,9 +230,12 @@ app.whenReady().then(() => {
               marginsType: 1 // No margins
             });
 
-            const tempPath = path.join(app.getPath('temp'), `preview_${Date.now()}.pdf`);
-            fs.writeFileSync(tempPath, pdfBuffer);
             hiddenWin.close();
+            // Clean up the temp HTML file
+            try { fs.unlinkSync(tempHtmlPath); } catch (e) {}
+
+            const tempPdfPath = path.join(app.getPath('temp'), `erp_preview_${Date.now()}.pdf`);
+            fs.writeFileSync(tempPdfPath, pdfBuffer);
 
             const previewWin = new BrowserWindow({
               width: 900,
@@ -236,25 +243,37 @@ app.whenReady().then(() => {
               title: 'Print Preview',
               icon: path.join(__dirname, 'assets', 'icon.ico'),
               webPreferences: {
-                plugins: true // crucial for PDF viewer
+                // No plugins:true — Electron 29+ has a built-in PDF viewer
+                nodeIntegration: false,
+                contextIsolation: true
               }
             });
 
             previewWin.setMenuBarVisibility(false);
-            previewWin.loadFile(tempPath);
+            // Use loadURL with file:// for reliable cross-platform PDF loading
+            previewWin.loadURL('file:///' + tempPdfPath.replace(/\\/g, '/'));
             
-            // cleanup temp file when window is closed
+            // cleanup temp PDF when window is closed
             previewWin.on('closed', () => {
-              try { fs.unlinkSync(tempPath); } catch (e) {}
+              try { fs.unlinkSync(tempPdfPath); } catch (e) {}
             });
             
             resolve(true);
           } catch (e) {
             console.error('PDF generation failed:', e);
-            hiddenWin.close();
+            try { hiddenWin.close(); } catch (_) {}
+            try { fs.unlinkSync(tempHtmlPath); } catch (_) {}
             resolve(false);
           }
         });
+
+        hiddenWin.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
+          console.error('Hidden window failed to load HTML:', errorCode, errorDesc);
+          try { hiddenWin.close(); } catch (_) {}
+          try { fs.unlinkSync(tempHtmlPath); } catch (_) {}
+          resolve(false);
+        });
+
       } catch (err) {
         console.error('Print preview error:', err);
         resolve(false);

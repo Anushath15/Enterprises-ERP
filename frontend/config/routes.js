@@ -30,6 +30,11 @@ export const routes = [
     componentPath: '../pages/sales.js',
   },
   {
+    path: '/sales-analytics',
+    name: 'Sales Analytics',
+    componentPath: '../pages/sales_analytics.js',
+  },
+  {
     path: '/inventory',
     name: 'Inventory',
     componentPath: '../pages/inventory.js',

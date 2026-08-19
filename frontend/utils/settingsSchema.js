@@ -58,7 +58,7 @@ export const SETTINGS_DEFAULTS = {
   currencySymbol: '\u20B9',
   timeZone: 'Asia/Kolkata',
   dbVersion: '1',
-  adminPassword: 'admin123',
+  // adminPassword removed (SEC-01/SEC-02): DB reset now verified via current user's PIN
 
   // Session state (read/written by daily_closing.js)
   sessionOpen: false,
@@ -117,7 +117,7 @@ export const FIELD_SECTIONS = {
     'autoPrintAfterSave', 'paperSize', 'printCopies', 'footerMessage', 'terms'
   ],
   inventory: ['lowStockThreshold', 'defaultUnit', 'allowNegativeStock', 'autoUpdateStock', 'stockWarningColor'],
-  backup: ['backupFrequency', 'autoBackupEnabled', 'adminPassword'],
+  backup: ['backupFrequency', 'autoBackupEnabled'],
   appearance: ['theme', 'compactMode', 'fontSize', 'sidebarCollapsed'],
   about: []
 };
@@ -240,7 +240,7 @@ export function getFieldLabel(field) {
     stockWarningColor: 'Stock Warning Color',
     backupFrequency: 'Backup Frequency',
     autoBackupEnabled: 'Auto Backup Enabled',
-    adminPassword: 'Admin Password (DB Reset)',
+    // adminPassword removed — no longer a settings field
     theme: 'Theme',
     compactMode: 'Compact Mode',
     fontSize: 'Font Size',

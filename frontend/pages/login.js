@@ -4,6 +4,12 @@
  * Returning a DOM node produces "[object HTMLDivElement]" — fixed.
  */
 export async function render() {
+  const users = window.DataProvider ? window.DataProvider.getAuthUsers() : [];
+  
+  const options = users.length > 0 
+    ? users.map(u => `<option value="${u.username}">${u.username}</option>`).join('')
+    : '<option value="">No accounts found</option>';
+
   return `
     <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4" id="login-root">
       <div class="max-w-md w-full bg-white rounded-xl shadow-lg border border-border p-8" id="auth-card">
@@ -16,10 +22,7 @@ export async function render() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <select id="login-username" class="w-full px-4 py-2 bg-gray-50 border border-border rounded-lg text-text focus:outline-none focus:border-primary">
-              <option value="admin">Admin</option>
-              <option value="cashier">Cashier</option>
-              <option value="accountant">Accountant</option>
-              <option value="storekeeper">Storekeeper</option>
+              ${options}
             </select>
           </div>
 

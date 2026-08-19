@@ -280,6 +280,11 @@ export function onMount(rootElement) {
            window.history.replaceState(null, null, '#/pos');
            return;
        }
+       if (estimation.status === 'Cancelled') {
+           NotificationService.error('Estimation has been cancelled and cannot be converted.');
+           window.history.replaceState(null, null, '#/pos');
+           return;
+       }
        cart = estimation.items || [];
        selectedCustomer = { id: estimation.customerId, name: estimation.customerName };
        paymentMode = 'Cash'; // Default to cash for new invoice
@@ -946,8 +951,19 @@ export function onMount(rootElement) {
         </tr>`;
     }).join('');
 
-    return `
-    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 100%; margin: 0 auto; color: #000;">
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #fff; color: #000; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  @media print { body { margin: 0; } }
+</style>
+</head>
+<body>
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 100%; margin: 0 auto; color: #000; padding: 15px;">
         <!-- Header -->
         <div style="text-align:center; margin-bottom: 15px;">
             ${settings.showLogoOnInvoice && settings.logoUrl ? `<img src="${settings.logoUrl}" style="max-height:60px; margin-bottom:5px;" />` : ''}
@@ -1000,9 +1016,13 @@ export function onMount(rootElement) {
                 <span>Discount:</span>
                 <span>- ₹${discount.toFixed(2)}</span>
               </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;">
+                <span>CGST:</span>
+                <span>+ ₹${cgstTotal.toFixed(2)}</span>
+              </div>
               <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:5px;">
-                <span>Total GST:</span>
-                <span>+ ₹${(cgstTotal + sgstTotal).toFixed(2)}</span>
+                <span>SGST:</span>
+                <span>+ ₹${sgstTotal.toFixed(2)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:bold;margin-bottom:3px;">
                 <span>Round Off:</span>
@@ -1022,7 +1042,9 @@ export function onMount(rootElement) {
             ${settings.footerMessage ? `<div style="margin-top: 10px;">${escapeHtml(settings.footerMessage)}</div>` : ''}
             <div style="margin-top: 5px;">Thank You! Please visit again.</div>
         </div>
-    </div>`;
+    </div>
+</body>
+</html>`;
   };
 
   
@@ -1135,6 +1157,8 @@ export function onMount(rootElement) {
            price: i.price,
            taxRate: i.taxRate,
            pricingMode: i.pricingMode,
+           // RC4: snapshot cost at sale time for accurate profit analytics
+           costPrice: Number(i.avgCost || i.buyingPrice || 0),
            discountPercent: i.discountPercent || 0,
            discountAmount: totalItemDisc,
            total: lineTaxable + lineTax
